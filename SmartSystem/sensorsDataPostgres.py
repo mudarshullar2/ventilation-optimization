@@ -1,17 +1,16 @@
-import psycopg2
 import random
 from datetime import datetime
 import schedule
 import time
 import logging
 from SmartSystem.config import load_database_config
+from SmartSystem.database import connect_to_database, close_connection
 
 
 # Logging konfigurieren
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
-
 
 config = load_database_config("/SmartSystem/databaseConfig.yaml")
 
@@ -31,27 +30,15 @@ def generate_sensor_data():
     return timestamp, temperature, humidity, co2_values, tvoc_values
 
 
-def insert_sensor_data():
+def insert_sensor_data(cursor):
     """
     Fügt zufällig generierte Sensordaten in die PostgreSQL-Datenbank ein.
 
+    Args:
+        cursor: Ein Cursor-Objekt für die Datenbankverbindung.
     """
     try:
-        # Mit PostgreSQL verbinden
-        conn = psycopg2.connect(
-            dbname=config["DBNAME"],
-            user=config["DBUSER"],
-            password=config["DBPASSWORD"],
-            host=config["DBHOST"],
-            port=config["DBPORT"],
-        )
-        logging.info("Successfully connected to PostgreSQL.")
-
-        cursor = conn.cursor()
-
-        timestamp, temperature, humidity, co2_values, tvoc_values = (
-            generate_sensor_data()
-        )
+        timestamp, temperature, humidity, co2_values, tvoc_values = generate_sensor_data()
 
         insert_query = (
             'INSERT INTO public."SensorData" ("timestamp", temperature, humidity, co2_values, tvoc_values) '
@@ -61,26 +48,42 @@ def insert_sensor_data():
         cursor.execute(
             insert_query, (timestamp, temperature, humidity, co2_values, tvoc_values)
         )
-        conn.commit()
+        cursor.connection.commit()
 
         logging.info(
-            f"Data inserted: Timestamp={timestamp}, Temperature={temperature}"
-            f", Humidity={humidity}, CO2={co2_values}, TVOC={tvoc_values}"
+            f"Daten eingefügt: Zeitstempel={timestamp}, Temperatur={temperature}"
+            f", Luftfeuchtigkeit={humidity}, CO2={co2_values}, TVOC={tvoc_values}"
         )
 
-    except psycopg2.Error as e:
-        logging.error(f"Error connecting to PostgreSQL: {e}")
+    except Exception as e:
+        logging.error(f"Fehler beim Einfügen von Daten in PostgreSQL: {e}")
+
+
+def main():
+    conn = None
+    cursor = None
+
+    try:
+        conn = connect_to_database()
+        cursor = conn.cursor()
+
+        # Zeitplan für die Daten-Einfügeaufgabe
+        schedule.every(20).seconds.do(insert_sensor_data, cursor=cursor)
+
+        # Hauptschleife zum Ausführen des Zeitplans
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+
+    except Exception as e:
+        logging.error(f"Allgemeiner Fehler in der Hauptausführung: {e}")
 
     finally:
+        if cursor:
+            cursor.close()
         if conn:
-            conn.close()
-            logging.info("PostgreSQL connection closed")
+            close_connection(conn)
 
 
-# Zeitplan für die Daten-Einfügeaufgabe
-schedule.every(20).seconds.do(insert_sensor_data)
-
-# Hauptschleife zum Ausführen des Zeitplans
-while True:
-    schedule.run_pending()
-    time.sleep(1)
+if __name__ == "__main__":
+    main()
