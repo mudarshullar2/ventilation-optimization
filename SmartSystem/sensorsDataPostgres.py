@@ -19,6 +19,7 @@ def insert_sensor_data(cursor):
 
     Args:
         cursor: Ein Cursor-Objekt für die Datenbankverbindung.
+
     """
     try:
         timestamp, temperature, humidity, co2_values, tvoc_values = generate_sensor_data()
