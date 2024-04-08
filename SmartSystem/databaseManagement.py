@@ -1,5 +1,6 @@
 import psycopg2
 import logging
+import yaml
 from SmartSystem.config import load_database_config
 
 
