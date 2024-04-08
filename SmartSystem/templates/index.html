@@ -63,6 +63,16 @@
         <p><strong>TVOC-Niveau:</strong> {{ sensor_data[4] }}</p>
         <p><strong>Empfehlung des Systems:</strong> {{ recommendation }}</p>
 
+        <!-- Warnung anzeigen, wenn Temperatur über 27°C und Luftfeuchtigkeit über 60% liegt -->
+        {% if sensor_data[1] | int > 27 and sensor_data[2] | int > 60 %}
+        <p style="color: red; font-weight: bold;">Warnung: Hohe Temperatur und Luftfeuchtigkeit! Bitte für angenehme Bedingungen sorgen.</p>
+        {% endif %}
+
+        <!-- Warnung anzeigen, wenn CO2-Niveau über 1000 ppm liegt -->
+        {% if sensor_data[3] | int > 1000 %}
+        <p style="color: red; font-weight: bold;">Warnung: CO2-Niveau ist zu hoch für optimalen Komfort von Schülern und Lehrern. Es wird dringend empfohlen, Fenster zu öffnen!</p>
+        {% endif %}
+
         <!-- Feedback-Buttons mit Pop-up-Nachricht -->
         <form onsubmit="return submitFeedback(event, this);">
             <input type="hidden" name="is_correct" value="1">
@@ -74,11 +84,6 @@
             <input type="submit" value="Die Empfehlung war nicht richtig" class="button">
         </form>
 
-        <!-- Aktualisieren-Button -->
-        <form action="{{ url_for('index') }}" method="GET">
-            <input type="submit" value="Aktualisieren" class="button">
-        </form>
-
         <!-- Shutdown-Button -->
         <form action="/shutdown" method="POST">
             <input type="submit" value="Server herunterfahren" class="button">
@@ -86,6 +91,11 @@
 
         <!-- Link zum Navigieren zur Plots-Seite -->
         <p><a href="{{ url_for('plots') }}" class="button">Plots anzeigen</a></p>
+
+        <!-- Button zum Herunterladen der CO2-Daten für den letzten Monat -->
+        <form action="{{ url_for('download_co2_data') }}" method="GET">
+            <input type="submit" value="CO2-Daten des letzten Monats herunterladen" class="button">
+        </form>
 
         {% else %}
         <p>Keine Sensordaten verfügbar.</p>
@@ -98,7 +108,7 @@
             event.preventDefault(); // Formularübermittlung verhindern
 
             var isCorrect = form.querySelector('input[name="is_correct"]').value;
-            var message = (isCorrect === '1') ? "Danke für Dein Feedback!" : "Danke für Dein Feedback!";
+            var message = (isCorrect === '1') ? "Vielen Dank! Dein Feedback wird die Genauigkeit des Modells weiter verbessern!" : "Vielen Dank! Dein Feedback wird die Genauigkeit des Modells weiter verbessern!";
             alert(message);
 
             // AJAX-Anfrage an Flask-Route
@@ -110,6 +120,8 @@
                     if (xhr.status === 200) {
                         var response = JSON.parse(xhr.responseText);
                         alert(response.message);
+                        // Automatisches Aktualisieren der Seite nach Feedback
+                        window.location.reload();
                     } else {
                         alert("Fehler beim Senden des Feedbacks.");
                     }
@@ -119,6 +131,33 @@
 
             return false;
         }
+
+        // Automatisches Aktualisieren der Seite alle 30 Sekunden
+        setInterval(function() {
+            window.location.reload();
+        }, 10000); // 10000 Millisekunden = 10 Sekunden
+
+
+                // Funktion zum Anzeigen einer Popup-Nachricht basierend auf dem Download-Ergebnis
+        function showDownloadMessage(successful) {
+            if (successful) {
+                alert("Die CO2-Daten des letzten Monats wurden erfolgreich heruntergeladen!");
+            } else {
+                alert("Keine CO2-Daten für den letzten Monat verfügbar.");
+            }
+        }
+
+        // Event-Listener für das Absenden des Download-Formulars
+        document.getElementById("downloadForm").addEventListener("submit", function(event) {
+            event.preventDefault(); // Standardverhalten des Formulars verhindern
+
+            // Hier würde normalerweise die AJAX-Anfrage an den Server erfolgen, um den Download durchzuführen
+            // Annahme: Die Variable 'successful' wird basierend auf dem Server-Response-Wert gesetzt
+            var successful = true; // Beispiel: Annahme, dass der Download erfolgreich war
+
+            // Popup-Nachricht anzeigen basierend auf dem Ergebnis
+            showDownloadMessage(successful);
+        });
     </script>
 </body>
 </html>
