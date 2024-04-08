@@ -1,15 +1,14 @@
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from SmartSystem.config import load_database_config
-from SmartSystem.database_management import (
-    connect_to_database,
-    get_sensor_data_last_hour,
-    get_sensor_data_last_month,
-)
+from SmartSystem.database_management import connect_to_database, get_sensor_data_last_hour, get_sensor_data_last_month
 from SmartSystem.data_generation import get_latest_sensor_data
 from SmartSystem.generating_plots import generate_plot
 from flask import Flask, render_template, request, redirect, url_for, send_file
 import psycopg2
 import joblib
 import pandas as pd
+import smtplib
 
 app = Flask(__name__)
 
@@ -121,9 +120,7 @@ def download_co2_data():
 
     if sensor_data:
         # Create DataFrame from sensor data
-        df = pd.DataFrame(
-            sensor_data, columns=["Timestamp", "Temperature", "Humidity", "CO2", "TVOC"]
-        )
+        df = pd.DataFrame(sensor_data, columns=["Timestamp", "Temperature", "Humidity", "CO2", "TVOC"])
 
         # Calculate descriptive statistics
         descriptive_stats = df.describe()
@@ -139,6 +136,53 @@ def download_co2_data():
 
     else:
         return "No sensor data available for the last month."
+
+
+# New route to render contact.html
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
+
+receiver_email = "mudarshullar22@gmail.com"
+
+
+@app.route('/send_email', methods=['POST'])
+def send_email():
+    if request.method == 'POST':
+        name = request.form['name']
+        email = request.form['email']
+        message = request.form['message']
+
+        try:
+            smtp_server = 'smtp.gmail.com'
+            smtp_port = 587
+
+            # Establish a secure connection to Gmail's SMTP server
+            smtp = smtplib.SMTP(smtp_server, smtp_port)
+            smtp.starttls()
+
+            # Login to Gmail's SMTP server with your credentials
+            gmail_user = 'your_email@gmail.com'  # Replace with your Gmail address
+            gmail_password = 'your_password'  # Replace with your Gmail password
+            smtp.login(gmail_user, gmail_password)
+
+            # Construct the email message
+            msg = MIMEMultipart()
+            msg['From'] = email
+            msg['To'] = receiver_email
+            msg['Subject'] = f"New Message from {name} ({email})"
+            msg.attach(MIMEText(message, 'plain'))
+
+            # Send the email
+            smtp.sendmail(email, receiver_email, msg.as_string())
+
+            # Close the SMTP connection
+            smtp.quit()
+
+            return "Email sent successfully!"
+        except Exception as e:
+            return f"Error: {str(e)}"
 
 
 if __name__ == "__main__":

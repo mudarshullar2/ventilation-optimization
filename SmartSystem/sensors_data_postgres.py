@@ -53,7 +53,7 @@ def main():
         # Zeitplan für die Daten-Einfügeaufgabe
         schedule.every(20).seconds.do(insert_sensor_data, cursor=cursor)
 
-        # Hauptschleife zum Ausführen des Zeitplans
+
         while True:
             schedule.run_pending()
             time.sleep(1)

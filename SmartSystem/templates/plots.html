@@ -1,25 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensor Dashboard</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f7f7f7;
+            background-color: #333; /* Dark background */
+            color: #ffffff; /* Light text */
         }
         .container {
             max-width: 800px;
             margin: auto;
-            background-color: #fff;
+            background-color: #444; /* Darker background for container */
             padding: 20px;
             border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Slightly elevated with dark shadow */
         }
         h1 {
             text-align: center;
-            color: #333;
+            color: #ffffff; /* White heading text */
         }
         .plot-container {
             margin-top: 20px;
@@ -27,6 +30,7 @@
         .plot-title {
             text-align: center;
             font-weight: bold;
+            color: #ffffff; /* White plot title text */
         }
         input[type="submit"] {
             display: block;
@@ -34,11 +38,12 @@
             margin: 20px auto;
             padding: 10px;
             font-size: 16px;
-            color: #fff;
+            color: #ffffff;
             background-color: #007bff;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         input[type="submit"]:hover {
             background-color: #0056b3;
@@ -72,7 +77,7 @@
 
         <!-- Button to navigate back to the main page -->
         <form action="{{ url_for('index') }}" method="GET">
-            <input type="submit" value="Zurück zu den Sensordaten">
+            <input type="submit" value="Zurück zur Startseite">
         </form>
     </div>
 </body>
