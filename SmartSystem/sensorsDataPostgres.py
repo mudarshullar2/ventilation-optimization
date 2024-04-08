@@ -4,29 +4,16 @@ from datetime import datetime
 import schedule
 import time
 import logging
-import yaml
+from SmartSystem.config import load_database_config
+
 
 # Logging konfigurieren
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
-def load_database_config(config_file):
-    """
-    Lädt die Datenbankkonfiguration aus einer YAML-Konfigurationsdatei.
-
-    :param config_file: Pfad zur YAML-Konfigurationsdatei
-    :return: Datenbankkonfigurationsdaten als Dictionary
-    """
-    try:
-        with open(config_file, 'r') as f:
-            config = yaml.safe_load(f)
-        return config['database']
-    except FileNotFoundError:
-        logging.error(f"Konfigurationsdatei '{config_file}' nicht gefunden")
-        raise
-
-
-config = load_database_config('/SmartSystem/databaseConfig.yaml')
+config = load_database_config("/SmartSystem/databaseConfig.yaml")
 
 
 def generate_sensor_data():
@@ -52,27 +39,34 @@ def insert_sensor_data():
     try:
         # Mit PostgreSQL verbinden
         conn = psycopg2.connect(
-            dbname=config['DBNAME'],
-            user=config['DBUSER'],
-            password=config['DBPASSWORD'],
-            host=config['DBHOST'],
-            port=config['DBPORT']
+            dbname=config["DBNAME"],
+            user=config["DBUSER"],
+            password=config["DBPASSWORD"],
+            host=config["DBHOST"],
+            port=config["DBPORT"],
         )
         logging.info("Successfully connected to PostgreSQL.")
 
         cursor = conn.cursor()
 
-        timestamp, temperature, humidity, co2_values, tvoc_values = generate_sensor_data()
+        timestamp, temperature, humidity, co2_values, tvoc_values = (
+            generate_sensor_data()
+        )
 
-        insert_query = 'INSERT INTO public."SensorData" ("timestamp", temperature, humidity, co2_values, tvoc_values) ' \
-                       'VALUES (%s, %s, %s, %s, %s)'
+        insert_query = (
+            'INSERT INTO public."SensorData" ("timestamp", temperature, humidity, co2_values, tvoc_values) '
+            "VALUES (%s, %s, %s, %s, %s)"
+        )
 
-        cursor.execute(insert_query, (timestamp, temperature, humidity, co2_values, tvoc_values))
+        cursor.execute(
+            insert_query, (timestamp, temperature, humidity, co2_values, tvoc_values)
+        )
         conn.commit()
 
         logging.info(
             f"Data inserted: Timestamp={timestamp}, Temperature={temperature}"
-            f", Humidity={humidity}, CO2={co2_values}, TVOC={tvoc_values}")
+            f", Humidity={humidity}, CO2={co2_values}, TVOC={tvoc_values}"
+        )
 
     except psycopg2.Error as e:
         logging.error(f"Error connecting to PostgreSQL: {e}")
