@@ -25,7 +25,7 @@ def load_database_config(config_file):
 
 
 # Datenbankkonfiguration laden
-config_file = '/Users/mudarshullar/PycharmProjects/BAProject/databaseConfig.yaml'
+config_file = '/databaseConfig.yaml'
 db_config = load_database_config(config_file)
 
 # Das vortrainierte Machine-Learning-Modell laden
