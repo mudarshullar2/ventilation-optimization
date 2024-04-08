@@ -137,14 +137,27 @@ def feedback():
 
 
 def generate_plot(data, x_label, y_label, plot_title):
-    x_data = [row[0] for row in data]
-    y_data = [row[y_label] for row in data]
+    # Extrahiere x- und y-Daten aus dem übergebenen Daten-Array
+    x_data = [
+        row[0] for row in data
+    ]  # x-Daten sind die ersten Elemente jeder Zeile im Daten-Array
+    y_data = [
+        row[y_label] for row in data
+    ]  # y-Daten sind die Werte unter dem angegebenen y_label in jedem Daten-Eintrag
 
+    # Erstelle eine Linien- und Marker-Darstellung (Trace) für das Plot mit den extrahierten Daten
     trace = go.Scatter(x=x_data, y=y_data, mode="lines+markers", name=y_label)
+
+    # Definiere das Layout des Plots mit Titel, x-Achsenbeschriftung und y-Achsenbeschriftung
     layout = go.Layout(
-        title=plot_title, xaxis=dict(title=x_label), yaxis=dict(title=y_label)
+        title=plot_title,  # Titel des Plots
+        xaxis=dict(title=x_label),  # Beschriftung der x-Achse
+        yaxis=dict(title=y_label),  # Beschriftung der y-Achse
     )
+    # Erstelle die gesamte Figure für den Plot, die den Trace und das definierte Layout enthält
     fig = go.Figure(data=[trace], layout=layout)
+
+    # Konvertiere die Figure in HTML-Code, jedoch ohne das gesamte HTML-Dokument zu generieren
     return fig.to_html(full_html=False)
 
 

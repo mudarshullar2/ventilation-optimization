@@ -31,9 +31,12 @@ def connect_to_database():
 
 def close_connection(conn):
     """Schließt die PostgreSQL-Verbindung."""
-    if conn:
-        conn.close()
-        logging.info("PostgreSQL-Verbindung geschlossen")
+    try:
+        if conn:
+            conn.close()
+            logging.info("PostgreSQL-Verbindung geschlossen")
+    except Exception as e:
+        logging.error("Fehler beim Schließen der PostgreSQL-Verbindung: %s", str(e))
 
 
 def get_latest_sensor_data(cursor):
@@ -47,14 +50,17 @@ def get_latest_sensor_data(cursor):
         latest_data: Ein Tupel mit den neuesten Sensordaten (timestamp, temperature, humidity, co2_values, tvoc_values).
                      None, falls keine Daten vorhanden sind.
     """
+    try:
+        # SQL-Abfrage, um die neuesten Sensordaten abzurufen
+        cursor.execute(
+            'SELECT "timestamp", temperature, humidity, co2_values, tvoc_values FROM public."SensorData" '
+            'ORDER BY "timestamp" DESC LIMIT 1;'
+        )
 
-    # SQL-Abfrage, um die neuesten Sensordaten abzurufen
-    cursor.execute(
-        'SELECT "timestamp", temperature, humidity, co2_values, tvoc_values FROM public."SensorData" '
-        'ORDER BY "timestamp" DESC LIMIT 1;'
-    )
+        # Die neuesten Sensordaten abrufen (einzelnes Tupel)
+        latest_data = cursor.fetchone()
 
-    # Die neuesten Sensordaten abrufen (einzelnes Tupel)
-    latest_data = cursor.fetchone()
-
-    return latest_data
+        return latest_data
+    except Exception as e:
+        logging.debug("Fehler beim Abrufen der neuesten Sensordaten: %s", str(e))
+        return None
