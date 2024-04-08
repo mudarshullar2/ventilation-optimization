@@ -4,10 +4,10 @@ import random
 import logging
 from datetime import datetime
 from SmartSystem.config import load_database_config
-from SmartSystem.databaseManagement import connect_to_database
+from SmartSystem.database_management import connect_to_database
 
 # Datenbankkonfiguration laden
-config_file = "./databaseConfig.yaml"
+config_file = "database_config.yaml"
 db_config = load_database_config(config_file)
 
 # Das vortrainierte Machine-Learning-Modell laden

@@ -13,7 +13,7 @@ def connect_to_database():
     """
     try:
         # Datenbankkonfiguration aus der YAML-Datei laden
-        config = load_database_config("./databaseConfig.yaml")
+        config = load_database_config("database_config.yaml")
 
         # Verbindung zur PostgreSQL-Datenbank herstellen
         conn = psycopg2.connect(
