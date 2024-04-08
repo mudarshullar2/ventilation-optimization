@@ -1,10 +1,15 @@
 from SmartSystem.config import load_database_config
-from SmartSystem.database_management import connect_to_database
+from SmartSystem.database_management import (
+    connect_to_database,
+    get_sensor_data_last_hour,
+    get_sensor_data_last_month,
+)
 from SmartSystem.data_generation import get_latest_sensor_data
 from SmartSystem.generating_plots import generate_plot
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, send_file
 import psycopg2
 import joblib
+import pandas as pd
 
 app = Flask(__name__)
 
@@ -107,6 +112,33 @@ def feedback():
         print("Fehler beim Aktualisieren des Feedbacks:", e)
 
     return redirect(url_for("index"))
+
+
+@app.route("/download_co2_data", methods=["GET"])
+def download_co2_data():
+    sensor_data = get_sensor_data_last_hour()
+    # sensor_data = get_sensor_data_last_month()
+
+    if sensor_data:
+        # Create DataFrame from sensor data
+        df = pd.DataFrame(
+            sensor_data, columns=["Timestamp", "Temperature", "Humidity", "CO2", "TVOC"]
+        )
+
+        # Calculate descriptive statistics
+        descriptive_stats = df.describe()
+
+        # Create Excel file
+        output_path = "co2_data_last_month.xlsx"
+        with pd.ExcelWriter(output_path) as writer:
+            df.to_excel(writer, index=False, sheet_name="Sensor Data")
+            descriptive_stats.to_excel(writer, sheet_name="Descriptive Statistics")
+
+        # Send Excel file as download
+        return send_file(output_path, as_attachment=True)
+
+    else:
+        return "No sensor data available for the last month."
 
 
 if __name__ == "__main__":
