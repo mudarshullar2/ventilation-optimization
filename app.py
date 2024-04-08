@@ -9,20 +9,26 @@ app = Flask(__name__)
 
 
 def load_database_config(config_file):
+    """
+    Lädt die Konfiguration der Datenbank aus einer YAML-Konfigurationsdatei.
+
+    :param config_file: Pfad zur YAML-Konfigurationsdatei
+    :return: Datenbankkonfigurationsdaten als Dictionary
+    """
     try:
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
         return config['database']
     except FileNotFoundError:
-        logging.error(f"Config file '{config_file}' not found")
+        logging.error(f"Konfigurationsdatei '{config_file}' nicht gefunden")
         raise
 
 
-# Load database configuration
+# Datenbankkonfiguration laden
 config_file = '/Users/mudarshullar/PycharmProjects/BAProject/databaseConfig.yaml'
 db_config = load_database_config(config_file)
 
-# Load the pre-trained machine learning model
+# Das vortrainierte Machine-Learning-Modell laden
 model = joblib.load('/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl')
 
 
@@ -33,7 +39,7 @@ def get_latest_sensor_data():
                                 port=db_config["DBPORT"])
         cursor = conn.cursor()
 
-        # Fetch latest sensor data
+        # Aktuellste Sensordaten abrufen
         query = ('SELECT "timestamp", temperature, humidity, co2_values, tvoc_values '
                  'FROM public."SensorData" ORDER BY "timestamp" DESC LIMIT 100;')
         cursor.execute(query)
@@ -43,16 +49,16 @@ def get_latest_sensor_data():
         return sensor_data
 
     except psycopg2.Error as e:
-        print("Error connecting to PostgreSQL database:", e)
+        print("Fehler bei der Verbindung zur PostgreSQL-Datenbank:", e)
         return None
 
 
 def generate_plot(data, x_label, y_label, plot_title):
-    # Extract x and y data from sensor_data tuples
-    x_data = [row[0] for row in data]  # Assuming timestamp is the first element
-    y_data = [row[y_label] for row in data]  # Extract data based on y_label
+    # x- und y-Daten aus den Sensordaten-Tupeln extrahieren
+    x_data = [row[0] for row in data]  # Wichtig: Timestamp muss das erste Element sein
+    y_data = [row[y_label] for row in data]  # Daten basierend auf y_label extrahieren
 
-    # Create Plotly trace
+    # Plotly-Trace erstellen
     trace = go.Scatter(x=x_data, y=y_data, mode='lines+markers', name=y_label)
     layout = go.Layout(title=plot_title, xaxis=dict(title=x_label), yaxis=dict(title=y_label))
     fig = go.Figure(data=[trace], layout=layout)
@@ -64,15 +70,15 @@ def index():
     sensor_data = get_latest_sensor_data()
 
     if sensor_data:
-        # Generate recommendation using the machine learning model
-        latest_data = sensor_data[0]  # Use the latest data point for recommendation
+        # Empfehlung mit Hilfe des Machine-Learning-Modells generieren
+        latest_data = sensor_data[0] # Verwendung des neuesten Datenpunkts für die Empfehlung
         features = [[latest_data[1], latest_data[2], latest_data[3], latest_data[4]]]
         prediction = model.predict(features)[0]
 
         if prediction == 1:
-            recommendation = "Es wird empfohlen, die Fenster zu öffnen (Empfehlung des KI Systems)"
+            recommendation = "Das KI-System empfiehlt, die Fenster zu öffnen."
         else:
-            recommendation = "Es wird empfohlen, die Fenster nicht zu öffnen (Empfehlung des KI Systems)"
+            recommendation = "Das KI-System empfiehlt, die Fenster zu schließen."
 
         return render_template('index.html', sensor_data=latest_data, recommendation=recommendation)
 
@@ -85,7 +91,7 @@ def plots():
     sensor_data = get_latest_sensor_data()
 
     if sensor_data:
-        # Generate individual plots
+        # Individuelle Plots generieren
         temperature_plot = generate_plot(sensor_data, 0, 1, 'Temperature Plot')  # (timestamp, temperature)
         humidity_plot = generate_plot(sensor_data, 0, 2, 'Humidity Plot')  # (timestamp, humidity)
         co2_plot = generate_plot(sensor_data, 0, 3, 'CO2 Level Plot')  # (timestamp, co2_values)
@@ -100,6 +106,11 @@ def plots():
 
 @app.route('/feedback', methods=['POST'])
 def feedback():
+    """
+    Verarbeitet das Feedback, das über ein Formular gesendet wurde.
+
+    :return: Weiterleitung zur Indexseite nach erfolgreicher Verarbeitung des Feedbacks
+    """
     is_correct = int(request.form['is_correct'])
 
     try:

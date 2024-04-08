@@ -6,17 +6,23 @@ import time
 import logging
 import yaml
 
-# Configure logging
+# Logging konfigurieren
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def load_database_config(config_file):
+    """
+    Lädt die Datenbankkonfiguration aus einer YAML-Konfigurationsdatei.
+
+    :param config_file: Pfad zur YAML-Konfigurationsdatei
+    :return: Datenbankkonfigurationsdaten als Dictionary
+    """
     try:
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
         return config['database']
     except FileNotFoundError:
-        logging.error(f"Config file '{config_file}' not found")
+        logging.error(f"Konfigurationsdatei '{config_file}' nicht gefunden")
         raise
 
 
@@ -24,6 +30,11 @@ config = load_database_config('/Users/mudarshullar/PycharmProjects/BAProject/dat
 
 
 def generate_sensor_data():
+    """
+    Generiert zufällige Sensordaten.
+
+    :return: Tuple mit Zeitstempel, Temperatur, Luftfeuchtigkeit, CO2-Werte und TVOC-Werte
+    """
     temperature = round(random.uniform(10, 27), 2)
     humidity = round(random.uniform(30, 62), 2)
     co2_values = round(random.uniform(402, 600), 2)
@@ -34,8 +45,12 @@ def generate_sensor_data():
 
 
 def insert_sensor_data():
+    """
+    Fügt zufällig generierte Sensordaten in die PostgreSQL-Datenbank ein.
+
+    """
     try:
-        # Connect to PostgreSQL
+        # Mit PostgreSQL verbinden
         conn = psycopg2.connect(
             dbname=config['DBNAME'],
             user=config['DBUSER'],
@@ -68,10 +83,10 @@ def insert_sensor_data():
             logging.info("PostgreSQL connection closed")
 
 
-# Schedule data insertion job
+# Zeitplan für die Daten-Einfügeaufgabe
 schedule.every(20).seconds.do(insert_sensor_data)
 
-# Main loop to run the scheduler
+# Hauptschleife zum Ausführen des Zeitplans
 while True:
     schedule.run_pending()
     time.sleep(1)

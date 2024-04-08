@@ -1,4 +1,4 @@
-# Database configuration
+# Konfigurationen
 database:
   DBNAME: "sensorsDataDB"
   DBUSER: "postgres"
