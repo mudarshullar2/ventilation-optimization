@@ -4,7 +4,7 @@ import schedule
 import time
 import logging
 from SmartSystem.config import load_database_config
-from SmartSystem.database import connect_to_database, close_connection
+from SmartSystem.databaseManagement import connect_to_database, close_connection
 
 
 # Logging konfigurieren
