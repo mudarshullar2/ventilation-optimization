@@ -137,10 +137,10 @@
       <method v="2" />
     </configuration>
     <list>
-      <item itemvalue="Python.suggestions" />
-      <item itemvalue="Python.model2" />
-      <item itemvalue="Python.testmodel2" />
       <item itemvalue="Python.app" />
+      <item itemvalue="Python.model2" />
+      <item itemvalue="Python.suggestions" />
+      <item itemvalue="Python.testmodel2" />
     </list>
     <recent_temporary>
       <list>
