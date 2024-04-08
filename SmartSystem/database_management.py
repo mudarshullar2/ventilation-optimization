@@ -1,7 +1,9 @@
+from datetime import datetime, timedelta
+from SmartSystem.config import load_database_config
 import psycopg2
 import logging
 import yaml
-from SmartSystem.config import load_database_config
+import openpyxl
 
 
 def connect_to_database():
@@ -40,7 +42,7 @@ def close_connection(conn):
         logging.error("Fehler beim Schließen der PostgreSQL-Verbindung: %s", str(e))
 
 
-def get_latest_sensor_data(cursor):
+def get_latest_sensor_data():
     """
     Ruft die neuesten Sensordaten aus der Datenbank ab.
 
@@ -52,6 +54,7 @@ def get_latest_sensor_data(cursor):
                      None, falls keine Daten vorhanden sind.
     """
     try:
+        cursor = connect_to_database()
         # SQL-Abfrage, um die neuesten Sensordaten abzurufen
         cursor.execute(
             'SELECT "timestamp", temperature, humidity, co2_values, tvoc_values FROM public."SensorData" '
@@ -65,3 +68,68 @@ def get_latest_sensor_data(cursor):
     except Exception as e:
         logging.debug("Fehler beim Abrufen der neuesten Sensordaten: %s", str(e))
         return None
+
+
+def get_sensor_data_last_hour():
+    conn = None
+    cursor = None
+    sensor_data = None
+
+    try:
+        conn = connect_to_database()
+        if conn is None:
+            raise Exception("Verbindung zur Datenbank fehlgeschlagen")
+
+        cursor = conn.cursor()
+
+        # Calculate the start time for the last one hour
+        last_hour_start = datetime.now() - timedelta(hours=1)
+
+        # Execute SQL query using the cursor
+        query = 'SELECT "timestamp", temperature, humidity, co2_values, tvoc_values FROM public."SensorData" WHERE "timestamp" >= %s'
+        cursor.execute(query, (last_hour_start,))
+
+        sensor_data = cursor.fetchall()
+
+    except Exception as e:
+        print(f"Error fetching sensor data: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    return sensor_data
+
+
+def get_sensor_data_last_month():
+    conn = None
+    cursor = None
+    sensor_data = None
+
+    try:
+        conn = connect_to_database()
+        if conn is None:
+            raise Exception("Verbindung zur Datenbank fehlgeschlagen")
+
+        cursor = conn.cursor()
+
+        # Berechne den Startzeitpunkt für den Beginn des letzten Monats (30 Tage zurück)
+        today = datetime.today()
+        start_of_last_month = today - timedelta(days=30)
+
+        # SQL-Abfrage ausführen, um Sensor-Daten für den letzten Monat abzurufen
+        query = 'SELECT "timestamp", temperature, humidity, co2_values, tvoc_values FROM public."SensorData" WHERE "timestamp" >= %s'
+        cursor.execute(query, (start_of_last_month,))
+
+        sensor_data = cursor.fetchall()
+
+    except Exception as e:
+        print(f"Fehler beim Abrufen der Sensor-Daten: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+    return sensor_data
