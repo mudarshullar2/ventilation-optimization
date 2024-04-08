@@ -46,7 +46,6 @@ def insert_sensor_data(cursor):
 def main():
     conn = None
     cursor = None
-
     try:
         conn = connect_to_database()
         cursor = conn.cursor()
