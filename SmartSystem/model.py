@@ -1,7 +1,9 @@
-# Hinweis: Dieses Beispiel für ein inkrementelles Machine-Learning-Modell hat keine direkte Verbindung zur Anwendung
-# `application.py`. Es dient lediglich zur Veranschaulichung eines Systems, das in Echtzeit aus den Sensor-Daten lernt und
-# sich entsprechend anpasst. Das Modell wird kontinuierlich aktualisiert, um Vorhersagen basierend auf den aktuellen
-# Daten zu verbessern.
+"""
+Hinweis: Dieses Beispiel für ein inkrementelles Machine-Learning-Modell hat keine direkte Verbindung zur Anwendung
+`application.py`. Es dient lediglich zur Veranschaulichung eines Systems, das in Echtzeit aus den Sensor-Daten lernt und
+sich entsprechend anpasst. Das Modell wird kontinuierlich aktualisiert, um Vorhersagen basierend auf den aktuellen
+Daten zu verbessern.
+"""
 
 from SmartSystem.databaseManagement import connect_to_database, get_latest_sensor_data
 from river import compose, preprocessing, linear_model, metrics
