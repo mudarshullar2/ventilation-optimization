@@ -1,33 +1,19 @@
+from SmartSystem.config import load_database_config
 import psycopg2
 import pandas as pd
 import pickle
 import logging
-import yaml
 import time
 
 # Logging konfigurieren
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 # Das trainierte Modell aus der .pkl-Datei laden
-model_path = '/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl'
-with open(model_path, 'rb') as f:
+model_path = "/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl"
+with open(model_path, "rb") as f:
     model = pickle.load(f)
-
-
-def load_database_config(config_file):
-    """
-    Lädt die Datenbankkonfiguration aus einer YAML-Konfigurationsdatei.
-
-    :param config_file: Pfad zur YAML-Konfigurationsdatei
-    :return: Datenbankkonfigurationsdaten als Dictionary
-    """
-    try:
-        with open(config_file, 'r') as f:
-            config = yaml.safe_load(f)
-        return config['database']
-    except FileNotFoundError:
-        logging.error(f"Config file '{config_file}' not found")
-        raise
 
 
 def connect_to_database(config):
@@ -40,11 +26,11 @@ def connect_to_database(config):
     try:
         # Mit der PostgreSQL-Datenbank unter Verwendung der angegebenen Konfiguration verbinden
         conn = psycopg2.connect(
-            dbname=config['dbname'],
-            user=config['user'],
-            password=config['password'],
-            host=config['host'],
-            port=config['port']
+            dbname=config["dbname"],
+            user=config["user"],
+            password=config["password"],
+            host=config["host"],
+            port=config["port"],
         )
         logging.info("Erfolgreich mit der Datenbank verbunden")
         return conn
@@ -66,7 +52,9 @@ def fetch_latest_sensor_data(conn):
         logging.info("Neueste Sensordaten aus der Datenbank abgerufen.")
         return df
     except (Exception, psycopg2.Error) as error:
-        logging.error("Fehler beim Abrufen der Sensordaten aus der PostgreSQL-Datenbank:", error)
+        logging.error(
+            "Fehler beim Abrufen der Sensordaten aus der PostgreSQL-Datenbank:", error
+        )
 
 
 def preprocess_sensor_data(df):
@@ -77,13 +65,15 @@ def preprocess_sensor_data(df):
     :return: Vorverarbeiteter DataFrame
     """
     # Annahme: Die Spalten sind in der richtigen Reihenfolge gemäß dem Abfrageergebnis
-    df = df.rename(columns={
-        'timestamp': 'timestamp',
-        'temperature': 'temperature',
-        'humidity': 'humidity',
-        'co2_values': 'co2',
-        'tvoc_values': 'tvoc'
-    })
+    df = df.rename(
+        columns={
+            "timestamp": "timestamp",
+            "temperature": "temperature",
+            "humidity": "humidity",
+            "co2_values": "co2",
+            "tvoc_values": "tvoc",
+        }
+    )
     return df
 
 
@@ -96,7 +86,7 @@ def predict_window_state(model, df):
     :return: Vorhersage des Fensterzustands (0 oder 1)
     """
     # Merkmale aus den vorverarbeiteten Daten extrahieren
-    features = df[['co2', 'tvoc', 'temperature', 'humidity']]
+    features = df[["co2", "tvoc", "temperature", "humidity"]]
     # Das trainierte Modell verwenden, um den Zustand des Fensters vorherzusagen
     # (0: Fenster sollten nicht geöffnet werden, 1: Fenster sollten geöffnet werden)
     prediction = model.predict(features)
@@ -106,7 +96,7 @@ def predict_window_state(model, df):
 
 if __name__ == "__main__":
     # Datenbankkonfiguration aus config.yaml laden
-    config_file = '/SmartSystem/databaseConfig.yaml'
+    config_file = "/SmartSystem/databaseConfig.yaml"
     db_config = load_database_config(config_file)
 
     while True:
