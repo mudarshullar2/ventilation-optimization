@@ -25,7 +25,7 @@ def load_database_config(config_file):
         raise
 
 # Datenbankkonfiguration laden
-config = load_database_config('/Users/mudarshullar/PycharmProjects/BAProject/databaseConfig.yaml')
+config = load_database_config('/SmartSystem/databaseConfig.yaml')
 
 # Logging konfigurieren
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

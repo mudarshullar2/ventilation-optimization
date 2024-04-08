@@ -26,7 +26,7 @@ def load_database_config(config_file):
         raise
 
 
-config = load_database_config('/Users/mudarshullar/PycharmProjects/BAProject/databaseConfig.yaml')
+config = load_database_config('/SmartSystem/databaseConfig.yaml')
 
 
 def generate_sensor_data():
