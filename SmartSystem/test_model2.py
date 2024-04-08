@@ -1,5 +1,5 @@
 from SmartSystem.config import load_database_config
-from SmartSystem.databaseManagement import connect_to_database, get_latest_sensor_data, close_connection
+from SmartSystem.database_management import connect_to_database, get_latest_sensor_data, close_connection
 import psycopg2
 import pandas as pd
 import pickle
@@ -75,7 +75,7 @@ def predict_window_state(model, df):
 
 def main():
     # Datenbankkonfiguration aus config.yaml laden
-    config_file = "/SmartSystem/databaseConfig.yaml"
+    config_file = "/SmartSystem/database_config.yaml"
     db_config = load_database_config(config_file)
 
     while True:

@@ -1,33 +1,19 @@
 from SmartSystem.config import load_database_config
-from SmartSystem.databaseManagement import connect_to_database
-from SmartSystem.dataGeneration import get_latest_sensor_data
+from SmartSystem.database_management import connect_to_database
+from SmartSystem.data_generation import get_latest_sensor_data
+from SmartSystem.generating_plots import generate_plot
 from flask import Flask, render_template, request, redirect, url_for
 import psycopg2
 import joblib
-import plotly.graph_objs as go
 
 app = Flask(__name__)
 
 # Datenbankkonfiguration laden
-config_file = "./databaseConfig.yaml"
+config_file = "database_config.yaml"
 db_config = load_database_config(config_file)
 
 # Das vortrainierte Machine-Learning-Modell laden
 model = joblib.load("/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl")
-
-
-def generate_plot(data, x_label, y_label, plot_title):
-    # x- und y-Daten aus den Sensordaten-Tupeln extrahieren
-    x_data = [row[0] for row in data]  # Wichtig: Timestamp muss das erste Element sein
-    y_data = [row[y_label] for row in data]  # Daten basierend auf y_label extrahieren
-
-    # Plotly-Trace erstellen
-    trace = go.Scatter(x=x_data, y=y_data, mode="lines+markers", name=y_label)
-    layout = go.Layout(
-        title=plot_title, xaxis=dict(title=x_label), yaxis=dict(title=y_label)
-    )
-    fig = go.Figure(data=[trace], layout=layout)
-    return fig.to_html(full_html=False)
 
 
 @app.route("/")
