@@ -106,7 +106,7 @@ def predict_window_state(model, df):
 
 if __name__ == "__main__":
     # Datenbankkonfiguration aus config.yaml laden
-    config_file = '/Users/mudarshullar/PycharmProjects/BAProject/databaseConfig.yaml'
+    config_file = '/SmartSystem/databaseConfig.yaml'
     db_config = load_database_config(config_file)
 
     while True:
