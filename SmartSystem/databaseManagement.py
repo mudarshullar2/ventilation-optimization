@@ -10,18 +10,23 @@ def connect_to_database():
     Returns:
         conn: Eine Verbindungsinstanz zur PostgreSQL-Datenbank.
     """
-    # Datenbankkonfiguration aus der YAML-Datei laden
-    config = load_database_config("./databaseConfig.yaml")
+    try:
+        # Datenbankkonfiguration aus der YAML-Datei laden
+        config = load_database_config("./databaseConfig.yaml")
 
-    # Verbindung zur PostgreSQL-Datenbank herstellen
-    conn = psycopg2.connect(
-        dbname=config["DBNAME"],  # Datenbankname
-        user=config["DBUSER"],  # Benutzername
-        password=config["DBPASSWORD"],  # Passwort
-        host=config["DBHOST"],  # Hostname
-        port=config["DBPORT"],  # Port
-    )
-    return conn
+        # Verbindung zur PostgreSQL-Datenbank herstellen
+        conn = psycopg2.connect(
+            dbname=config["DBNAME"],  # Datenbankname
+            user=config["DBUSER"],  # Benutzername
+            password=config["DBPASSWORD"],  # Passwort
+            host=config["DBHOST"],  # Hostname
+            port=config["DBPORT"],  # Port
+        )
+        return conn
+    except (psycopg2.Error, FileNotFoundError, yaml.YAMLError) as error:
+        # Fehler beim Herstellen der Verbindung abfangen
+        print(f"Fehler beim Verbinden zur Datenbank: {error}")
+        return None
 
 
 def close_connection(conn):
@@ -29,9 +34,6 @@ def close_connection(conn):
     if conn:
         conn.close()
         logging.info("PostgreSQL-Verbindung geschlossen")
-
-
-## add a try and except for the connection
 
 
 def get_latest_sensor_data(cursor):
