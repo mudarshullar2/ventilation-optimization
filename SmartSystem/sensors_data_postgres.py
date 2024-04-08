@@ -2,15 +2,15 @@ import schedule
 import time
 import logging
 from SmartSystem.config import load_database_config
-from SmartSystem.databaseManagement import connect_to_database, close_connection
-from SmartSystem.dataGeneration import generate_sensor_data
+from SmartSystem.database_management import connect_to_database, close_connection
+from SmartSystem.data_generation import generate_sensor_data
 
 # Logging konfigurieren
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-config = load_database_config("./databaseConfig.yaml")
+config = load_database_config("database_config.yaml")
 
 
 def insert_sensor_data(cursor):
