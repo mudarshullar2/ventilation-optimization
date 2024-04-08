@@ -4,6 +4,7 @@
     <list default="true" id="dc1bdb74-bbed-441b-ab25-d448130fe2d6" name="Default Changelist" comment="">
       <change afterPath="$PROJECT_DIR$/SmartSystem/config.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/SmartSystem/database.py" afterDir="false" />
+<<<<<<< Updated upstream
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/30fcd23745efe32ce681__mypyc.cpython-38-darwin.so" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/_black_version.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/aiohttp-3.9.3.dist-info/INSTALLER" afterDir="false" />
@@ -216,6 +217,8 @@
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/blib2to3/pygram.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/blib2to3/pytree.cpython-38-darwin.so" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/blib2to3/pytree.py" afterDir="false" />
+=======
+>>>>>>> Stashed changes
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/config-0.5.1.dist-info/INSTALLER" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/config-0.5.1.dist-info/LICENSE" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/config-0.5.1.dist-info/METADATA" afterDir="false" />
@@ -226,6 +229,7 @@
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/config/__init__.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/config/parser.py" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/config/tokens.py" afterDir="false" />
+<<<<<<< Updated upstream
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/frozenlist-1.4.1.dist-info/INSTALLER" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/frozenlist-1.4.1.dist-info/LICENSE" afterDir="false" />
       <change afterPath="$PROJECT_DIR$/venv/lib/python3.8/site-packages/frozenlist-1.4.1.dist-info/METADATA" afterDir="false" />
@@ -305,6 +309,11 @@
       <change beforePath="$PROJECT_DIR$/SmartSystem/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/SmartSystem/app.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SmartSystem/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/SmartSystem/model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SmartSystem/model2.py" beforeDir="false" afterPath="$PROJECT_DIR$/SmartSystem/model2.py" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SmartSystem/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/SmartSystem/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/SmartSystem/model.py" beforeDir="false" afterPath="$PROJECT_DIR$/SmartSystem/model.py" afterDir="false" />
+>>>>>>> Stashed changes
       <change beforePath="$PROJECT_DIR$/SmartSystem/sensorsDataPostgres.py" beforeDir="false" afterPath="$PROJECT_DIR$/SmartSystem/sensorsDataPostgres.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/SmartSystem/testmodel2.py" beforeDir="false" afterPath="$PROJECT_DIR$/SmartSystem/testmodel2.py" afterDir="false" />
     </list>
@@ -509,5 +518,9 @@
       <screen x="0" y="0" width="1440" height="900" />
     </state>
     <state x="385" y="196" width="670" height="676" key="search.everywhere.popup/0.0.1440.900@0.0.1440.900" timestamp="1712570648126" />
+    <state x="450" y="346" key="vcs.readOnlyHandler.ReadOnlyStatusDialog" timestamp="1712572778216">
+      <screen x="0" y="0" width="1440" height="900" />
+    </state>
+    <state x="450" y="346" key="vcs.readOnlyHandler.ReadOnlyStatusDialog/0.0.1440.900@0.0.1440.900" timestamp="1712572778216" />
   </component>
 </project>
