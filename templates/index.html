@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sensordaten</title>
+    <style>
+        /* CSS-Stile zum Zentrieren des Inhalts und Erstellen des Rahmens */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh; /* Volle Höhe des Viewports sicherstellen */
+            margin: 0;
+            background-color: #f0f0f0; /* Hintergrundfarbe festlegen */
+        }
+
+        .content {
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #3498db; /* Rahmenstil */
+            border-radius: 10px; /* Abgerundete Ecken */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Schatteneffekt */
+            background-color: #ffffff; /* Hintergrundfarbe */
+            max-width: 400px; /* Maximale Breite des Inhalts */
+        }
+
+        h1 {
+            color: #3498db; /* Textfarbe des Headers */
+        }
+
+        p {
+            margin-bottom: 10px; /* Abstand zwischen Absätzen */
+        }
+
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #3498db; /* Hintergrundfarbe des Buttons */
+            color: #ffffff; /* Textfarbe des Buttons */
+            text-decoration: none;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #2980b9; /* Hintergrundfarbe bei Hover */
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>Sensordaten</h1>
+
+        {% if sensor_data %}
+        <!-- Anzeige von Sensordaten und Empfehlung -->
+        <p><strong>Zeit:</strong> {{ sensor_data[0] }}</p>
+        <p><strong>Temperatur:</strong> {{ sensor_data[1] }} °C</p>
+        <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data[2] }} %</p>
+        <p><strong>CO2-Niveau:</strong> {{ sensor_data[3] }} ppm</p>
+        <p><strong>TVOC-Niveau:</strong> {{ sensor_data[4] }}</p>
+        <p><strong>Empfehlung des Systems:</strong> {{ recommendation }}</p>
+
+        <!-- Feedback-Buttons mit Pop-up-Nachricht -->
+        <form onsubmit="return submitFeedback(event, this);">
+            <input type="hidden" name="is_correct" value="1">
+            <input type="submit" value="Die Empfehlung war richtig" class="button">
+        </form>
+
+        <form onsubmit="return submitFeedback(event, this);">
+            <input type="hidden" name="is_correct" value="0">
+            <input type="submit" value="Die Empfehlung war nicht richtig" class="button">
+        </form>
+
+        <!-- Aktualisieren-Button -->
+        <form action="{{ url_for('index') }}" method="GET">
+            <input type="submit" value="Aktualisieren" class="button">
+        </form>
+
+        <!-- Shutdown-Button -->
+        <form action="/shutdown" method="POST">
+            <input type="submit" value="Server herunterfahren" class="button">
+        </form>
+
+        <!-- Link zum Navigieren zur Plots-Seite -->
+        <p><a href="{{ url_for('plots') }}" class="button">Plots anzeigen</a></p>
+
+        {% else %}
+        <p>Keine Sensordaten verfügbar.</p>
+        {% endif %}
+    </div>
+
+    <script>
+        // Funktion zum Senden von Feedback an den Server und Anzeigen einer Pop-up-Nachricht
+        function submitFeedback(event, form) {
+            event.preventDefault(); // Formularübermittlung verhindern
+
+            var isCorrect = form.querySelector('input[name="is_correct"]').value;
+            var message = (isCorrect === '1') ? "Danke für Dein Feedback!" : "Danke für Dein Feedback!";
+            alert(message);
+
+            // AJAX-Anfrage an Flask-Route
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", "/feedback", true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        var response = JSON.parse(xhr.responseText);
+                        alert(response.message);
+                    } else {
+                        alert("Fehler beim Senden des Feedbacks.");
+                    }
+                }
+            };
+            xhr.send("is_correct=" + isCorrect);
+
+            return false;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Sensor Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f7f7f7;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .plot-container {
+            margin-top: 20px;
+        }
+        .plot-title {
+            text-align: center;
+            font-weight: bold;
+        }
+        input[type="submit"] {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sensor Dashboard</h1>
+
+        <!-- Display individual sensor plots -->
+        <div class="plot-container">
+            {{ temperature_plot|safe }}
+            <p class="plot-title">Temperaturen im Klassenzimmer A (Letzte Stunde)</p>
+        </div>
+
+        <div class="plot-container">
+            {{ humidity_plot|safe }}
+            <p class="plot-title">Luftfeuchtigkeit im Klassenzimmer A (Letzte Stunde)</p>
+        </div>
+
+        <div class="plot-container">
+            {{ co2_plot|safe }}
+            <p class="plot-title">CO2-Konzentration im Klassenzimmer A (Letzte Stunde)</p>
+        </div>
+
+        <div class="plot-container">
+            {{ tvoc_plot|safe }}
+            <p class="plot-title">TVOC-Level im Klassenzimmer A (Letzte Stunde)</p>
+        </div>
+
+        <!-- Button to navigate back to the main page -->
+        <form action="{{ url_for('index') }}" method="GET">
+            <input type="submit" value="Zurück zu den Sensordaten">
+        </form>
+    </div>
+</body>
+</html>
