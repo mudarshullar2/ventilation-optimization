@@ -1,33 +1,16 @@
-import random
-from datetime import datetime
 import schedule
 import time
 import logging
 from SmartSystem.config import load_database_config
 from SmartSystem.databaseManagement import connect_to_database, close_connection
-
+from SmartSystem.dataGeneration import generate_sensor_data
 
 # Logging konfigurieren
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-config = load_database_config("/SmartSystem/databaseConfig.yaml")
-
-
-def generate_sensor_data():
-    """
-    Generiert zufällige Sensordaten.
-
-    :return: Tuple mit Zeitstempel, Temperatur, Luftfeuchtigkeit, CO2-Werte und TVOC-Werte
-    """
-    temperature = round(random.uniform(10, 27), 2)
-    humidity = round(random.uniform(30, 62), 2)
-    co2_values = round(random.uniform(402, 600), 2)
-    tvoc_values = round(random.uniform(100, 380), 2)
-    timestamp = datetime.now()
-
-    return timestamp, temperature, humidity, co2_values, tvoc_values
+config = load_database_config("./databaseConfig.yaml")
 
 
 def insert_sensor_data(cursor):
