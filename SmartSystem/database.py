@@ -1,4 +1,5 @@
 import psycopg2
+import logging
 from SmartSystem.config import load_database_config
 
 
@@ -21,6 +22,13 @@ def connect_to_database():
         port=config["port"],  # Port
     )
     return conn
+
+
+def close_connection(conn):
+    """Schließt die PostgreSQL-Verbindung."""
+    if conn:
+        conn.close()
+        logging.info("PostgreSQL-Verbindung geschlossen")
 
 
 def get_latest_sensor_data(cursor):

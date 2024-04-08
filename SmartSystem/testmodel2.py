@@ -1,4 +1,5 @@
 from SmartSystem.config import load_database_config
+from SmartSystem.database import connect_to_database, get_latest_sensor_data, close_connection
 import psycopg2
 import pandas as pd
 import pickle
@@ -14,28 +15,6 @@ logging.basicConfig(
 model_path = "/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl"
 with open(model_path, "rb") as f:
     model = pickle.load(f)
-
-
-def connect_to_database(config):
-    """
-    Stellt eine Verbindung zur PostgreSQL-Datenbank her.
-
-    :param config: Datenbankkonfigurationsdaten als Dictionary
-    :return: Verbindungsobjekt (conn) oder None bei einem Fehler
-    """
-    try:
-        # Mit der PostgreSQL-Datenbank unter Verwendung der angegebenen Konfiguration verbinden
-        conn = psycopg2.connect(
-            dbname=config["dbname"],
-            user=config["user"],
-            password=config["password"],
-            host=config["host"],
-            port=config["port"],
-        )
-        logging.info("Erfolgreich mit der Datenbank verbunden")
-        return conn
-    except (Exception, psycopg2.Error) as error:
-        logging.error("Fehler beim Verbinden mit der PostgreSQL-Datenbank:", error)
 
 
 def fetch_latest_sensor_data(conn):
@@ -94,7 +73,7 @@ def predict_window_state(model, df):
     return prediction[0]
 
 
-if __name__ == "__main__":
+def main():
     # Datenbankkonfiguration aus config.yaml laden
     config_file = "/SmartSystem/databaseConfig.yaml"
     db_config = load_database_config(config_file)
@@ -130,3 +109,7 @@ if __name__ == "__main__":
 
         # 25 Sekunden warten, bevor die nächsten Sensordaten abgerufen werden
         time.sleep(25)
+
+
+if __name__ == "__main__":
+    main()
