@@ -1,3 +1,7 @@
+# Hinweis: Dieses Beispiel für ein inkrementelles Machine-Learning-Modell hat keine direkte Verbindung zur Anwendung `app.py`.
+# Es dient lediglich zur Veranschaulichung eines Systems, das in Echtzeit aus den Sensor-Daten lernt und sich entsprechend anpasst.
+# Das Modell wird kontinuierlich aktualisiert, um Vorhersagen basierend auf den aktuellen Daten zu verbessern.
+
 import psycopg2
 from river import compose, preprocessing, linear_model, metrics
 import logging
@@ -6,21 +10,27 @@ import yaml
 
 
 def load_database_config(config_file):
+    """
+    Lädt die Konfiguration der Datenbank aus einer YAML-Konfigurationsdatei.
+
+    :param config_file: Pfad zur YAML-Konfigurationsdatei
+    :return: Datenbankkonfigurationsdaten als Dictionary
+    """
     try:
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
         return config['database']
     except FileNotFoundError:
-        logging.error(f"Config file '{config_file}' not found")
+        logging.error(f"Konfigurationsdatei '{config_file}' nicht gefunden")
         raise
 
-
+# Datenbankkonfiguration laden
 config = load_database_config('/Users/mudarshullar/PycharmProjects/BAProject/databaseConfig.yaml')
 
-# Set up logging
+# Logging konfigurieren
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Connect to PostgreSQL database
+# Mit der PostgreSQL-Datenbank verbinden
 conn = psycopg2.connect(
     dbname=config['dbname'],
     user=config['user'],
@@ -30,17 +40,17 @@ conn = psycopg2.connect(
 )
 cursor = conn.cursor()
 
-# Initialize river model for CO2 prediction
+# River-Modell für CO2-Vorhersage initialisieren
 model = compose.Pipeline(
     preprocessing.StandardScaler(),
     linear_model.LinearRegression()
 )
 metric = metrics.R2()
 
-# Continuously fetch and process streaming data
+# Kontinuierlich Daten abrufen und verarbeiten
 while True:
     try:
-        # Query latest sensor data from PostgreSQL
+        # Aktuellste Sensordaten aus PostgreSQL abfragen
         cursor.execute('SELECT "timestamp", temperature, humidity, co2_values, tvoc_values FROM public."SensorData" '
                        'ORDER BY "timestamp" DESC LIMIT 1;')
         latest_data = cursor.fetchone()
@@ -48,19 +58,19 @@ while True:
         if latest_data:
             timestamp, temperature, humidity, co2, tvoc = latest_data
 
-            # Prepare instance for prediction and training
+            # Instanz für Vorhersage und Training vorbereiten
             instance = {'temperature': temperature, 'humidity': humidity, 'tvoc': tvoc}
 
-            # Predict CO2 using the model
+            # CO2 mithilfe des Modells vorhersagen
             prediction = model.predict_one(instance)
 
-            # Update the model with the new instance and true label (CO2)
+            # Modell mit neuer Instanz und echtem Wert (CO2) aktualisieren
             model.learn_one(instance, co2)
 
-            # Update metric with the true label and prediction
+            # Metrik mit echtem Wert und Vorhersage aktualisieren
             metric.update(co2, prediction)
 
-            # Log the prediction and actual CO2 value
+            # Vorhersage und tatsächlichen CO2-Wert protokollieren
             logging.info(f"Timestamp: {timestamp}, Predicted CO2: {prediction:.2f}, Actual CO2: {co2}")
 
         else:
@@ -69,9 +79,9 @@ while True:
     except Exception as e:
         logging.error(f"Error processing data: {e}")
 
-    # Sleep for a specified duration (e.g., 1 minute) before querying new data
+    # Vor dem Abrufen neuer Daten eine bestimmte Zeit warten (z.B. 23 Sekunden)
     time.sleep(23)
 
-# Close database connection
+# Datenbankverbindung schließen
 cursor.close()
 conn.close()
