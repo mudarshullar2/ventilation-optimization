@@ -11,15 +11,15 @@ def connect_to_database():
         conn: Eine Verbindungsinstanz zur PostgreSQL-Datenbank.
     """
     # Datenbankkonfiguration aus der YAML-Datei laden
-    config = load_database_config("/SmartSystem/databaseConfig.yaml")
+    config = load_database_config("./databaseConfig.yaml")
 
     # Verbindung zur PostgreSQL-Datenbank herstellen
     conn = psycopg2.connect(
-        dbname=config["dbname"],  # Datenbankname
-        user=config["user"],  # Benutzername
-        password=config["password"],  # Passwort
-        host=config["host"],  # Hostname
-        port=config["port"],  # Port
+        dbname=config["DBNAME"],  # Datenbankname
+        user=config["DBUSER"],  # Benutzername
+        password=config["DBPASSWORD"],  # Passwort
+        host=config["DBHOST"],  # Hostname
+        port=config["DBPORT"],  # Port
     )
     return conn
 
@@ -32,6 +32,7 @@ def close_connection(conn):
 
 
 ## add a try and except for the connection
+
 
 def get_latest_sensor_data(cursor):
     """
