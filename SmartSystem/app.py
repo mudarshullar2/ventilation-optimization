@@ -7,7 +7,7 @@ import plotly.graph_objs as go
 app = Flask(__name__)
 
 # Datenbankkonfiguration laden
-config_file = "/databaseConfig.yaml"
+config_file = "./databaseConfig.yaml"
 db_config = load_database_config(config_file)
 
 # Das vortrainierte Machine-Learning-Modell laden
