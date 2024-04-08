@@ -31,6 +31,8 @@ def close_connection(conn):
         logging.info("PostgreSQL-Verbindung geschlossen")
 
 
+## add a try and except for the connection
+
 def get_latest_sensor_data(cursor):
     """
     Ruft die neuesten Sensordaten aus der Datenbank ab.
@@ -42,6 +44,7 @@ def get_latest_sensor_data(cursor):
         latest_data: Ein Tupel mit den neuesten Sensordaten (timestamp, temperature, humidity, co2_values, tvoc_values).
                      None, falls keine Daten vorhanden sind.
     """
+
     # SQL-Abfrage, um die neuesten Sensordaten abzurufen
     cursor.execute(
         'SELECT "timestamp", temperature, humidity, co2_values, tvoc_values FROM public."SensorData" '
