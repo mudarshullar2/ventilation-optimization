@@ -1,36 +1,55 @@
 <!DOCTYPE html>
-<html>
+<html lang="de">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensordaten</title>
     <style>
-        /* CSS-Stile zum Zentrieren des Inhalts und Erstellen des Rahmens */
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh; /* Volle Höhe des Viewports sicherstellen */
+        /* Global reset */
+        body, html {
             margin: 0;
-            background-color: #f0f0f0; /* Hintergrundfarbe festlegen */
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #333; /* Dark background */
+            color: #ffffff; /* Light text */
         }
 
-        .content {
+        /* Header styles */
+        header {
+            background-color: #222; /* Darker background for header */
+            padding: 20px 0;
             text-align: center;
-            padding: 20px;
-            border: 2px solid #3498db; /* Rahmenstil */
-            border-radius: 10px; /* Abgerundete Ecken */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Schatteneffekt */
-            background-color: #ffffff; /* Hintergrundfarbe */
-            max-width: 400px; /* Maximale Breite des Inhalts */
+            margin-bottom: 30px;
         }
 
-        h1 {
-            color: #3498db; /* Textfarbe des Headers */
+        /* Content wrapper */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Section styles */
+        section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background-color: #444; /* Darker background for sections */
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Slightly elevated */
+            text-align: center; /* Center-align section content */
+        }
+
+        h2 {
+            color: #3498db; /* Accent color for section titles */
+            margin-bottom: 20px; /* Space below section titles */
         }
 
         p {
-            margin-bottom: 10px; /* Abstand zwischen Absätzen */
+            line-height: 1.6;
+            margin-bottom: 10px;
         }
 
+        /* Button styles */
         .button {
             display: inline-block;
             padding: 10px 20px;
@@ -39,79 +58,90 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            background-color: #3498db; /* Hintergrundfarbe des Buttons */
-            color: #ffffff; /* Textfarbe des Buttons */
+            background-color: #3498db;
+            color: #ffffff;
             text-decoration: none;
             transition: background-color 0.3s ease;
         }
 
         .button:hover {
-            background-color: #2980b9; /* Hintergrundfarbe bei Hover */
+            background-color: #2980b9;
         }
     </style>
 </head>
 <body>
-    <div class="content">
-        <h1>Sensordaten</h1>
+    <header>
+        <h1>KI-Lüftungssystem (Schule am Schloss)</h1>
+    </header>
 
-        {% if sensor_data %}
-        <!-- Anzeige von Sensordaten und Empfehlung -->
-        <p><strong>Zeit:</strong> {{ sensor_data[0] }}</p>
-        <p><strong>Temperatur:</strong> {{ sensor_data[1] }} °C</p>
-        <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data[2] }} %</p>
-        <p><strong>CO2-Niveau:</strong> {{ sensor_data[3] }} ppm</p>
-        <p><strong>TVOC-Niveau:</strong> {{ sensor_data[4] }}</p>
-        <p><strong>Empfehlung des Systems:</strong> {{ recommendation }}</p>
+    <div class="container">
+        <section>
+            <h2>Über das Smart Lüftungssystem an der Schule am Schloss</h2>
+            <p>Erhalten Sie aktuelle Sensordaten zu Temperatur, Luftfeuchtigkeit und CO2-Gehalt.</p>
+            <p>Das System analysiert die Raumluftqualität und bietet Empfehlungen zur optimalen Belüftung für eine gesunde Lernumgebung.</p>
+        </section>
 
-        <!-- Warnung anzeigen, wenn Temperatur über 27°C und Luftfeuchtigkeit über 60% liegt -->
-        {% if sensor_data[1] | int > 27 and sensor_data[2] | int > 60 %}
-        <p style="color: red; font-weight: bold;">Warnung: Hohe Temperatur und Luftfeuchtigkeit! Bitte für angenehme Bedingungen sorgen.</p>
-        {% endif %}
+        <section>
+            <h2>Sensordaten</h2>
+            {% if sensor_data %}
+            <p><strong>Zeit:</strong> {{ sensor_data[0] }}</p>
+            <p><strong>Temperatur:</strong> {{ sensor_data[1] }} °C</p>
+            <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data[2] }} %</p>
+            <p><strong>CO2-Niveau:</strong> {{ sensor_data[3] }} ppm</p>
+            <p><strong>TVOC-Niveau:</strong> {{ sensor_data[4] }}</p>
 
-        <!-- Warnung anzeigen, wenn CO2-Niveau über 1000 ppm liegt -->
-        {% if sensor_data[3] | int > 1000 %}
-        <p style="color: red; font-weight: bold;">Warnung: CO2-Niveau ist zu hoch für optimalen Komfort von Schülern und Lehrern. Es wird dringend empfohlen, Fenster zu öffnen!</p>
-        {% endif %}
+            {% if sensor_data[1] | int > 27 and sensor_data[2] | int > 60 %}
+            <p style="color: red; font-weight: bold;">Warnung: Hohe Temperatur und Luftfeuchtigkeit! Bitte für angenehme Bedingungen sorgen.</p>
+            {% endif %}
 
-        <!-- Feedback-Buttons mit Pop-up-Nachricht -->
-        <form onsubmit="return submitFeedback(event, this);">
-            <input type="hidden" name="is_correct" value="1">
-            <input type="submit" value="Die Empfehlung war richtig" class="button">
-        </form>
+            {% if sensor_data[3] | int > 1000 %}
+            <p style="color: red; font-weight: bold;">Warnung: CO2-Niveau ist zu hoch für optimalen Komfort von Schülern und Lehrern. Es wird dringend empfohlen, Fenster zu öffnen!</p>
+            {% endif %}
 
-        <form onsubmit="return submitFeedback(event, this);">
-            <input type="hidden" name="is_correct" value="0">
-            <input type="submit" value="Die Empfehlung war nicht richtig" class="button">
-        </form>
+            <form onsubmit="return submitFeedback(event, this);">
+                <input type="hidden" name="is_correct" value="1">
+                <input type="submit" value="Die Empfehlung war richtig" class="button">
+            </form>
 
-        <!-- Shutdown-Button -->
-        <form action="/shutdown" method="POST">
-            <input type="submit" value="Server herunterfahren" class="button">
-        </form>
+            <form onsubmit="return submitFeedback(event, this);">
+                <input type="hidden" name="is_correct" value="0">
+                <input type="submit" value="Die Empfehlung war nicht richtig" class="button">
+            </form>
 
-        <!-- Link zum Navigieren zur Plots-Seite -->
-        <p><a href="{{ url_for('plots') }}" class="button">Plots anzeigen</a></p>
+            <form action="/shutdown" method="POST">
+                <input type="submit" value="Server herunterfahren" class="button">
+            </form>
 
-        <!-- Button zum Herunterladen der CO2-Daten für den letzten Monat -->
-        <form action="{{ url_for('download_co2_data') }}" method="GET">
-            <input type="submit" value="CO2-Daten des letzten Monats herunterladen" class="button">
-        </form>
+            <form action="{{ url_for('download_co2_data') }}" method="GET">
+                <input type="submit" value="CO2-Daten des letzten Monats herunterladen" class="button">
+            </form>
 
-        {% else %}
-        <p>Keine Sensordaten verfügbar.</p>
-        {% endif %}
+            {% else %}
+            <p>Keine Sensordaten verfügbar.</p>
+            {% endif %}
+        </section>
+
+        <section>
+            <h2>Kontakt</h2>
+            <p>Sie haben Fragen oder Anregungen? Kontaktieren Sie uns gerne.</p>
+            <a href="{{ url_for('contact') }}" class="button">Kontakt</a>
+        </section>
+
+        <section>
+            <h2>Weitere Informationen</h2>
+            <p>Besuchen Sie unser Dashboard, um detaillierte Sensorwerte zu visualisieren.</p>
+            <a href="{{ url_for('plots') }}" class="button">Sensor Werte als Dashboard anzeigen</a>
+        </section>
     </div>
 
     <script>
-        // Funktion zum Senden von Feedback an den Server und Anzeigen einer Pop-up-Nachricht
         function submitFeedback(event, form) {
-            event.preventDefault(); // Formularübermittlung verhindern
+            event.preventDefault();
 
             var isCorrect = form.querySelector('input[name="is_correct"]').value;
-            var message = (isCorrect === '1') ? "Vielen Dank! Dein Feedback wird die Genauigkeit des Modells weiter verbessern!" : "Vielen Dank! Dein Feedback wird die Genauigkeit des Modells weiter verbessern!";
+            var message = (isCorrect === '1') ? "Vielen Dank! Ihr Feedback wird die Genauigkeit des Systems weiter verbessern." : "Vielen Dank! Ihr Feedback wird die Genauigkeit des Systems weiter verbessern.";
             alert(message);
 
-            // AJAX-Anfrage an Flask-Route
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "/feedback", true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -120,7 +150,6 @@
                     if (xhr.status === 200) {
                         var response = JSON.parse(xhr.responseText);
                         alert(response.message);
-                        // Automatisches Aktualisieren der Seite nach Feedback
                         window.location.reload();
                     } else {
                         alert("Fehler beim Senden des Feedbacks.");
@@ -132,32 +161,10 @@
             return false;
         }
 
-        // Automatisches Aktualisieren der Seite alle 30 Sekunden
         setInterval(function() {
             window.location.reload();
-        }, 10000); // 10000 Millisekunden = 10 Sekunden
-
-
-                // Funktion zum Anzeigen einer Popup-Nachricht basierend auf dem Download-Ergebnis
-        function showDownloadMessage(successful) {
-            if (successful) {
-                alert("Die CO2-Daten des letzten Monats wurden erfolgreich heruntergeladen!");
-            } else {
-                alert("Keine CO2-Daten für den letzten Monat verfügbar.");
-            }
-        }
-
-        // Event-Listener für das Absenden des Download-Formulars
-        document.getElementById("downloadForm").addEventListener("submit", function(event) {
-            event.preventDefault(); // Standardverhalten des Formulars verhindern
-
-            // Hier würde normalerweise die AJAX-Anfrage an den Server erfolgen, um den Download durchzuführen
-            // Annahme: Die Variable 'successful' wird basierend auf dem Server-Response-Wert gesetzt
-            var successful = true; // Beispiel: Annahme, dass der Download erfolgreich war
-
-            // Popup-Nachricht anzeigen basierend auf dem Ergebnis
-            showDownloadMessage(successful);
-        });
+        }, 10000);
     </script>
 </body>
 </html>
+
