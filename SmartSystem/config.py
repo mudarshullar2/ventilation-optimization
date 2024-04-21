@@ -16,3 +16,4 @@ def load_database_config(config_file):
     except FileNotFoundError:
         logging.error(f"Konfigurationsdatei '{config_file}' nicht gefunden")
         raise
+

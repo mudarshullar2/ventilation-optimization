@@ -4,35 +4,13 @@ import random
 import logging
 from datetime import datetime
 from SmartSystem.config import load_database_config
-from SmartSystem.database_management import connect_to_database
+from SmartSystem.database_management import get_latest_sensor_data
 
 # Datenbankkonfiguration laden
 config_file = "database_config.yaml"
-db_config = load_database_config(config_file)
 
 # Das vortrainierte Machine-Learning-Modell laden
 model = joblib.load("/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl")
-
-
-def get_latest_sensor_data():
-    try:
-        conn = connect_to_database()
-        cursor = conn.cursor()
-
-        # Aktuellste Sensordaten abrufen
-        query = (
-            'SELECT "timestamp", temperature, humidity, co2_values, tvoc_values '
-            'FROM public."SensorData" ORDER BY "timestamp" DESC LIMIT 100;'
-        )
-        cursor.execute(query)
-        sensor_data = cursor.fetchall()
-
-        conn.close()
-        return sensor_data
-
-    except psycopg2.Error as e:
-        print("Fehler bei der Verbindung zur PostgreSQL-Datenbank:", e)
-        return None
 
 
 def generate_sensor_data():
