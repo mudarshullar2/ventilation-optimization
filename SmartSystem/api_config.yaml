@@ -1,0 +1,4 @@
+# Konfigurationen
+READ_API_KEY: 36926088-4d9b-4fb8-aad0-96292f01ca4c-kisam
+POST_DELETE_API_KEY: 9dcff132-400a-41bd-9391-24f08e66f383-kisamadm
+API_BASE_URL: https://cs1-swp.westeurope.cloudapp.azure.com:8443/air_data
