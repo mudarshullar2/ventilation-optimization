@@ -47,6 +47,16 @@ def load_and_preprocess_data(dataset_path):
 
 
 def determine_window_state(row):
+    """
+    Bestimmt den Zustand des Fensters basierend auf den Sensordaten.
+
+    Parameter:
+        row: Eine Zeile aus den Sensordaten als pandas DataFrame.
+
+    Rückgabewert:
+        0: Das Fenster sollte nicht geöffnet werden.
+        1: Das Fenster sollte geöffnet werden.
+    """
     if (
             (row["co2"] <= 1000)
             and (row["tvoc"] <= 250)
@@ -59,6 +69,18 @@ def determine_window_state(row):
 
 
 def train_and_evaluate_model(X_train, X_test, y_train, y_test):
+    """
+    Trainiert ein Modell mit den Trainingsdaten und bewertet es mit den Testdaten.
+
+    Parameter:
+        X_train: Die Trainingsdaten (Features).
+        X_test: Die Testdaten (Features).
+        y_train: Die Trainingsdaten (Zielvariablen).
+        y_test: Die Testdaten (Zielvariablen).
+
+    Rückgabewert:
+        clf: Der trainierte Klassifizierer.
+    """
     # Initialisieren und trainieren des Random Forest Klassifizierers
     clf = RandomForestClassifier(random_state=42)
     clf.fit(X_train, y_train)
@@ -77,12 +99,24 @@ def train_and_evaluate_model(X_train, X_test, y_train, y_test):
 
 
 def save_model(model, model_path):
+    """
+    Speichert ein trainiertes Modell in einer Datei.
+
+    Parameter:
+        model: Das trainierte Modell.
+        model_path: Der Speicherpfad für das Modell.
+    """
     # Trainiertes Modell in .pkl-Datei speichern
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
 
 
 def main():
+    """
+    Hauptfunktion, die den Datensatz lädt, das Modell trainiert und speichert.
+
+    Diese Funktion dient als Einstiegspunkt des Skripts.
+    """
     dataset_path = "/Users/mudarshullar/Desktop/TelemetryData/data.csv"
     model_path = "/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl"
 

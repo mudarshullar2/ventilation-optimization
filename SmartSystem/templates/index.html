@@ -84,17 +84,17 @@
         <section>
             <h2>Sensordaten</h2>
             {% if sensor_data %}
-            <p><strong>Zeit:</strong> {{ sensor_data[0] }}</p>
-            <p><strong>Temperatur:</strong> {{ sensor_data[1] }} °C</p>
-            <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data[2] }} %</p>
-            <p><strong>CO2-Niveau:</strong> {{ sensor_data[3] }} ppm</p>
-            <p><strong>TVOC-Niveau:</strong> {{ sensor_data[4] }}</p>
+            <p><strong>Zeit:</strong> {{ sensor_data.time }}</p>
+            <p><strong>Temperatur:</strong> {{ sensor_data.temperature }} °C</p>
+            <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data.humidity }} %</p>
+            <p><strong>CO2-Niveau:</strong> {{ sensor_data.co2 }} ppm</p>
+            <p><strong>TVOC-Niveau:</strong> {{ sensor_data.accurate_prediction }}</p>
 
-            {% if sensor_data[1] | int > 27 and sensor_data[2] | int > 60 %}
+            {% if sensor_data.temperature | int > 27 and sensor_data.humidity | int > 60 %}
             <p style="color: red; font-weight: bold;">Warnung: Hohe Temperatur und Luftfeuchtigkeit! Bitte für angenehme Bedingungen sorgen.</p>
             {% endif %}
 
-            {% if sensor_data[3] | int > 1000 %}
+            {% if sensor_data.co2 | int > 1000 %}
             <p style="color: red; font-weight: bold;">Warnung: CO2-Niveau ist zu hoch für optimalen Komfort von Schülern und Lehrern. Es wird dringend empfohlen, Fenster zu öffnen!</p>
             {% endif %}
 
