@@ -4,6 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensordaten</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            background-color: #f5f5f5; /* Default background color */
+            color: #333; /* Default text color */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            text-align: center;
+        }
+        /* Modal styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+            overflow: auto;
+            justify-content: center;
+            align-items: center;
+            display: flex;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 400px;
+            width: 80%;
+            text-align: center;
+        }
+        .modal-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensordaten</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
 </head>
 <body>
@@ -12,7 +63,18 @@
         <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="max-width: 200px;">
     </header>
 
+    <!-- Hidden Japanese character -->
+    <div id="yogi" style="display: none;">
+        <img src="{{ url_for('static', filename='img/yugi.png') }}" alt="Yogi Character" style="max-width: 200px;">
+        <p>ありがとうございます！</p>
+        <audio id="yogiAudio">
+            <source src="{{ url_for('static', filename='audio/yogiAudio.mp3') }}" type="audio/mpeg">
+            Your browser does not support the audio element.
+        </audio>
+    </div>
+
     <div class="container">
+
         <section>
             <h2>Über das Smart Lüftungssystem an der Schule am Schloss</h2>
             <p>Erhalten Sie aktuelle Sensordaten zu Temperatur, Luftfeuchtigkeit und CO2-Gehalt.</p>
@@ -69,17 +131,48 @@
             <h2>Weitere Informationen</h2>
             <p>Besuchen Sie unser Dashboard, um detaillierte Sensorwerte zu visualisieren.</p>
             <a href="{{ url_for('plots') }}" class="button">Sensor Werte als Dashboard anzeigen</a>
+        </section>  
+
+        <section>
+            <button onclick="openDesignModal()" class="button">Design auswählen</button>
         </section>
+    </div>
+
+    <!-- Design selection modal -->
+    <div id="designModal" class="modal">
+        <div class="modal-content">
+            <h2>Design wählen</h2>
+            <p>Wählen Sie Ihr bevorzugtes Design:</p>
+            <button onclick="selectDesign('dark')" class="modal-button">Dark Mode</button>
+            <button onclick="selectDesign('magna')" class="modal-button">Magna Design</button>
+        </div>
     </div>
 
     <script>
         function submitFeedback(event, form) {
             event.preventDefault();
-
+    
             var isCorrect = form.querySelector('input[name="is_correct"]').value;
-            var message = (isCorrect === '1') ? "Vielen Dank! Ihr Feedback wird die Genauigkeit des Systems weiter verbessern." : "Vielen Dank! Ihr Feedback wird die Genauigkeit des Systems weiter verbessern.";
-            alert(message);
-
+    
+            // Show Yogi and play audio
+            var yogiElement = document.getElementById('yogi');
+            var audioElement = document.getElementById('yogiAudio');
+    
+            yogiElement.style.display = 'block';
+            
+            // Check if audio is supported and file is loaded
+            if (audioElement.canPlayType && audioElement.canPlayType('audio/mpeg').replace(/no/, '')) {
+                audioElement.play();
+            }
+    
+            // Hide Yogi and stop audio after a few seconds
+            setTimeout(function() {
+                yogiElement.style.display = 'none';
+                audioElement.pause();
+                audioElement.currentTime = 0;
+            }, 5000); // Hide Yogi after 5 seconds (adjust as needed)
+    
+            // Simulate form submission (optional)
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "/feedback", true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -87,22 +180,87 @@
                 if (xhr.readyState === XMLHttpRequest.DONE) {
                     if (xhr.status === 200) {
                         var response = JSON.parse(xhr.responseText);
-                        alert(response.message);
-                        window.location.reload();
+                        var feedbackMessage = response.feedback_message;
+                        // Display feedback message on the page
+                        var messageElement = document.createElement('p');
+                        messageElement.textContent = feedbackMessage;
+                        form.parentNode.appendChild(messageElement); // Append message after the form
                     } else {
-                        alert("Fehler beim Senden des Feedbacks.");
+                        console.error("Error sending feedback:", xhr.status);
                     }
                 }
             };
             xhr.send("is_correct=" + isCorrect);
-
+    
             return false;
         }
 
-        setInterval(function() {
-            window.location.reload();
-        }, 10000);
-    </script>
+        function openDesignModal() {
+        var modal = document.getElementById('designModal');
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function selectDesign(mode) {
+    if (mode === 'dark') {
+        document.body.style.backgroundColor = '#333';
+        document.body.style.color = '#fff';
+        // Update link styles for dark mode
+        document.querySelectorAll('.button').forEach(function(link) {
+            link.style.backgroundColor = '#555';
+            link.style.color = '#fff';
+        });
+    } else if (mode === 'magna') {
+        document.body.style.backgroundColor = '#ffcc00';
+        document.body.style.color = '#333';
+        // Update link styles for magna mode
+        document.querySelectorAll('.button').forEach(function(link) {
+            link.style.backgroundColor = '#ffea00';
+            link.style.color = '#333';
+        });
+    }
+
+    // Update text color based on background color
+    updateTextColor();
+
+    closeDesignModal(); // Close the modal after selection
+
+    }
+
+
+    function closeDesignModal() {
+        var modal = document.getElementById('designModal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    function updateTextColor() {
+        var bodyBackgroundColor = document.body.style.backgroundColor;
+        var bodyColor = document.body.style.color;
+
+        // Ensure text color contrasts with background color
+        if (bodyBackgroundColor === '#333') {
+            // Dark background, set text to light color
+            document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
+                element.style.color = '#fff';
+            });
+        } else {
+            // Light background, set text to dark color
+            document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
+                element.style.color = '#333';
+            });
+        }
+    }
+
+    // Example: Apply Dark Mode by default on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        selectDesign('dark'); // Apply Dark Mode initially
+    });
+
+    </script>    
+    
 </body>
 </html>
 
