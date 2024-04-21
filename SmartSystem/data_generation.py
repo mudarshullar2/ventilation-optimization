@@ -3,8 +3,8 @@ import joblib
 import random
 import logging
 from datetime import datetime
-from SmartSystem.config import load_database_config
-from SmartSystem.database_management import get_latest_sensor_data
+from config import load_database_config
+from database_management import get_latest_sensor_data
 
 # Datenbankkonfiguration laden
 config_file = "database_config.yaml"

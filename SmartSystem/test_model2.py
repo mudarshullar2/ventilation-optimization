@@ -1,5 +1,5 @@
-from SmartSystem.config import load_database_config
-from SmartSystem.database_management import connect_to_database, get_latest_sensor_data, close_connection
+from config import load_database_config
+from database_management import connect_to_database, get_latest_sensor_data, close_connection
 import psycopg2
 import pandas as pd
 import pickle
