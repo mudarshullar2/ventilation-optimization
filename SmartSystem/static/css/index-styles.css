@@ -1,62 +1,107 @@
-/* Global reset */
-body, html {
-    margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    background-color: #333; /* Dark background */
-    color: #ffffff; /* Light text */
+/* Apply playful fonts */
+body {
+    font-family: 'Comic Sans MS', cursive, sans-serif;
 }
 
-/* Header styles */
+/* Customize header styles */
 header {
-    background-color: #222; /* Darker background for header */
-    padding: 20px 0;
-    text-align: center;
-    margin-bottom: 30px;
-}
-
-/* Content wrapper */
-.container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-/* Section styles */
-section {
-    margin-bottom: 40px;
+    background-color: #f7eef9; /* Light purple */
     padding: 20px;
-    background-color: #444; /* Darker background for sections */
+    text-align: center;
+}
+
+h1 {
+    font-size: 36px;
+    color: #3e167d; /* Dark purple */
+    text-align: center;
+}
+
+/* Add cartoonish styles to sections */
+section {
+    background-color: #ffffff; /* White background */
+    padding: 20px;
+    margin-bottom: 20px;
     border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Slightly elevated */
-    text-align: center; /* Center-align section content */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    text-align: center;
 }
 
 h2 {
-    color: #3498db; /* Accent color for section titles */
-    margin-bottom: 20px; /* Space below section titles */
+    font-size: 24px;
+    color: #3e167d; /* Dark purple */
+    text-align: center;
 }
 
-p {
-    line-height: 1.6;
+/* Styling for sensor data cards */
+.card {
+    background-color: #e2f5fb; /* Light blue */
+    padding: 15px;
+    border-radius: 8px;
     margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 /* Button styles */
 .button {
-    display: inline-block;
-    padding: 10px 20px;
-    margin: 10px;
-    font-size: 16px;
+    background-color: #ff7f50; /* Coral */
+    color: #fff;
     border: none;
+    padding: 10px 20px;
+    font-size: 16px;
     border-radius: 5px;
     cursor: pointer;
-    background-color: #3498db;
-    color: #ffffff;
-    text-decoration: none;
     transition: background-color 0.3s ease;
+    text-align: center;
 }
 
 .button:hover {
-    background-color: #2980b9;
+    background-color: #ff6347; /* Tomato */
 }
+
+/* Form styles */
+form {
+    margin-bottom: 10px;
+}
+
+/* Customize alerts */
+.alert {
+    padding: 15px;
+    background-color: #ffe4e1; /* Misty rose */
+    color: #ff6347; /* Tomato */
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+/* CSS for Yogi character */
+#yogi {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    display: none;
+    z-index: 9999; /* Ensure Yogi is on top of other elements */
+    animation: fadeInOut 2s ease; /* Apply fade-in/out animation */
+}
+
+#yogi img {
+    width: 200px; /* Adjust size as needed */
+    border-radius: 50%; /* Rounded image */
+    margin-bottom: 10px;
+}
+
+#yogi p {
+    font-size: 18px; /* Adjust font size */
+    color: #333; /* Text color */
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; } /* Start with transparency */
+    50% { opacity: 1; } /* Fully visible halfway through animation */
+    100% { opacity: 0; } /* Fade out at the end of animation */
+}
+

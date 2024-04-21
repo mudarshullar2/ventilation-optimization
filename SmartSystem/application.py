@@ -190,6 +190,10 @@ def download_co2_data():
         return f"Fehler: {str(e)}"
 
 
+@app.route('/select-design')
+def select_design():
+    return render_template('design.html')
+
 # Neue Route zum Rendern von contact.html
 @app.route('/contact')
 def contact():
