@@ -3,8 +3,8 @@ import psycopg2
 import logging
 import yaml
 from datetime import datetime, timedelta
-from SmartSystem.load_api import load_api_config
-from SmartSystem.config import load_database_config
+from load_api import load_api_config
+from config import load_database_config
 
 # Pfad zu Ihrer YAML-Konfigurationsdatei
 config_file_path = 'SmartSystem/api_config.yaml'

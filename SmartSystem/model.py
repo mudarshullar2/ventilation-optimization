@@ -5,7 +5,7 @@ sich entsprechend anpasst. Das Modell wird kontinuierlich aktualisiert, um Vorhe
 Daten zu verbessern.
 """
 
-from SmartSystem.database_management import connect_to_database, get_latest_sensor_data
+from database_management import connect_to_database, get_latest_sensor_data
 from river import compose, preprocessing, linear_model, metrics
 import logging
 import time

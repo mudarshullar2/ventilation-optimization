@@ -1,7 +1,7 @@
-from SmartSystem.database_management import get_sensor_data_last_month
-from SmartSystem.data_generation import get_latest_sensor_data
-from SmartSystem.generating_plots import generate_plot
-from SmartSystem.load_api import load_api_config
+from database_management import get_sensor_data_last_month
+from data_generation import get_latest_sensor_data
+from generating_plots import generate_plot
+from load_api import load_api_config
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import Flask, render_template, request, send_file
@@ -11,7 +11,7 @@ import smtplib
 import requests
 import logging
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/SmartSystemVS_1/SmartSchoolsAISystem/SmartSystem/static')
 
 # Das vortrainierte Machine-Learning-Modell laden
 model = joblib.load("/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl")

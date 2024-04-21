@@ -1,0 +1,43 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #333; /* Dark background */
+    color: #ffffff; /* Light text */
+}
+.container {
+    max-width: 800px;
+    margin: auto;
+    background-color: #444; /* Darker background for container */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Slightly elevated with dark shadow */
+}
+h1 {
+    text-align: center;
+    color: #ffffff; /* White heading text */
+}
+.plot-container {
+    margin-top: 20px;
+}
+.plot-title {
+    text-align: center;
+    font-weight: bold;
+    color: #ffffff; /* White plot title text */
+}
+input[type="submit"] {
+    display: block;
+    width: 200px;
+    margin: 20px auto;
+    padding: 10px;
+    font-size: 16px;
+    color: #ffffff;
+    background-color: #007bff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}

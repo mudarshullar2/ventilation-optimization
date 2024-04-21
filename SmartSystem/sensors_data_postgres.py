@@ -1,9 +1,9 @@
 import schedule
 import time
 import logging
-from SmartSystem.config import load_database_config
-from SmartSystem.database_management import connect_to_database, close_connection
-from SmartSystem.data_generation import generate_sensor_data
+from config import load_database_config
+from database_management import connect_to_database, close_connection
+from data_generation import generate_sensor_data
 
 # Logging konfigurieren
 logging.basicConfig(
