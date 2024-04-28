@@ -4,12 +4,19 @@ from generating_plots import generate_plot
 from load_api import load_api_config
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, jsonify
+from mqtt_client import mqtt_client
+from collections import deque
 import joblib
 import pandas as pd
 import smtplib
 import requests
 import logging
+from datetime import datetime, timedelta
+import time 
+import threading
+
+logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/static')
 
@@ -27,65 +34,122 @@ READ_API_KEY = api_config['READ_API_KEY']
 POST_DELETE_API_KEY = api_config['POST_DELETE_API_KEY']
 API_BASE_URL = api_config['API_BASE_URL']
 
+# Initialize MQTT client
+mqtt_client.initialize()
+
+data_queue = deque(maxlen=5)  # Assuming data arrives approximately every minute, this will store data for the five minutes
+
+# Lock for synchronizing access to data_queue
+data_lock = threading.Lock()
+
+def aggregate_last_hour_data(data):
+    # Convert timestamp to datetime
+    data['time'] = pd.to_datetime(data['time'])
+    
+    # Calculate the timestamp for the start of the last hour
+    last_five_minutes = datetime.now() - timedelta(minutes=5)
+    
+    # Filter data for the last hour
+    last_five_minutes = data[data['time'] >= last_five_minutes]
+    
+    # Calculate aggregated values for the last hour
+    if not last_five_minutes.empty:
+        aggregated_values = last_five_minutes[['co2', 'humidity', 'temperature', 'tvoc']].agg(['mean'])
+        return aggregated_values
+    else:
+        return pd.DataFrame()  # Return an empty DataFrame if no data available
+
+
+def get_prediction(aggregated_data):
+    if not aggregated_data.empty:
+        # Extract mean values for prediction
+        temperature = aggregated_data.loc['mean', 'temperature']
+        humidity = aggregated_data.loc['mean', 'humidity']
+        co2 = aggregated_data.loc['mean', 'co2']
+        tvoc = aggregated_data.loc['mean', 'tvoc']
+        
+        # Make prediction using the pre-trained model
+        prediction = model.predict([[temperature, humidity, co2, tvoc]])
+        return prediction[0]
+    else:
+        return "No data available"
+
+
+def make_predictions():
+    global data_queue
+    
+    # Wait until data is available in the queue
+    while True:
+        with data_lock:
+            if data_queue:
+                break
+        time.sleep(1)  # Check every second
+        
+    # Get the last hour of data from the queue
+    last_hour_data = pd.concat(list(data_queue))
+    
+    # Calculate aggregated values for the last hour
+    aggregated_values = aggregate_last_hour_data(last_hour_data)
+    
+    # Get prediction from the model
+    prediction = get_prediction(aggregated_values)
+    
+    # Print prediction in the terminal
+    print("Prediction:", prediction)
+    
+    # Log prediction
+    logging.info("Prediction: %s", prediction)
+
+# Start a thread to make predictions
+prediction_thread = threading.Thread(target=make_predictions)
+prediction_thread.start()
+
 
 @app.route("/")
 def index():
-    """
-    Ruft Sensordaten von einer API ab und rendert eine HTML-Seite mit den neuesten Sensorwerten.
-    :return: HTML-Seite mit den extrahierten Sensorwerten oder eine Fehlermeldung im Falle eines Fehlers.
-    """
     try:
-        headers = {"X-Api-Key": READ_API_KEY}  # HTTP-Header mit dem API-Schlüssel definieren
-        response = requests.get(API_BASE_URL, headers=headers)  # GET-Anfrage an die API senden
+        global data_queue
+        
+        # Wait until data arrives
+        while not mqtt_client.combined_data:
+            time.sleep(1)
+        
+        # Extracting sensor data from mqtt_client.combined_data
+        sensor_data = mqtt_client.combined_data
+        temperature = sensor_data.get("temperature", 0)
+        humidity = sensor_data.get("humidity", 0)
+        co2 = sensor_data.get("co2", 0)
+        tvoc = sensor_data.get("tvoc", "Currently not available")  # Initialize with a message if not present
+        ambient_temp = sensor_data.get("ambient_temp", 0)
 
-        if response.status_code == 200:
-            data = response.json()  # Die Antwort in JSON-Format konvertieren
-            logging.info("Received data:", data)  # Debugging-Ausgabe der empfangenen Daten
+        with data_lock:
+            if data_queue: 
+                # Extracting sensor data from the queue
+                sensor_data = pd.concat(list(data_queue))
+                
+                # Calculate aggregated values for the last hour
+                aggregated_values = aggregate_last_hour_data(sensor_data)
+                
+                # Get prediction from the model
+                prediction = get_prediction(aggregated_values)
+            else: 
+                prediction = "Currently not available"
 
-            if isinstance(data, list) and data:  # Überprüfen, ob die Daten eine nicht leere Liste sind
-                all_sensor_data = [item for sublist in data for item in sublist]
-                logging.info("All sensor data:", all_sensor_data)  # Debugging-Ausgabe der Sensordaten
-
-                if all_sensor_data:  # Überprüfen, ob Sensordaten vorhanden sind
-                    # Die neuesten Sensordaten basierend auf dem Zeitstempel extrahieren
-                    latest_data = max(all_sensor_data, key=lambda x: x.get("time"))
-                    logging.info("Latest data:", latest_data)  # Debugging-Ausgabe der neuesten Daten
-
-                    # Sicherstellen, dass die neuesten Daten alle erforderlichen Schlüssel enthalten
-                    required_keys = ["time", "temperature", "humidity", "co2", "accurate_prediction"]
-                    if all(key in latest_data for key in required_keys):
-                        # Die erforderlichen Felder aus den neuesten Daten extrahieren
-                        timestamp = latest_data.get("time")
-                        temperature = latest_data.get("temperature")
-                        humidity = latest_data.get("humidity")
-                        co2 = latest_data.get("co2")
-                        accurate_prediction = latest_data.get("accurate_prediction")
-
-                        # Die HTML-Seite mit den extrahierten Sensorwerten rendern
-                        return render_template(
-                            "index.html",
-                            sensor_data=latest_data,
-                            timestamp=timestamp,
-                            temperature=temperature,
-                            humidity=humidity,
-                            co2=co2,
-                            accurate_prediction=accurate_prediction
-                        )
-                    else:
-                        return "Die neuesten Daten enthalten nicht alle erforderlichen Schlüssel."
-
-                else:
-                    return "Keine Sensordaten verfügbar."
-
-            else:
-                return "Die empfangenen Daten entsprechen nicht dem erwarteten Format."
-
-        else:
-            return f"Abrufen der Sensordaten fehlgeschlagen. Statuscode: {response.status_code}"
+        # Render the index.html template with the data
+        return render_template(
+            "index.html",
+            sensor_data=sensor_data,
+            temperature=temperature,
+            humidity=humidity,
+            co2=co2,
+            tvoc=tvoc,
+            ambient_temp=ambient_temp,
+            prediction=prediction
+        )
 
     except Exception as e:
-        logging.info("Fehler in index() aufgetreten:", str(e))  # Debugging statement
-        return f"Fehler: {str(e)}"
+        logging.error("An error occurred in index(): %s", str(e))
+        return "Internal server error", 500
 
 
 @app.route("/plots")
