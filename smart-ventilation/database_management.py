@@ -7,7 +7,7 @@ from load_api import load_api_config
 from config import load_database_config
 
 # Pfad zu Ihrer YAML-Konfigurationsdatei
-config_file_path = 'SmartSystem/api_config.yaml'
+config_file_path = 'smart-ventilation/api_config.yaml'
 
 # API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)

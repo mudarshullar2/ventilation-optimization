@@ -7,10 +7,10 @@ from config import load_database_config
 from database_management import get_latest_sensor_data
 
 # Datenbankkonfiguration laden
-config_file = "database_config.yaml"
+config_file = "smart-ventilation/database_config.yaml"
 
 # Das vortrainierte Machine-Learning-Modell laden
-model = joblib.load("/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl")
+model = joblib.load("smart-ventilation/models/model.pkl")
 
 
 def generate_sensor_data():

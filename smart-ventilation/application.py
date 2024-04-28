@@ -11,13 +11,13 @@ import smtplib
 import requests
 import logging
 
-app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/SmartSystemVS_1/SmartSchoolsAISystem/SmartSystem/static')
+app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/static')
 
 # Das vortrainierte Machine-Learning-Modell laden
-model = joblib.load("/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl")
+model = joblib.load("smart-ventilation/models/model.pkl")
 
 # Pfad zu Ihrer YAML-Konfigurationsdatei
-config_file_path = 'SmartSystem/api_config.yaml'
+config_file_path = 'smart-ventilation/api_config.yaml'
 
 # API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)

@@ -10,7 +10,7 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-config = load_database_config("database_config.yaml")
+config = load_database_config("smart-ventilation/database_config.yaml")
 
 
 def insert_sensor_data(cursor):
