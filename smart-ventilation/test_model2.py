@@ -12,7 +12,7 @@ logging.basicConfig(
 )
 
 # Das trainierte Modell aus der .pkl-Datei laden
-model_path = "/Users/mudarshullar/Desktop/TelemetryData/model/model.pkl"
+model_path = "smart-ventilation/models/model.pkl"
 with open(model_path, "rb") as f:
     model = pickle.load(f)
 
