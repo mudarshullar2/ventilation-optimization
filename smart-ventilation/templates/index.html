@@ -84,11 +84,13 @@
         <section>
             <h2>Sensordaten</h2>
             {% if sensor_data %}
-            <p><strong>Zeit:</strong> {{ sensor_data.time }}</p>
-            <p><strong>Temperatur:</strong> {{ sensor_data.temperature }} °C</p>
-            <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data.humidity }} %</p>
-            <p><strong>CO2-Niveau:</strong> {{ sensor_data.co2 }} ppm</p>
-            <p><strong>TVOC-Niveau:</strong> {{ sensor_data.accurate_prediction }}</p>
+                <p><strong>Zeit:</strong> {{ sensor_data.get('time', 'Zurzeit nicht verfügbar') }}</p>
+                <p><strong>Temperatur:</strong> {{ sensor_data.get('temperature', 'Zurzeit nicht verfügbar') }} °C</p>
+                <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data.get('humidity', 'Zurzeit nicht verfügbar') }} %</p>
+                <p><strong>CO2-Niveau:</strong> {{ sensor_data.get('co2', 'Zurzeit nicht verfügbar') }} ppm</p>
+                <p><strong>TVOC-Niveau:</strong> {{ sensor_data.get('tvoc', 'Zurzeit nicht verfügbar') }}</p> 
+                <p><strong>Außentemperatur:</strong> {{ sensor_data.get('ambient_temp', 'Zurzeit nicht verfügbar') }} °C</p> 
+                <p><strong>Empfehlung:</strong> {{ prediction }}</p>         
 
             {% if sensor_data.temperature | int > 27 and sensor_data.humidity | int > 60 %}
             <p style="color: red; font-weight: bold;">Warnung: Hohe Temperatur und Luftfeuchtigkeit! Bitte für angenehme Bedingungen sorgen.</p>
