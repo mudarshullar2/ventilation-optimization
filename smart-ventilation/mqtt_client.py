@@ -1,11 +1,12 @@
+from flask import Flask, render_template, jsonify
 import paho.mqtt.client as mqtt
 import logging
-import json
-import paho.mqtt.client as mqtt
 import json
 import logging
 
 logging.basicConfig(level=logging.INFO)
+
+app = Flask(__name__)
 
 class MQTTClient:
 
@@ -61,5 +62,14 @@ class MQTTClient:
         self.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
         self.client.loop_start()
 
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+@app.route("/data")
+def data():
+    return jsonify(mqtt_client.combined_data)
 
 mqtt_client = MQTTClient()
+
+
