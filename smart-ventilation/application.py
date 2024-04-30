@@ -1,11 +1,8 @@
 from database_management import get_sensor_data_last_month
-from data_generation import get_latest_sensor_data
-from generating_plots import generate_plot
 from load_api import load_api_config
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import Flask, render_template, request, send_file, jsonify
-from mqtt_client import mqtt_client
 from collections import deque
 import joblib
 import pandas as pd
@@ -13,12 +10,68 @@ import smtplib
 import requests
 import logging
 from datetime import datetime, timedelta
+import paho.mqtt.client as mqtt
+import json
 import time 
 import threading
 
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/static')
+
+class MQTTClient:
+
+    def __init__(self):             
+        self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
+        self.client.tls_set()
+        self.client.username_pw_set(username="kisam", password="dd9e3f43-a5bc-440d-8647-9c187376c1ef-kisam")
+        self.client.on_connect = self.on_connect
+        self.client.on_message = self.on_message
+        self.parameters = {}
+        self.combined_data = {}
+
+
+    def on_connect(self, client, userdata, flags, rc):
+        logging.info("Connected with result code " + str(rc))
+        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up")
+        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
+        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
+
+
+    def on_message(self, client, userdata, msg):
+        topic = msg.topic
+        payload = json.loads(msg.payload.decode())
+
+        # Update combined data dictionary with data from all devices
+        if topic.endswith("0004a30b01045883/event/up"):
+            self.combined_data.update({
+                "time": payload["time"], 
+                "humidity": round(payload["object"]["humidity"], 2),
+                "temperature": round(payload["object"]["temperature"], 2), 
+                "co2": round(payload["object"]["co2"], 2)
+            })
+            logging.info("Data extracted for device1: %s", self.combined_data)
+        elif topic.endswith("647fda000000aa92/event/up"):
+            self.combined_data.update({
+                "ambient_temp": round(payload["object"]["ambient_temp"], 2)
+            })
+            logging.info("Data extracted for device2: %s", self.combined_data)
+        elif topic.endswith("24e124707c481005/event/up"):
+            self.combined_data.update({
+                "tvoc": round(payload["object"]["tvoc"], 2)
+            })
+            logging.info("Data extracted for device3: %s", self.combined_data)
+
+        # Check if all required data is available before processing
+        required_keys = ["time", "humidity", "temperature", "co2", "ambient_temp", "tvoc"]
+        if all(key in self.combined_data for key in required_keys):
+            # Perform further processing here...
+            logging.info("All required data is available. Processing...")
+
+
+    def initialize(self):
+        self.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
+        self.client.loop_start()
 
 # Das vortrainierte Machine-Learning-Modell laden
 model = joblib.load("smart-ventilation/models/model.pkl")
@@ -35,7 +88,9 @@ POST_DELETE_API_KEY = api_config['POST_DELETE_API_KEY']
 API_BASE_URL = api_config['API_BASE_URL']
 
 # Initialize MQTT client
-mqtt_client.initialize()
+mqtt_client = MQTTClient()
+mqtt_client.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
+mqtt_client.client.loop_start()  # Start the MQTT client loop
 
 data_queue = deque(maxlen=5)  # Assuming data arrives approximately every minute, this will store data for the five minutes
 
@@ -155,42 +210,28 @@ def index():
 @app.route("/plots")
 def plots():
     """
-    Generiert und rendert verschiedene Diagramme basierend auf den neuesten Sensordaten.
-    :return: HTML-Seite mit den generierten Diagrammen oder eine Fehlermeldung, falls keine Sensordaten verfügbar sind.
+    Generates and renders real-time data plots based on the latest sensor data.
+    :return: HTML page with the real-time data plots or an error message if no sensor data is available.
     """
+    # Get the latest sensor data
+    sensor_data = mqtt_client.combined_data
 
-    # Die neuesten Sensordaten abrufen
-    sensor_data = get_latest_sensor_data()
-
-    # Überprüfen, ob Sensordaten vorhanden sind
+    # Check if sensor data is available
     if sensor_data:
-        # Debugging-Ausgabe der empfangenen Sensordaten
-        logging.info("Erhaltene Sensordaten PLOTS FUNKTION:", sensor_data)
+        # Debugging output of received sensor data
+        logging.info("Received sensor data in plots function:", sensor_data)
 
-        # Individuelle Plots generieren
-        temperature_plot = generate_plot(
-            sensor_data, 'time', 'temperature', "Temperature Plot"
-        )
-        humidity_plot = generate_plot(
-            sensor_data, 'time', 'humidity', "Humidity Plot"
-        )
-        co2_plot = generate_plot(
-            sensor_data, 'time', 'co2', "CO2 Level Plot"
-        )
-        tvoc_plot = generate_plot(
-            sensor_data, 'time', 'accurate_prediction', "TVOC Level Plot"
-        )
-
-        # Die HTML-Seite mit den generierten Plots rendern
+        # Render the HTML page with the real-time data plots
         return render_template(
             "plots.html",
-            temperature_plot=temperature_plot,
-            humidity_plot=humidity_plot,
-            co2_plot=co2_plot,
-            tvoc_plot=tvoc_plot
+            sensor_data=sensor_data  # Pass sensor data to the template
         )
     else:
-        return "Keine Sensordaten verfügbar für Plots."
+        return "No sensor data available for plots."
+
+@app.route("/data")
+def data():
+    return jsonify(mqtt_client.combined_data)
 
 
 @app.route("/feedback", methods=["POST"])
@@ -257,6 +298,7 @@ def download_co2_data():
 @app.route('/select-design')
 def select_design():
     return render_template('design.html')
+
 
 # Neue Route zum Rendern von contact.html
 @app.route('/contact')
