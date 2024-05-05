@@ -161,7 +161,7 @@ mqtt_client.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
 mqtt_client.client.loop_start()
 
 
-@app.route("/")
+@app.route("/", methods=["GET", "POST"])
 def index():
     try:
         # Warten, bis die Daten ankommen
@@ -184,7 +184,7 @@ def index():
             co2=co2,
             tvoc=tvoc,
             ambient_temp=ambient_temp,
-            predictions=predictions
+            predictions=predictions,
         )
     except Exception as e:
         logging.error("An error occurred in index(): %s", str(e))
