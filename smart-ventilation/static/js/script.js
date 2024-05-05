@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }]
         },
         options: {
-            indexAxis: 'x', // Use indexAxis instead of type: 'realtime'
+            indexAxis: 'x',
             scales: {
                 y: {
                     beginAtZero: true

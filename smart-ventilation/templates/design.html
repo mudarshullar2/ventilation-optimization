@@ -14,8 +14,8 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f5f5f5; /* Default background color */
-            color: #333; /* Default text color */
+            background-color: #f5f5f5; /* Standard-Hintergrundfarbe */
+            color: #333; /* Standard-Textfarbe */
         }
         h1 {
             text-align: center;
@@ -44,9 +44,9 @@
             padding: 10px 20px;
             margin-top: 20px;
             cursor: pointer;
-            background-color: #ccc; /* Button background color */
+            background-color: #ccc; /* Hintergrundfarbe der Schaltfläche */
             border: none;
-            color: #333; /* Button text color */
+            color: #333; /* Textfarbe der Schaltfläche */
             font-size: 16px;
             border-radius: 5px;
         }
@@ -89,7 +89,7 @@
             localStorage.setItem('selectedTheme', theme);
             applyTheme(theme);
 
-            // Set theme in index.html if it's open in another tab or window
+            // Thema in index.html einstellen, wenn es in einem anderen Tab oder Fenster geöffnet ist
             const indexWindow = window.opener;
             if (indexWindow && !indexWindow.closed) {
                 indexWindow.applyTheme(theme);
@@ -105,14 +105,14 @@
             setAndApplyTheme('animeManga');
         });
 
-        // Apply stored theme on page load
+        // Gespeichertes Thema beim Laden der Seite anwenden
         const storedTheme = localStorage.getItem('selectedTheme');
         if (storedTheme) {
             applyTheme(storedTheme);
         }
 
         function goBack() {
-            window.location.href = './index.html'; // Corrected path to index.html
+            window.location.href = './index.html'; // Pfad zu index.html korrigiert
         }
     </script>
 </body>
