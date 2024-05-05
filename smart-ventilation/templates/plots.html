@@ -17,8 +17,8 @@
         }
 
         .chart-container {
-            width: 400px; /* Adjust width as needed */
-            height: 300px; /* Adjust height as needed */
+            width: 400px; 
+            height: 300px; 
             margin-bottom: 20px;
         }
     </style>
@@ -46,7 +46,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Function to parse time to hours and minutes
+
+            // Funktion zum Parsen der Zeit in Stunden und Minuten
             function parseTimeToHourMinute(timeString) {
                 const date = new Date(timeString);
                 const hours = ('0' + date.getUTCHours()).slice(-2);
@@ -54,7 +55,7 @@
                 return `${hours}:${minutes}`;
             }
 
-            // CO2 Chart
+            // CO2-Diagramm
             var co2Ctx = document.getElementById('co2Chart').getContext('2d');
             var co2Chart = new Chart(co2Ctx, {
                 type: 'line',
@@ -85,7 +86,7 @@
                 }
             });
 
-            // Temperature Chart
+            // Temperaturdiagramm
             var tempCtx = document.getElementById('temperatureChart').getContext('2d');
             var tempChart = new Chart(tempCtx, {
                 type: 'line',
@@ -116,7 +117,7 @@
                 }
             });
 
-            // Humidity Chart
+            // Luftfeuchtigkeitsdiagramm
             var humidityCtx = document.getElementById('humidityChart').getContext('2d');
             var humidityChart = new Chart(humidityCtx, {
                 type: 'line',
@@ -147,7 +148,7 @@
                 }
             });
 
-            // TVOC Chart
+           // TVOC-Diagramm
             var tvocCtx = document.getElementById('tvocChart').getContext('2d');
             var tvocChart = new Chart(tvocCtx, {
                 type: 'line',
@@ -184,22 +185,22 @@
                     .then(data => {
                         const time = parseTimeToHourMinute(data.time);
 
-                        // Update CO2 Chart
+                        // CO2-Diagramm aktualisieren
                         co2Chart.data.labels.push(time);
                         co2Chart.data.datasets[0].data.push(data.co2);
                         co2Chart.update();
 
-                        // Update Temperature Chart
+                        // Temperaturdiagramm aktualisieren
                         tempChart.data.labels.push(time);
                         tempChart.data.datasets[0].data.push(data.temperature);
                         tempChart.update();
 
-                        // Update Humidity Chart
+                        // Luftfeuchtigkeitsdiagramm aktualisieren
                         humidityChart.data.labels.push(time);
                         humidityChart.data.datasets[0].data.push(data.humidity);
                         humidityChart.update();
 
-                        // Update TVOC Chart
+                        // TVOC-Diagramm aktualisieren
                         tvocChart.data.labels.push(time);
                         tvocChart.data.datasets[0].data.push(data.tvoc);
                         tvocChart.update();
@@ -208,16 +209,16 @@
 
             setInterval(() => {
                 fetchData();
-            }, 2000); // Fetch data every 5 minutes
+            }, 20000); // Abruf von Daten alle 2 Minuten
         });
 
-        // Function to set a theme
+        // Funktion zum Einstellen eines Designs
         function setTheme(themeName) {
             localStorage.setItem('theme', themeName);
             document.documentElement.className = themeName;
         }
 
-        // Immediately invoked function to set the theme on initial load
+        // Unmittelbar aufgerufene Funktion zum Einstellen des Designs beim ersten Laden
         (function () {
             if (localStorage.getItem('theme') === 'theme-dark') {
                 setTheme('theme-dark');
