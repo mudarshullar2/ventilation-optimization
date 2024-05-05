@@ -135,7 +135,7 @@ class MQTTClient:
     
 
     def get_latest_sensor_data(self):
-        # Return a copy of the latest sensor data
+        # Rückgabe einer Kopie der letzten Sensordaten
         return self.combined_data.copy()
 
 
@@ -227,18 +227,18 @@ def plots():
     Generates and renders real-time data plots based on the latest sensor data.
     :return: HTML page with the real-time data plots or an error message if no sensor data is available.
     """
-    # Get the latest sensor data from MQTTClient
+    # Die neuesten Sensordaten vom MQTTClient abrufen
     sensor_data = mqtt_client.get_latest_sensor_data()
 
-    # Check if sensor data is available
+    # Prüfen, ob Sensordaten vorhanden sind
     if sensor_data:
-        # Extract necessary data for plotting
+        # die notwendigen Daten für das Plotten extrahieren
         co2_data = sensor_data.get('co2', [])
         temperature_data = sensor_data.get('temperature', [])
         humidity_data = sensor_data.get('humidity', [])
         tvoc_data = sensor_data.get('tvoc', [])
 
-        # Render the HTML page with the real-time data plots
+        # Rendering der HTML-Seite mit den Echtzeit-Datenplots
         return render_template(
             "plots.html",
             co2_data=co2_data,
@@ -277,6 +277,7 @@ def feedback():
             )
         else:
             feedback_message = "Feedback konnte nicht gespeichert werden."
+            
             # HTML-Seite mit Rückmeldung rendern
         return render_template("feedback.html", feedback_message=feedback_message)
 
