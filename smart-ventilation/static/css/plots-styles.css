@@ -2,20 +2,20 @@ body {
     font-family: Arial, sans-serif;
     margin: 0;
     padding: 20px;
-    background-color: #333; /* Dark background */
-    color: #ffffff; /* Light text */
+    background-color: #333; /* Dunkler Hintergrund */
+    color: #ffffff; /* Heller Text */
 }
 .container {
     max-width: 800px;
     margin: auto;
-    background-color: #444; /* Darker background for container */
+    background-color: #444; /* Dunklerer Hintergrund für Container */
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Slightly elevated with dark shadow */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3); /* Leicht erhöht mit dunklem Schatten */
 }
 h1 {
     text-align: center;
-    color: #ffffff; /* White heading text */
+    color: #ffffff; /* Weißer Überschriftstext */
 }
 .plot-container {
     margin-top: 20px;
@@ -23,7 +23,7 @@ h1 {
 .plot-title {
     text-align: center;
     font-weight: bold;
-    color: #ffffff; /* White plot title text */
+    color: #ffffff; /* Weißer Überschriftstext */
 }
 input[type="submit"] {
     display: block;
