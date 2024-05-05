@@ -5,21 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensordaten</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            transition: background-color 0.3s ease, color 0.3s ease;
-            background-color: #f5f5f5; /* Default background color */
-            color: #333; /* Default text color */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+        body, html {
             margin: 0;
+            height: 100%;
+            width: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
         }
         h1 {
             text-align: center;
         }
-        /* Modal styling */
+        /* Modales Styling */
         .modal {
             display: none;
             position: fixed;
@@ -28,7 +25,7 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent black background */
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparenter schwarzer Hintergrund */
             overflow: auto;
             justify-content: center;
             align-items: center;
@@ -59,28 +56,17 @@
 </head>
 <body>
     <header>
-        <h1>KI-Lüftungssystem (Schule am Schloss)</h1>
-        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="max-width: 200px;">
+        <div class="header-content">
+            <h1>KI-Lüftungssystem (Schule am Schloss)</h1>
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="max-width: 200px;">
+        </div>
     </header>
-
-    <!-- Hidden Japanese character -->
-    <div id="yogi" style="display: none;">
-        <img src="{{ url_for('static', filename='img/yugi.png') }}" alt="Yogi Character" style="max-width: 200px;">
-        <p>ありがとうございます！</p>
-        <audio id="yogiAudio">
-            <source src="{{ url_for('static', filename='audio/yogiAudio.mp3') }}" type="audio/mpeg">
-            Your browser does not support the audio element.
-        </audio>
-    </div>
-
     <div class="container">
-
         <section>
             <h2>Über das Smart Lüftungssystem an der Schule am Schloss</h2>
             <p>Erhalten Sie aktuelle Sensordaten zu Temperatur, Luftfeuchtigkeit und CO2-Gehalt.</p>
             <p>Das System analysiert die Raumluftqualität und bietet Empfehlungen zur optimalen Belüftung für eine gesunde Lernumgebung.</p>
         </section>
-
         <section>
             <h2>Sensordaten</h2>
             {% if sensor_data %}
@@ -90,65 +76,56 @@
                 <p><strong>CO2-Niveau:</strong> {{ sensor_data.get('co2', 'Zurzeit nicht verfügbar') }} ppm</p>
                 <p><strong>TVOC-Niveau:</strong> {{ sensor_data.get('tvoc', 'Zurzeit nicht verfügbar') }}</p> 
                 <p><strong>Außentemperatur:</strong> {{ sensor_data.get('ambient_temp', 'Zurzeit nicht verfügbar') }} °C</p> 
-                <p><strong>Empfehlung:</strong> {{ prediction }}</p>         
+                {% if predictions|length > 0 %}
+                    <p><strong>Logistic Regression Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Logistic Regression', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
+                    <p><strong>Decision Tree Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Decision Tree', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
+                    <p><strong>Random Forest Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Random Forest', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
+                {% else %}
+                    <p>Zur Zeit keine Informationen vorhanden.</p>
+                {% endif %}
 
             {% if sensor_data.temperature | int > 27 and sensor_data.humidity | int > 60 %}
             <p style="color: red; font-weight: bold;">Warnung: Hohe Temperatur und Luftfeuchtigkeit! Bitte für angenehme Bedingungen sorgen.</p>
             {% endif %}
-
             {% if sensor_data.co2 | int > 1000 %}
             <p style="color: red; font-weight: bold;">Warnung: CO2-Niveau ist zu hoch für optimalen Komfort von Schülern und Lehrern. Es wird dringend empfohlen, Fenster zu öffnen!</p>
             {% endif %}
-
             <form onsubmit="return submitFeedback(event, this);">
                 <input type="hidden" name="is_correct" value="1">
                 <input type="submit" value="Die Empfehlung war richtig" class="button">
             </form>
-
             <form onsubmit="return submitFeedback(event, this);">
                 <input type="hidden" name="is_correct" value="0">
                 <input type="submit" value="Die Empfehlung war nicht richtig" class="button">
             </form>
-
             <form action="/shutdown" method="POST">
                 <input type="submit" value="Server herunterfahren" class="button">
             </form>
-
             <form action="{{ url_for('download_co2_data') }}" method="GET">
                 <input type="submit" value="CO2-Daten des letzten Monats herunterladen" class="button">
             </form>
-
             {% else %}
             <p>Keine Sensordaten verfügbar.</p>
             {% endif %}
         </section>
-
         <section>
             <h2>Kontakt</h2>
             <p>Sie haben Fragen oder Anregungen? Kontaktieren Sie uns gerne.</p>
             <a href="{{ url_for('contact') }}" class="button">Kontakt</a>
         </section>
-
         <section>
             <h2>Weitere Informationen</h2>
             <p>Besuchen Sie unser Dashboard, um detaillierte Sensorwerte zu visualisieren.</p>
             <a href="{{ url_for('plots') }}" class="button">Sensor Werte als Dashboard anzeigen</a>
-        </section>  
-
+        </section>
         <section>
             <button onclick="openDesignModal()" class="button">Design auswählen</button>
         </section>
-
         <section>
-            <!-- Other sections -->
-    
-            <!-- Add a button to navigate to the plots page -->
             <a href="{{ url_for('plots') }}" class="button">Zeige Echtzeit-Diagramme</a>
         </section>
-
     </div>
-
-    <!-- Design selection modal -->
+    <!-- Designauswahl Modal -->
     <div id="designModal" class="modal">
         <div class="modal-content">
             <h2>Design wählen</h2>
@@ -157,32 +134,11 @@
             <button onclick="selectDesign('magna')" class="modal-button">Magna Design</button>
         </div>
     </div>
-
     <script>
         function submitFeedback(event, form) {
             event.preventDefault();
-    
             var isCorrect = form.querySelector('input[name="is_correct"]').value;
-    
-            // Show Yogi and play audio
-            var yogiElement = document.getElementById('yogi');
-            var audioElement = document.getElementById('yogiAudio');
-    
-            yogiElement.style.display = 'block';
-            
-            // Check if audio is supported and file is loaded
-            if (audioElement.canPlayType && audioElement.canPlayType('audio/mpeg').replace(/no/, '')) {
-                audioElement.play();
-            }
-    
-            // Hide Yogi and stop audio after a few seconds
-            setTimeout(function() {
-                yogiElement.style.display = 'none';
-                audioElement.pause();
-                audioElement.currentTime = 0;
-            }, 5000); // Hide Yogi after 5 seconds (adjust as needed)
-    
-            // Simulate form submission (optional)
+            // Formularübermittlung simulieren (optional)
             var xhr = new XMLHttpRequest();
             xhr.open("POST", "/feedback", true);
             xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -191,32 +147,29 @@
                     if (xhr.status === 200) {
                         var response = JSON.parse(xhr.responseText);
                         var feedbackMessage = response.feedback_message;
-                        // Display feedback message on the page
+                        // Feedback-Meldung auf der Seite anzeigen
                         var messageElement = document.createElement('p');
                         messageElement.textContent = feedbackMessage;
-                        form.parentNode.appendChild(messageElement); // Append message after the form
+                        form.parentNode.appendChild(messageElement); // Nachricht nach dem Formular anhängen
                     } else {
                         console.error("Error sending feedback:", xhr.status);
                     }
                 }
             };
             xhr.send("is_correct=" + isCorrect);
-    
             return false;
         }
-
         function openDesignModal() {
         var modal = document.getElementById('designModal');
         if (modal) {
             modal.style.display = 'flex';
         }
     }
-
     function selectDesign(mode) {
     if (mode === 'dark') {
         document.body.style.backgroundColor = '#333';
         document.body.style.color = '#fff';
-        // Update link styles for dark mode
+        // Linkstile für den dunklen Modus aktualisieren
         document.querySelectorAll('.button').forEach(function(link) {
             link.style.backgroundColor = '#555';
             link.style.color = '#fff';
@@ -224,52 +177,58 @@
     } else if (mode === 'magna') {
         document.body.style.backgroundColor = '#ffcc00';
         document.body.style.color = '#333';
-        // Update link styles for magna mode
+        // Linkstile für den Magna-Modus aktualisieren
         document.querySelectorAll('.button').forEach(function(link) {
             link.style.backgroundColor = '#ffea00';
             link.style.color = '#333';
         });
     }
-
-    // Update text color based on background color
+    // Die Textfarbe basierend auf der Hintergrundfarbe aktualisieren
     updateTextColor();
 
-    closeDesignModal(); // Close the modal after selection
+    closeDesignModal(); // das Modals nach der Auswahl schließen
 
     }
-
-
     function closeDesignModal() {
         var modal = document.getElementById('designModal');
         if (modal) {
             modal.style.display = 'none';
         }
     }
-
     function updateTextColor() {
         var bodyBackgroundColor = document.body.style.backgroundColor;
         var bodyColor = document.body.style.color;
-
-        // Ensure text color contrasts with background color
+        // Sicherstellen, dass die Textfarbe mit der Hintergrundfarbe kontrastiert
         if (bodyBackgroundColor === '#333') {
-            // Dark background, set text to light color
+            // Dunkler Hintergrund, Text auf helle Farbe setzen
             document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
                 element.style.color = '#fff';
             });
         } else {
-            // Light background, set text to dark color
+            // Heller Hintergrund, Text auf dunkle Farbe setzen
             document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
                 element.style.color = '#333';
             });
         }
     }
-
-    // Example: Apply Dark Mode by default on page load
+    // Dunkler Modus standardmäßig beim Laden der Seite anwenden
     document.addEventListener('DOMContentLoaded', function() {
-        selectDesign('dark'); // Apply Dark Mode initially
+        selectDesign('dark'); // Dunklen Modus anfangs anwenden
     });
-
-    </script>    
-
+    function updatePredictions() {
+    fetch("/predictions")
+        .then(response => response.json())
+        .then(predictions => {
+            console.log("Received predictions:", predictions); // Diese Zeile ist für Debugging gedacht
+            // HTML-Elemente mit Vorhersagen aktualisieren
+            document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
+            document.getElementById("decision-tree").innerText = predictions["Decision Tree"] || "N/A";
+            document.getElementById("random-forest").innerText = predictions["Random Forest"] || "N/A";
+        })
+        .catch(error => {
+            console.error("Error fetching predictions:", error);
+        });
+    }
+    </script>
 </body>
 </html>

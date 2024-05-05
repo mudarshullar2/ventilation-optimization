@@ -3,21 +3,29 @@ from load_api import load_api_config
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from flask import Flask, render_template, request, send_file, jsonify
-from collections import deque
-import joblib
+from datetime import datetime
+import paho.mqtt.client as mqtt
 import pandas as pd
-import smtplib
+import numpy as np
+import threading
 import requests
 import logging
-from datetime import datetime, timedelta
-import paho.mqtt.client as mqtt
+import smtplib
+import joblib
 import json
 import time 
-import threading
 
 logging.basicConfig(level=logging.INFO)
 
+# die vortrainierten Machine-Learning-Modelle laden
+models = {
+    'Logistic Regression': joblib.load('smart-ventilation/models/Logistic_Regression.pkl'),
+    'Decision Tree': joblib.load('smart-ventilation/models/Decision_Tree.pkl'),
+    'Random Forest': joblib.load('smart-ventilation/models/Random_Forest.pkl')
+}
+
 app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/static')
+
 
 class MQTTClient:
 
@@ -29,6 +37,8 @@ class MQTTClient:
         self.client.on_message = self.on_message
         self.parameters = {}
         self.combined_data = {}
+        self.data_points = []
+        self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
 
 
     def on_connect(self, client, userdata, flags, rc):
@@ -36,13 +46,14 @@ class MQTTClient:
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up")
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
+        self.prediction_thread.start()
 
 
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         payload = json.loads(msg.payload.decode())
 
-        # Update combined data dictionary with data from all devices
+        # Daten aus allen Sensoren in einem Dict kombinieren
         if topic.endswith("0004a30b01045883/event/up"):
             self.combined_data.update({
                 "time": payload["time"], 
@@ -50,31 +61,88 @@ class MQTTClient:
                 "temperature": round(payload["object"]["temperature"], 2), 
                 "co2": round(payload["object"]["co2"], 2)
             })
-            logging.info("Data extracted for device1: %s", self.combined_data)
+            logging.info("Daten aus device1: %s", self.combined_data)
         elif topic.endswith("647fda000000aa92/event/up"):
             self.combined_data.update({
+                "time": payload["time"], 
                 "ambient_temp": round(payload["object"]["ambient_temp"], 2)
             })
-            logging.info("Data extracted for device2: %s", self.combined_data)
+            logging.info("Daten aus device2: %s", self.combined_data)
         elif topic.endswith("24e124707c481005/event/up"):
+            # Falls der Wert TVOC momentan nicht vorhanden ist
+            if "tvoc" in payload["object"]:
+                tvoc_value = round(payload["object"]["tvoc"], 2)
+            else:
+                 tvoc_value = None
             self.combined_data.update({
-                "tvoc": round(payload["object"]["tvoc"], 2)
+                "time": payload["time"], 
+                "tvoc": tvoc_value
             })
-            logging.info("Data extracted for device3: %s", self.combined_data)
+            logging.info("Daten aus device3: %s", self.combined_data)
 
-        # Check if all required data is available before processing
-        required_keys = ["time", "humidity", "temperature", "co2", "ambient_temp", "tvoc"]
-        if all(key in self.combined_data for key in required_keys):
-            # Perform further processing here...
-            logging.info("All required data is available. Processing...")
+
+    def collect_data(self, payload):
+        try:
+            # Daten aus dem Payload sicher extrahieren
+            data = {
+                "temperature": payload["object"].get("temperature", 0),  # Standardwert 0, wenn die Temperatur nicht vorhanden ist
+                "humidity": payload["object"].get("humidity", 0),  # Standardwert 0, wenn die Luftfeuchtigkiet nicht vorhanden ist
+                "co2": payload["object"].get("co2", 0),  # Standardwert 0, wenn Co2 Werte nicht vorhanden sind
+                "tvoc": payload["object"].get("tvoc", 0)  # Standardwert 0, wenn TVOC Werte nicht vorhanden sind
+            }
+            self.data_points.append(data)
+        except Exception as e:
+            logging.error(f"Unerwarteter Fehler bei der Datenerfassung: {e}")
+
+
+    def run_periodic_predictions(self):
+        while True:
+            time.sleep(180)  # 3 Minuten (180 Sekunden) schlafen
+            if self.data_points:
+                # Berechnung von Durchschnittswerten für kontinuierliche Variablen
+                average_data = {key: np.mean([d[key] for d in self.data_points if key in d]) for key in self.data_points[0] if key != 'time'}
+                
+                # Behandlung des Zeitstempels durch Überprüfung, ob er existiert und korrekt formatiert ist
+                if any('time' in d for d in self.data_points):
+                    last_timestamp = next((d['time'] for d in self.data_points if 'time' in d), None)
+                    if last_timestamp:
+                        try:
+                            if last_timestamp.endswith('Z'):
+                                last_timestamp = last_timestamp[:-1] + '+00:00'  # 'Z' zu '+00:00' umwandeln
+                            average_data['hour'] = datetime.fromisoformat(last_timestamp).hour
+                        except ValueError:
+                            logging.error("Error parsing time: %s", last_timestamp)
+                            average_data['hour'] = 0  # Standardwert 0 oder ein anderer sinnvoller Standardwert
+                    else:
+                        average_data['hour'] = 0  # Default, wenn keine gültige Zeit gefunden wird
+                else:
+                    average_data['hour'] = 0  # Default, wenn keine Zeitstempel vorhanden sind
+                # Einbindung der 'tvoc'-Behandlung mit Standardwert
+                average_data['tvoc'] = np.mean([d['tvoc'] for d in self.data_points if 'tvoc' in d]) if any('tvoc' in d for d in self.data_points) else 0
+                # Feature-Array für ML-Modelle konstruieren 
+                try:
+                    features = np.array([[average_data.get('temperature', 0), average_data.get('co2', 0), average_data.get('humidity', 0), average_data.get('tvoc', 0), average_data.get('hour', 0)]])
+                    # Vorhersage mit jedem Modell und Speicherung der Ergebnisse
+                    predictions = {name: model.predict(features)[0] for name, model in models.items()}
+                    # Vorhersagen für den Zugriff durch Flask speichern
+                    self.combined_data['predictions'] = predictions
+                    # Die Daten nach der Erstellung von Vorhersagen zurücksetzen
+                    self.data_points.clear()
+                except Exception as e:
+                    logging.error("Fehler bei der Vorhersage: %s", str(e))
+            else:
+                logging.info("In den letzten 3 Minuten wurden keine Daten erfasst.")
+    
+
+    def get_latest_sensor_data(self):
+        # Return a copy of the latest sensor data
+        return self.combined_data.copy()
 
 
     def initialize(self):
         self.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
         self.client.loop_start()
 
-# Das vortrainierte Machine-Learning-Modell laden
-model = joblib.load("smart-ventilation/models/model.pkl")
 
 # Pfad zu Ihrer YAML-Konfigurationsdatei
 config_file_path = 'smart-ventilation/api_config.yaml'
@@ -87,110 +155,27 @@ READ_API_KEY = api_config['READ_API_KEY']
 POST_DELETE_API_KEY = api_config['POST_DELETE_API_KEY']
 API_BASE_URL = api_config['API_BASE_URL']
 
-# Initialize MQTT client
+# MQTT-Client initialisieren
 mqtt_client = MQTTClient()
 mqtt_client.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
-mqtt_client.client.loop_start()  # Start the MQTT client loop
-
-data_queue = deque(maxlen=5)  # Assuming data arrives approximately every minute, this will store data for the five minutes
-
-# Lock for synchronizing access to data_queue
-data_lock = threading.Lock()
-
-def aggregate_last_hour_data(data):
-    # Convert timestamp to datetime
-    data['time'] = pd.to_datetime(data['time'])
-    
-    # Calculate the timestamp for the start of the last hour
-    last_five_minutes = datetime.now() - timedelta(minutes=5)
-    
-    # Filter data for the last hour
-    last_five_minutes = data[data['time'] >= last_five_minutes]
-    
-    # Calculate aggregated values for the last hour
-    if not last_five_minutes.empty:
-        aggregated_values = last_five_minutes[['co2', 'humidity', 'temperature', 'tvoc']].agg(['mean'])
-        return aggregated_values
-    else:
-        return pd.DataFrame()  # Return an empty DataFrame if no data available
-
-
-def get_prediction(aggregated_data):
-    if not aggregated_data.empty:
-        # Extract mean values for prediction
-        temperature = aggregated_data.loc['mean', 'temperature']
-        humidity = aggregated_data.loc['mean', 'humidity']
-        co2 = aggregated_data.loc['mean', 'co2']
-        tvoc = aggregated_data.loc['mean', 'tvoc']
-        
-        # Make prediction using the pre-trained model
-        prediction = model.predict([[temperature, humidity, co2, tvoc]])
-        return prediction[0]
-    else:
-        return "No data available"
-
-
-def make_predictions():
-    global data_queue
-    
-    # Wait until data is available in the queue
-    while True:
-        with data_lock:
-            if data_queue:
-                break
-        time.sleep(1)  # Check every second
-        
-    # Get the last hour of data from the queue
-    last_hour_data = pd.concat(list(data_queue))
-    
-    # Calculate aggregated values for the last hour
-    aggregated_values = aggregate_last_hour_data(last_hour_data)
-    
-    # Get prediction from the model
-    prediction = get_prediction(aggregated_values)
-    
-    # Print prediction in the terminal
-    print("Prediction:", prediction)
-    
-    # Log prediction
-    logging.info("Prediction: %s", prediction)
-
-# Start a thread to make predictions
-prediction_thread = threading.Thread(target=make_predictions)
-prediction_thread.start()
+mqtt_client.client.loop_start()
 
 
 @app.route("/")
 def index():
     try:
-        global data_queue
-        
-        # Wait until data arrives
+        # Warten, bis die Daten ankommen
         while not mqtt_client.combined_data:
             time.sleep(1)
-        
-        # Extracting sensor data from mqtt_client.combined_data
+        # Extrahieren von Sensordaten aus mqtt_client.combined_data
         sensor_data = mqtt_client.combined_data
         temperature = sensor_data.get("temperature", 0)
         humidity = sensor_data.get("humidity", 0)
         co2 = sensor_data.get("co2", 0)
-        tvoc = sensor_data.get("tvoc", "Currently not available")  # Initialize with a message if not present
+        tvoc = sensor_data.get("tvoc", "Currently not available")
         ambient_temp = sensor_data.get("ambient_temp", 0)
-
-        with data_lock:
-            if data_queue: 
-                # Extracting sensor data from the queue
-                sensor_data = pd.concat(list(data_queue))
-                
-                # Calculate aggregated values for the last hour
-                aggregated_values = aggregate_last_hour_data(sensor_data)
-                
-                # Get prediction from the model
-                prediction = get_prediction(aggregated_values)
-            else: 
-                prediction = "Currently not available"
-
-        # Render the index.html template with the data
+        predictions = sensor_data.get('predictions', {})  # Standardmäßig auf ein leeres Dict eingestellt
+        # Die Vorlage index.html mit den Daten rendern
         return render_template(
             "index.html",
             sensor_data=sensor_data,
@@ -199,12 +184,41 @@ def index():
             co2=co2,
             tvoc=tvoc,
             ambient_temp=ambient_temp,
-            prediction=prediction
+            predictions=predictions
         )
-
     except Exception as e:
         logging.error("An error occurred in index(): %s", str(e))
         return "Internal server error", 500
+
+
+@app.route("/data")
+def data():
+    # Die kombinierten Sensordaten vom MQTT-Client abrufen
+    combined_data = mqtt_client.combined_data
+
+    # Konvertieren Sie alle nicht serialisierbaren Datentypen (z. B. numpy int64) in reguläre Python-Typen
+    serializable_data = convert_to_serializable(combined_data)
+
+    # Die JSON-Antwort zurückgeben
+    return jsonify(serializable_data)
+
+
+def convert_to_serializable(data):
+    """
+    Konvertiert alle nicht serialisierbaren Datentypen innerhalb der Daten in serialisierbare Typen.
+    """
+    if isinstance(data, dict):
+        # Wenn die Daten ein Wörterbuch sind, konvertieren Sie rekursiv seine Werte
+        return {key: convert_to_serializable(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        # Wenn die Daten eine Liste sind, konvertieren Sie rekursiv ihre Elemente
+        return [convert_to_serializable(item) for item in data]
+    elif isinstance(data, np.integer):
+        # Wenn die Daten eine numpy-Ganzzahl sind, konvertieren Sie sie in eine reguläre Python-Ganzzahl
+        return int(data)
+    else:
+        # Andernfalls sind die Daten bereits serialisierbar
+        return data
 
 
 @app.route("/plots")
@@ -213,25 +227,27 @@ def plots():
     Generates and renders real-time data plots based on the latest sensor data.
     :return: HTML page with the real-time data plots or an error message if no sensor data is available.
     """
-    # Get the latest sensor data
-    sensor_data = mqtt_client.combined_data
+    # Get the latest sensor data from MQTTClient
+    sensor_data = mqtt_client.get_latest_sensor_data()
 
     # Check if sensor data is available
     if sensor_data:
-        # Debugging output of received sensor data
-        logging.info("Received sensor data in plots function:", sensor_data)
+        # Extract necessary data for plotting
+        co2_data = sensor_data.get('co2', [])
+        temperature_data = sensor_data.get('temperature', [])
+        humidity_data = sensor_data.get('humidity', [])
+        tvoc_data = sensor_data.get('tvoc', [])
 
         # Render the HTML page with the real-time data plots
         return render_template(
             "plots.html",
-            sensor_data=sensor_data  # Pass sensor data to the template
+            co2_data=co2_data,
+            temperature_data=temperature_data,
+            humidity_data=humidity_data,
+            tvoc_data=tvoc_data
         )
     else:
-        return "No sensor data available for plots."
-
-@app.route("/data")
-def data():
-    return jsonify(mqtt_client.combined_data)
+        return "Keine Daten vorhanden."
 
 
 @app.route("/feedback", methods=["POST"])
@@ -240,7 +256,6 @@ def feedback():
     Verarbeitet das Feedback, das über ein Formular gesendet wurde.
     :return: Weiterleitung zur Indexseite nach erfolgreicher Verarbeitung des Feedbacks
     """
-
     try:
         # Konvertiere das Feedback zu einer Ganzzahl (0 oder 1)
         is_correct = int(request.form["is_correct"])
