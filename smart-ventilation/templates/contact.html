@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kontaktiere uns</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/contact-styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <div class="content">
@@ -24,5 +26,22 @@
         <!-- Zurück zur Startseite -->
         <a href="/" class="button">Zurück zur Startseite</a>
     </div>
+
+    <script>
+        // Function to set a theme
+        function setTheme(themeName) {
+            localStorage.setItem('theme', themeName);
+            document.documentElement.className = themeName;
+        }
+
+        // Immediately invoked function to set the theme on initial load
+        (function () {
+            if (localStorage.getItem('theme') === 'theme-dark') {
+                setTheme('theme-dark');
+            } else {
+                setTheme('theme-light');
+            }
+        })();
+    </script>
 </body>
 </html>

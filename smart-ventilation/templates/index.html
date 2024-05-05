@@ -53,6 +53,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensordaten</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
     <header>
@@ -113,27 +114,30 @@
             <p>Sie haben Fragen oder Anregungen? Kontaktieren Sie uns gerne.</p>
             <a href="{{ url_for('contact') }}" class="button">Kontakt</a>
         </section>
+
+        <!-- New section for Design Auswählen button -->
+        <section style="text-align: center;"> <!-- Ensure center alignment like other sections -->
+            <button class="button" onclick="openDesignModal()">Design Auswählen</button>
+        </section>
+
+        <!-- Design Selection Modal -->
+        <div id="designModal" class="modal">
+            <div class="modal-content">
+                <h2>Wählen Sie ein Design</h2>
+                <button class="button" onclick="setTheme('theme-light')">Helles Design</button>
+                <button class="button" onclick="setTheme('theme-dark')">Dunkles Design</button>
+                <button class="button" onclick="closeDesignModal()">Schließen</button>
+            </div>
+        </div>
+
         <section>
             <h2>Weitere Informationen</h2>
             <p>Besuchen Sie unser Dashboard, um detaillierte Sensorwerte zu visualisieren.</p>
             <a href="{{ url_for('plots') }}" class="button">Sensor Werte als Dashboard anzeigen</a>
         </section>
-        <section>
-            <button onclick="openDesignModal()" class="button">Design auswählen</button>
-        </section>
-        <section>
-            <a href="{{ url_for('plots') }}" class="button">Zeige Echtzeit-Diagramme</a>
-        </section>
+
     </div>
-    <!-- Designauswahl Modal -->
-    <div id="designModal" class="modal">
-        <div class="modal-content">
-            <h2>Design wählen</h2>
-            <p>Wählen Sie Ihr bevorzugtes Design:</p>
-            <button onclick="selectDesign('dark')" class="modal-button">Dark Mode</button>
-            <button onclick="selectDesign('magna')" class="modal-button">Magna Design</button>
-        </div>
-    </div>
+
     <script>
         function submitFeedback(event, form) {
             event.preventDefault();
@@ -159,76 +163,70 @@
             xhr.send("is_correct=" + isCorrect);
             return false;
         }
-        function openDesignModal() {
-        var modal = document.getElementById('designModal');
-        if (modal) {
-            modal.style.display = 'flex';
+        
+        function updateTextColor() {
+            var bodyBackgroundColor = document.body.style.backgroundColor;
+            var bodyColor = document.body.style.color;
+            // Sicherstellen, dass die Textfarbe mit der Hintergrundfarbe kontrastiert
+            if (bodyBackgroundColor === '#333') {
+                // Dunkler Hintergrund, Text auf helle Farbe setzen
+                document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
+                    element.style.color = '#fff';
+                });
+            } else {
+                // Heller Hintergrund, Text auf dunkle Farbe setzen
+                document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
+                    element.style.color = '#333';
+                });
+            }
         }
-    }
-    function selectDesign(mode) {
-    if (mode === 'dark') {
-        document.body.style.backgroundColor = '#333';
-        document.body.style.color = '#fff';
-        // Linkstile für den dunklen Modus aktualisieren
-        document.querySelectorAll('.button').forEach(function(link) {
-            link.style.backgroundColor = '#555';
-            link.style.color = '#fff';
-        });
-    } else if (mode === 'magna') {
-        document.body.style.backgroundColor = '#ffcc00';
-        document.body.style.color = '#333';
-        // Linkstile für den Magna-Modus aktualisieren
-        document.querySelectorAll('.button').forEach(function(link) {
-            link.style.backgroundColor = '#ffea00';
-            link.style.color = '#333';
-        });
-    }
-    // Die Textfarbe basierend auf der Hintergrundfarbe aktualisieren
-    updateTextColor();
 
-    closeDesignModal(); // das Modals nach der Auswahl schließen
-
-    }
-    function closeDesignModal() {
-        var modal = document.getElementById('designModal');
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    }
-    function updateTextColor() {
-        var bodyBackgroundColor = document.body.style.backgroundColor;
-        var bodyColor = document.body.style.color;
-        // Sicherstellen, dass die Textfarbe mit der Hintergrundfarbe kontrastiert
-        if (bodyBackgroundColor === '#333') {
-            // Dunkler Hintergrund, Text auf helle Farbe setzen
-            document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
-                element.style.color = '#fff';
-            });
-        } else {
-            // Heller Hintergrund, Text auf dunkle Farbe setzen
-            document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
-                element.style.color = '#333';
+        // Dunkler Modus standardmäßig beim Laden der Seite anwenden
+        document.addEventListener('DOMContentLoaded', function() {
+            selectDesign('dark'); // Dunklen Modus anfangs anwenden
+        });
+        function updatePredictions() {
+        fetch("/predictions")
+            .then(response => response.json())
+            .then(predictions => {
+                console.log("Received predictions:", predictions); // Diese Zeile ist für Debugging gedacht
+                // HTML-Elemente mit Vorhersagen aktualisieren
+                document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
+                document.getElementById("decision-tree").innerText = predictions["Decision Tree"] || "N/A";
+                document.getElementById("random-forest").innerText = predictions["Random Forest"] || "N/A";
+            })
+            .catch(error => {
+                console.error("Error fetching predictions:", error);
             });
         }
-    }
-    // Dunkler Modus standardmäßig beim Laden der Seite anwenden
-    document.addEventListener('DOMContentLoaded', function() {
-        selectDesign('dark'); // Dunklen Modus anfangs anwenden
-    });
-    function updatePredictions() {
-    fetch("/predictions")
-        .then(response => response.json())
-        .then(predictions => {
-            console.log("Received predictions:", predictions); // Diese Zeile ist für Debugging gedacht
-            // HTML-Elemente mit Vorhersagen aktualisieren
-            document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
-            document.getElementById("decision-tree").innerText = predictions["Decision Tree"] || "N/A";
-            document.getElementById("random-forest").innerText = predictions["Random Forest"] || "N/A";
-        })
-        .catch(error => {
-            console.error("Error fetching predictions:", error);
-        });
-    }
+
+        // Function to set a theme
+        function setTheme(themeName) {
+            localStorage.setItem('theme', themeName);
+            document.documentElement.className = themeName;
+        }
+
+        // Function to toggle between Light and Dark mode
+        function toggleTheme() {
+            if (localStorage.getItem('theme') === 'theme-dark') {
+                setTheme('theme-light');
+            } else {
+                setTheme('theme-dark');
+            }
+        }
+
+        // Immediately invoked function to set the theme on initial load
+        (function () {
+            if (localStorage.getItem('theme') === 'theme-dark') {
+                setTheme('theme-dark');
+            } else {
+                setTheme('theme-light');
+            }
+        })();
     </script>
+
+    <!-- Link to external JavaScript for theme handling -->
+    <script src="{{ url_for('static', filename='js/theme-handler.js') }}"></script>
+
 </body>
 </html>
