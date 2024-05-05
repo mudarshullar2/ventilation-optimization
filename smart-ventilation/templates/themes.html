@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Themes</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <script src="{{ url_for('static', filename='theme.js') }}"></script>
+</head>
+<body>
+    <h1>Choose a Theme</h1>
+    <div>
+        <button onclick="setTheme('dark')">Dark Mode</button>
+        <button onclick="setTheme('magna')">Magna</button>
+        <button onclick="setTheme('light')">Light</button>
+    </div>
+</body>
+</html>
