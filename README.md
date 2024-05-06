@@ -17,13 +17,13 @@ Ein Flask-basiertes Dashboard zur Anzeige der gesammelten Daten und Vorhersagen.
 ## **Systemarchitektur**
 Die Anwendung setzt sich aus mehreren Hauptkomponenten zusammen:
 
-## **Flask-Server:**
+**Flask-Server:**
 Bietet ein Webinterface zur Interaktion mit dem System.
-## **MQTT-Client:** 
+**MQTT-Client:** 
 Kommuniziert mit IoT-Geräten, um Sensordaten in Echtzeit zu empfangen.
-## **Data Processing:** 
+**Data Processing:** 
 Verarbeitet die empfangenen Daten, führt Vorhersagen durch und stellt diese Daten über das Webinterface bereit.
-## **E-Mail Benachrichtigung:** 
+**E-Mail Benachrichtigung:** 
 Erlaubt das Senden von E-Mails durch Formulareingaben über das Webinterface.
 
 ## **Installation**
