@@ -1,7 +1,0 @@
-# Konfigurationen
-database:
-  DBNAME: "sensorsDataDB"
-  DBUSER: "postgres"
-  DBPASSWORD: "123456789"
-  DBHOST: "localhost"
-  DBPORT: "5433"
