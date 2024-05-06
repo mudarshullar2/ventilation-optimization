@@ -3,10 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Kontaktiere uns</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/contact-styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            color: white;
+        }
+        header {
+            background-color: transparent;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+        h1, h2 {
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+        .button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f472b6; /* Pink button */
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 400;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #ec4899; /* Darker pink on hover */
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+    </style>
+
 </head>
 <body>
     <div class="content">
@@ -43,5 +112,6 @@
             }
         })();
     </script>
+    
 </body>
 </html>
