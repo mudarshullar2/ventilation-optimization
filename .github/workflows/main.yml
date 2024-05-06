@@ -1,0 +1,35 @@
+name: Render PlantUML Diagrams
+
+on:
+  push:
+    paths:
+      - '**/*.puml'
+  pull_request:
+    paths:
+      - '**/*.puml'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+
+    - name: Render PlantUML Diagrams
+      uses: plantuml-action/render@v1
+      with:
+        path: '**/*.puml'
+        format: 'png'
+        output-directory: 'docs/diagrams'
+
+    - name: Commit and Push Diagrams
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: 'Update diagrams'
+        branch: ${{ github.ref }}
+        file_pattern: docs/diagrams/*.png
