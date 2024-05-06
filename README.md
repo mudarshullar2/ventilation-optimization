@@ -2,7 +2,7 @@
 
 Dieses Projekt implementiert ein Lüftungsoptimierungssystem, das Echtzeitdaten von verschiedenen Sensoren sammelt und verarbeitet, um die Luftqualität in Innenräumen zu verbessern. Das System verwendet MQTT zur Datenübertragung und maschinelles Lernen zur Vorhersage der Luftqualität.
 
-**# Features**
+## **Features**
 
 ## **Echtzeit-Sensordatenerfassung: **
 Sammelt Daten über Temperatur, Luftfeuchtigkeit, CO2, TVOC und Umgebungstemperatur.
