@@ -3,234 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-time Sensor Data Plots</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>Echtzeit-Sensordaten-Diagramme</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        .container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            height: 100vh;
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            color: white;
         }
-
-        .chart-container {
-            width: 400px; 
-            height: 300px; 
-            margin-bottom: 20px;
+        header {
+            background-color: transparent;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+        h1, h2 {
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+        .button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f472b6; /* Pink button */
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 400;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #ec4899; /* Darker pink on hover */
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
     </style>
+    <script>
+        // JavaScript zum Aktualisieren der Seite alle 60 Sekunden
+        setTimeout(function(){
+            location.reload();
+        }, 60000);
+    </script>
 </head>
 <body>
+    <header>
+        <h1>Echtzeit-Sensordaten-Diagramme</h1>
+    </header>
     <div class="container">
-        <h1>Real-time Sensor Data Plots</h1>
-
-        <div class="chart-container">
-            <canvas id="co2Chart"></canvas>
-        </div>
-
-        <div class="chart-container">
-            <canvas id="temperatureChart"></canvas>
-        </div>
-
-        <div class="chart-container">
-            <canvas id="humidityChart"></canvas>
-        </div>
-
-        <div class="chart-container">
-            <canvas id="tvocChart"></canvas>
-        </div>
+        <div id="co2-plot"></div>
+        <div id="temperature-plot"></div>
+        <div id="humidity-plot"></div>
+        <div id="tvoc-plot"></div>
+        <form action="{{ url_for('index') }}" method="GET">
+            <button class="button" type="submit">Zurück zur Hauptseite</button>
+        </form>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        var time_data = JSON.parse('{{ time_data | tojson | safe }}');
+        var co2_data = JSON.parse('{{ co2_data | tojson | safe }}');
+        var temperature_data = JSON.parse('{{ temperature_data | tojson | safe }}');
+        var humidity_data = JSON.parse('{{ humidity_data | tojson | safe }}');
+        var tvoc_data = JSON.parse('{{ tvoc_data | tojson | safe }}');
 
-            // Funktion zum Parsen der Zeit in Stunden und Minuten
-            function parseTimeToHourMinute(timeString) {
-                const date = new Date(timeString);
-                const hours = ('0' + date.getUTCHours()).slice(-2);
-                const minutes = ('0' + date.getUTCMinutes()).slice(-2);
-                return `${hours}:${minutes}`;
-            }
+        // Plot CO2 data
+        var co2_trace = {
+            x: time_data,
+            y: co2_data,
+            mode: 'lines+markers',
+            type: 'scatter',
+            name: 'CO2'
+        };
+        Plotly.newPlot('co2-plot', [co2_trace], {title: 'Co2 Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'Co2 Werte'}});
 
-            // CO2-Diagramm
-            var co2Ctx = document.getElementById('co2Chart').getContext('2d');
-            var co2Chart = new Chart(co2Ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'CO2 Levels',
-                        data: [],
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    scales: {
-                        xAxes: [{
-                            ticks: {
-                                callback: function(value, index, values) {
-                                    return parseTimeToHourMinute(value);
-                                }
-                            }
-                        }],
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true
-                            }
-                        }]
-                    }
-                }
-            });
+        // Plot temperature data
+        var temperature_trace = {
+            x: time_data,
+            y: temperature_data,
+            mode: 'lines+markers',
+            type: 'scatter',
+            name: 'Temperature'
+        };
+        Plotly.newPlot('temperature-plot', [temperature_trace], {title: 'Temperatur Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'Temperatur'}});
 
-            // Temperaturdiagramm
-            var tempCtx = document.getElementById('temperatureChart').getContext('2d');
-            var tempChart = new Chart(tempCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Temperature',
-                        data: [],
-                        borderColor: 'rgb(255, 99, 132)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    scales: {
-                        xAxes: [{
-                            ticks: {
-                                callback: function(value, index, values) {
-                                    return parseTimeToHourMinute(value);
-                                }
-                            }
-                        }],
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true
-                            }
-                        }]
-                    }
-                }
-            });
+        // Plot humidity data
+        var humidity_trace = {
+            x: time_data,
+            y: humidity_data,
+            mode: 'lines+markers',
+            type: 'scatter',
+            name: 'Humidity'
+        };
+        Plotly.newPlot('humidity-plot', [humidity_trace], {title: 'Luftfeuchtigkeit Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'Luftfeuchtigkeit'}});
 
-            // Luftfeuchtigkeitsdiagramm
-            var humidityCtx = document.getElementById('humidityChart').getContext('2d');
-            var humidityChart = new Chart(humidityCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Humidity',
-                        data: [],
-                        borderColor: 'rgb(54, 162, 235)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    scales: {
-                        xAxes: [{
-                            ticks: {
-                                callback: function(value, index, values) {
-                                    return parseTimeToHourMinute(value);
-                                }
-                            }
-                        }],
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true
-                            }
-                        }]
-                    }
-                }
-            });
-
-           // TVOC-Diagramm
-            var tvocCtx = document.getElementById('tvocChart').getContext('2d');
-            var tvocChart = new Chart(tvocCtx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'TVOC Levels',
-                        data: [],
-                        borderColor: 'rgb(255, 205, 86)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    scales: {
-                        xAxes: [{
-                            ticks: {
-                                callback: function(value, index, values) {
-                                    return parseTimeToHourMinute(value);
-                                }
-                            }
-                        }],
-                        yAxes: [{
-                            ticks: {
-                                beginAtZero: true
-                            }
-                        }]
-                    }
-                }
-            });
-
-            function fetchData() {
-                fetch('/data')
-                    .then(response => response.json())
-                    .then(data => {
-                        const time = parseTimeToHourMinute(data.time);
-
-                        // CO2-Diagramm aktualisieren
-                        co2Chart.data.labels.push(time);
-                        co2Chart.data.datasets[0].data.push(data.co2);
-                        co2Chart.update();
-
-                        // Temperaturdiagramm aktualisieren
-                        tempChart.data.labels.push(time);
-                        tempChart.data.datasets[0].data.push(data.temperature);
-                        tempChart.update();
-
-                        // Luftfeuchtigkeitsdiagramm aktualisieren
-                        humidityChart.data.labels.push(time);
-                        humidityChart.data.datasets[0].data.push(data.humidity);
-                        humidityChart.update();
-
-                        // TVOC-Diagramm aktualisieren
-                        tvocChart.data.labels.push(time);
-                        tvocChart.data.datasets[0].data.push(data.tvoc);
-                        tvocChart.update();
-                    });
-            }
-
-            setInterval(() => {
-                fetchData();
-            }, 20000); // Abruf von Daten alle 2 Minuten
-        });
-
-        // Funktion zum Einstellen eines Designs
-        function setTheme(themeName) {
-            localStorage.setItem('theme', themeName);
-            document.documentElement.className = themeName;
-        }
-
-        // Unmittelbar aufgerufene Funktion zum Einstellen des Designs beim ersten Laden
-        (function () {
-            if (localStorage.getItem('theme') === 'theme-dark') {
-                setTheme('theme-dark');
-            } else {
-                setTheme('theme-light');
-            }
-        })();
+        // Plot TVOC data
+        var tvoc_trace = {
+            x: time_data,
+            y: tvoc_data,
+            mode: 'lines+markers',
+            type: 'scatter',
+            name: 'TVOC'
+        };
+        Plotly.newPlot('tvoc-plot', [tvoc_trace], {title: 'TVOC Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'TVOC Werte'}});
     </script>
-    
-    <form action="{{ url_for('index') }}" method="GET">
-        <button class="button">Zurück zur Hauptseite</button>
-    </form>
-
 </body>
 </html>

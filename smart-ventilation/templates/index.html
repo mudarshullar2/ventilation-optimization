@@ -4,49 +4,75 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensordaten</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <meta http-equiv="refresh" content="20">
+
     <style>
         body, html {
             margin: 0;
+            padding: 0;
             height: 100%;
             width: 100%;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            color: white;
         }
-        h1 {
+        header {
+            background-color: transparent;
+            padding: 20px;
             text-align: center;
         }
-        /* Modales Styling */
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+        h1, h2 {
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+        .button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f472b6; /* Pink button */
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 400;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #ec4899; /* Darker pink on hover */
+        }
         .modal {
             display: none;
             position: fixed;
-            z-index: 9999;
+            z-index: 1;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparenter schwarzer Hintergrund */
             overflow: auto;
-            justify-content: center;
-            align-items: center;
-            display: flex;
+            background-color: rgba(0,0,0,0.4);
         }
         .modal-content {
             background-color: #fefefe;
+            margin: 15% auto;
             padding: 20px;
-            border-radius: 8px;
-            max-width: 400px;
+            border: 1px solid #888;
             width: 80%;
-            text-align: center;
-        }
-        .modal-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
     </style>
+
 </head>
 <head>
     <meta charset="UTF-8">
@@ -58,25 +84,25 @@
 <body>
     <header>
         <div class="header-content">
-            <h1>KI-Lüftungssystem (Schule am Schloss)</h1>
+            <h1>KI-Lüftungssystem</h1>
             <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" style="max-width: 200px;">
         </div>
     </header>
     <div class="container">
         <section>
             <h2>Über das Smart Lüftungssystem an der Schule am Schloss</h2>
-            <p>Erhalten Sie aktuelle Sensordaten zu Temperatur, Luftfeuchtigkeit und CO2-Gehalt.</p>
+            <p>Erhalte aktuelle Sensordaten zu Temperatur, Luftfeuchtigkeit und CO2-Gehalt.</p>
             <p>Das System analysiert die Raumluftqualität und bietet Empfehlungen zur optimalen Belüftung für eine gesunde Lernumgebung.</p>
         </section>
         <section>
             <h2>Sensordaten</h2>
             {% if sensor_data %}
-                <p><strong>Zeit:</strong> {{ sensor_data.get('time', 'Zurzeit nicht verfügbar') }}</p>
-                <p><strong>Temperatur:</strong> {{ sensor_data.get('temperature', 'Zurzeit nicht verfügbar') }} °C</p>
-                <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data.get('humidity', 'Zurzeit nicht verfügbar') }} %</p>
-                <p><strong>CO2-Niveau:</strong> {{ sensor_data.get('co2', 'Zurzeit nicht verfügbar') }} ppm</p>
-                <p><strong>TVOC-Niveau:</strong> {{ sensor_data.get('tvoc', 'Zurzeit nicht verfügbar') }}</p> 
-                <p><strong>Außentemperatur:</strong> {{ sensor_data.get('ambient_temp', 'Zurzeit nicht verfügbar') }} °C</p> 
+                <p><strong>Zeit:</strong> {{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] }}</p>
+                <p><strong>Temperatur:</strong> {{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C</p>
+                <p><strong>Luftfeuchtigkeit:</strong> {{ sensor_data.get('humidity', ['Zurzeit nicht verfügbar'])[-1] }} %</p>
+                <p><strong>CO2-Niveau:</strong> {{ sensor_data.get('co2', ['Zurzeit nicht verfügbar'])[-1] }} ppm</p>
+                <p><strong>TVOC-Niveau:</strong> {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }}</p> 
+                <p><strong>Außentemperatur:</strong> {{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C</p>
                 {% if predictions|length > 0 %}
                     <p><strong>Logistic Regression Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Logistic Regression', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
                     <p><strong>Decision Tree Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Decision Tree', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
@@ -102,18 +128,15 @@
             <form action="/shutdown" method="POST">
                 <input type="submit" value="Server herunterfahren" class="button">
             </form>
-            <form action="{{ url_for('download_co2_data') }}" method="GET">
-                <input type="submit" value="CO2-Daten des letzten Monats herunterladen" class="button">
-            </form>
             {% else %}
             <p>Keine Sensordaten verfügbar.</p>
             {% endif %}
         </section>
         <section>
             <h2>Kontakt</h2>
-            <p>Sie haben Fragen oder Anregungen? Kontaktieren Sie uns gerne.</p>
-            <a href="{{ url_for('contact') }}" class="button">Kontakt</a>
-        </section>
+            <p>Hast du Fragen oder Anregungen? Kontaktiere uns gerne.</p>
+            <button class="button" onclick="window.location.href=`{{ url_for('contact') }}`;">Kontakt</button>
+        </section>              
 
         <!-- New section for Design Auswählen button -->
         <section style="text-align: center;"> <!-- Ensure center alignment like other sections -->
@@ -130,12 +153,21 @@
             </div>
         </div>
 
+        <!-- Modal for selecting themes -->
+        <div id="designModal" class="modal">
+            <div class="modal-content">
+                <span onclick="closeModal('designModal')" style="float:right; cursor:pointer;">&times;</span>
+                <h2>Wählen Sie Ihr Design</h2>
+                <button class="button" onclick="setTheme('theme-light')">Helles Design</button>
+                <button class="button" onclick="setTheme('theme-dark')">Dunkles Design</button>
+            </div>
+        </div>
+
         <section>
             <h2>Weitere Informationen</h2>
             <p>Besuchen Sie unser Dashboard, um detaillierte Sensorwerte zu visualisieren.</p>
-            <a href="{{ url_for('plots') }}" class="button">Sensor Werte als Dashboard anzeigen</a>
-        </section>
-
+            <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Sensor Werte als Dashboard anzeigen</button>
+        </section>                   
     </div>
 
     <script>
@@ -224,6 +256,16 @@
             }
         })();
 
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+        function setTheme(themeName) {
+            document.body.className = themeName;
+            closeModal('designModal');
+        }
     </script>
 
     <!-- Link to external JavaScript for theme handling -->
