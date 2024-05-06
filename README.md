@@ -26,7 +26,7 @@ Verarbeitet die empfangenen Daten, führt Vorhersagen durch und stellt diese Dat
 ## **E-Mail Benachrichtigung:** 
 Erlaubt das Senden von E-Mails durch Formulareingaben über das Webinterface.
 
-**# Installation**
+## **Installation**
 
 **1. Voraussetzungen installieren:**
 pip install -r requirements.txt
