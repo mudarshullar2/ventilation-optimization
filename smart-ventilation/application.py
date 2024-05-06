@@ -1,9 +1,12 @@
-from database_management import get_sensor_data_last_month
+from sklearn.compose import ColumnTransformer
+from sklearn.discriminant_analysis import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.pipeline import Pipeline
 from load_api import load_api_config
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from flask import Flask, render_template, request, send_file, jsonify
-from datetime import datetime
+from flask import Flask, render_template, request
+from datetime import datetime, timedelta
 import paho.mqtt.client as mqtt
 import pandas as pd
 import numpy as np
@@ -16,13 +19,6 @@ import json
 import time 
 
 logging.basicConfig(level=logging.INFO)
-
-# die vortrainierten Machine-Learning-Modelle laden
-models = {
-    'Logistic Regression': joblib.load('smart-ventilation/models/Logistic_Regression.pkl'),
-    'Decision Tree': joblib.load('smart-ventilation/models/Decision_Tree.pkl'),
-    'Random Forest': joblib.load('smart-ventilation/models/Random_Forest.pkl')
-}
 
 app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/static')
 
@@ -37,8 +33,15 @@ class MQTTClient:
         self.client.on_message = self.on_message
         self.parameters = {}
         self.combined_data = {}
-        self.data_points = []
+        self.data_points = [] 
         self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
+
+        # die vortrainierten Machine-Learning-Modelle laden
+        self.models = {
+            'Logistic Regression': joblib.load('smart-ventilation/models/Logistic_Regression.pkl'),
+            'Decision Tree': joblib.load('smart-ventilation/models/Decision_Tree.pkl'),
+            'Random Forest': joblib.load('smart-ventilation/models/Random_Forest.pkl')
+        }
 
 
     def on_connect(self, client, userdata, flags, rc):
@@ -53,90 +56,109 @@ class MQTTClient:
         topic = msg.topic
         payload = json.loads(msg.payload.decode())
 
-        # Daten aus allen Sensoren in einem Dict kombinieren
+        # Daten von allen Sensoren in einem Dictionary zusammenfassen.
         if topic.endswith("0004a30b01045883/event/up"):
-            self.combined_data.update({
-                "time": payload["time"], 
-                "humidity": round(payload["object"]["humidity"], 2),
-                "temperature": round(payload["object"]["temperature"], 2), 
-                "co2": round(payload["object"]["co2"], 2)
-            })
-            logging.info("Daten aus device1: %s", self.combined_data)
+            self.combined_data.setdefault("time", []).append(payload["time"])
+            self.combined_data.setdefault("humidity", []).append(round(payload["object"]["humidity"], 2))
+            self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
+            self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
+            logging.info("Data from device1: %s", self.combined_data)
+
         elif topic.endswith("647fda000000aa92/event/up"):
-            self.combined_data.update({
-                "time": payload["time"], 
-                "ambient_temp": round(payload["object"]["ambient_temp"], 2)
-            })
-            logging.info("Daten aus device2: %s", self.combined_data)
+            self.combined_data.setdefault("time", []).append(payload["time"])
+            self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
+            logging.info("Data from device2: %s", self.combined_data)
+
         elif topic.endswith("24e124707c481005/event/up"):
-            # Falls der Wert TVOC momentan nicht vorhanden ist
-            if "tvoc" in payload["object"]:
-                tvoc_value = round(payload["object"]["tvoc"], 2)
-            else:
-                 tvoc_value = None
-            self.combined_data.update({
-                "time": payload["time"], 
-                "tvoc": tvoc_value
-            })
-            logging.info("Daten aus device3: %s", self.combined_data)
+            # Prüfen, ob „tvoc“ in payload[„object“] vorhanden ist, sonst auf Null setzen
+            tvoc_value = payload["object"].get("tvoc", 0)
+            self.combined_data.setdefault("time", []).append(payload["time"])
+            self.combined_data.setdefault("tvoc", []).append(tvoc_value)
+            logging.info("Data from device3: %s", self.combined_data)
+
+        required_keys = {"time", "humidity", "temperature", "co2", "tvoc"}
+        if all(key in self.combined_data for key in required_keys):
+            self.collect_data(self.combined_data)
+            logging.info("All required data is present.")
+            logging.info("self.combined_data content: %s", self.combined_data)
 
 
-    def collect_data(self, payload):
+    def collect_data(self, combined_data):
         try:
-            # Daten aus dem Payload sicher extrahieren
-            data = {
-                "temperature": payload["object"].get("temperature", 0),  # Standardwert 0, wenn die Temperatur nicht vorhanden ist
-                "humidity": payload["object"].get("humidity", 0),  # Standardwert 0, wenn die Luftfeuchtigkiet nicht vorhanden ist
-                "co2": payload["object"].get("co2", 0),  # Standardwert 0, wenn Co2 Werte nicht vorhanden sind
-                "tvoc": payload["object"].get("tvoc", 0)  # Standardwert 0, wenn TVOC Werte nicht vorhanden sind
-            }
-            self.data_points.append(data)
+            max_length = max(len(combined_data[key]) for key in combined_data.keys())
+            for i in range(max_length):
+                data = {}
+                for key in combined_data.keys():
+                    if i < len(combined_data[key]):
+                        data[key] = combined_data[key][i]
+                self.data_points.append(data)
+            logging.info("collect_data content: %s", self.data_points)
         except Exception as e:
-            logging.error(f"Unerwarteter Fehler bei der Datenerfassung: {e}")
+            logging.error(f"Unexpected error occurred during data collection: {e}")
 
 
     def run_periodic_predictions(self):
         while True:
-            time.sleep(180)  # 3 Minuten (180 Sekunden) schlafen
+            time.sleep(3600)  # für 60 Minuten schlafen
             if self.data_points:
-                # Berechnung von Durchschnittswerten für kontinuierliche Variablen
-                average_data = {key: np.mean([d[key] for d in self.data_points if key in d]) for key in self.data_points[0] if key != 'time'}
-                
-                # Behandlung des Zeitstempels durch Überprüfung, ob er existiert und korrekt formatiert ist
-                if any('time' in d for d in self.data_points):
-                    last_timestamp = next((d['time'] for d in self.data_points if 'time' in d), None)
-                    if last_timestamp:
-                        try:
-                            if last_timestamp.endswith('Z'):
-                                last_timestamp = last_timestamp[:-1] + '+00:00'  # 'Z' zu '+00:00' umwandeln
-                            average_data['hour'] = datetime.fromisoformat(last_timestamp).hour
-                        except ValueError:
-                            logging.error("Error parsing time: %s", last_timestamp)
-                            average_data['hour'] = 0  # Standardwert 0 oder ein anderer sinnvoller Standardwert
-                    else:
-                        average_data['hour'] = 0  # Default, wenn keine gültige Zeit gefunden wird
-                else:
-                    average_data['hour'] = 0  # Default, wenn keine Zeitstempel vorhanden sind
-                # Einbindung der 'tvoc'-Behandlung mit Standardwert
-                average_data['tvoc'] = np.mean([d['tvoc'] for d in self.data_points if 'tvoc' in d]) if any('tvoc' in d for d in self.data_points) else 0
-                # Feature-Array für ML-Modelle konstruieren 
                 try:
-                    features = np.array([[average_data.get('temperature', 0), average_data.get('co2', 0), average_data.get('humidity', 0), average_data.get('tvoc', 0), average_data.get('hour', 0)]])
-                    # Vorhersage mit jedem Modell und Speicherung der Ergebnisse
-                    predictions = {name: model.predict(features)[0] for name, model in models.items()}
-                    # Vorhersagen für den Zugriff durch Flask speichern
+                    # data_points in DataFrame umwandeln
+                    df = pd.DataFrame(self.data_points)
+
+                    # Parsen von Zeitstempeln und Berechnen des durchschnittlichen Zeitstempels
+                    df['parsed_time'] = pd.to_datetime(df['time'])
+                    avg_time = df['parsed_time'].mean()
+                    
+                    # Durchschnittsdaten für Nicht-Zeit-Felder vorbereiten
+                    avg_data = df.mean(numeric_only=True).to_dict()
+                    avg_data['avg_time'] = avg_time.timestamp()  # In Zeitstempel umwandeln
+                    logging.info("avg_data: %s", avg_data)
+
+                    # Merkmale für die Vorhersage vorbereiten
+                    features_df = pd.DataFrame([avg_data])
+                    logging.info("features_df: %s", features_df)
+                    
+                    # Auf die richtige Reihenfolge und Einbeziehung achten !
+                    features_prepared = self.prepare_features(features_df)
+
+                    # Empfehlungen mit jedem Modell zurückgeben
+                    predictions = {name: model.predict(features_prepared)[0] for name, model in self.models.items()}
+                    logging.info("predictions: %s", predictions)
+
+                    # Prediction in combined_data hinzufügen, damit sie mit index() angezeigt werden können 
                     self.combined_data['predictions'] = predictions
-                    # Die Daten nach der Erstellung von Vorhersagen zurücksetzen
+                    
+                    # Logging
+                    logging.info("Processed data and generated predictions.")
                     self.data_points.clear()
                 except Exception as e:
-                    logging.error("Fehler bei der Vorhersage: %s", str(e))
+                    logging.error(f"Error during prediction: {e}")
             else:
-                logging.info("In den letzten 3 Minuten wurden keine Daten erfasst.")
-    
+                logging.info("No data has been collected in the last 3 minutes.")
+
+
+    def prepare_features(self, X):
+        # Numerische und kategoriale Merkmale definieren
+        numeric_features = ['avg_time', 'temperature', 'co2', 'humidity', 'tvoc']
+
+        # numerische Merkmale transformationen
+        numeric_transformer = Pipeline(steps=[
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler())
+        ])
+
+        # Transformationen kombinieren
+        preprocessor = ColumnTransformer(
+            transformers=[
+                ('num', numeric_transformer, numeric_features)
+            ])
+
+        return preprocessor.fit_transform(X)
+
 
     def get_latest_sensor_data(self):
-        # Rückgabe einer Kopie der letzten Sensordaten
-        return self.combined_data.copy()
+        # Return a copy of the latest sensor data
+        return self.data_points.copy()
 
 
     def initialize(self):
@@ -191,63 +213,51 @@ def index():
         return "Internal server error", 500
 
 
-@app.route("/data")
-def data():
-    # Die kombinierten Sensordaten vom MQTT-Client abrufen
-    combined_data = mqtt_client.combined_data
-
-    # Konvertieren Sie alle nicht serialisierbaren Datentypen (z. B. numpy int64) in reguläre Python-Typen
-    serializable_data = convert_to_serializable(combined_data)
-
-    # Die JSON-Antwort zurückgeben
-    return jsonify(serializable_data)
-
-
-def convert_to_serializable(data):
-    """
-    Konvertiert alle nicht serialisierbaren Datentypen innerhalb der Daten in serialisierbare Typen.
-    """
-    if isinstance(data, dict):
-        # Wenn die Daten ein Wörterbuch sind, konvertieren Sie rekursiv seine Werte
-        return {key: convert_to_serializable(value) for key, value in data.items()}
-    elif isinstance(data, list):
-        # Wenn die Daten eine Liste sind, konvertieren Sie rekursiv ihre Elemente
-        return [convert_to_serializable(item) for item in data]
-    elif isinstance(data, np.integer):
-        # Wenn die Daten eine numpy-Ganzzahl sind, konvertieren Sie sie in eine reguläre Python-Ganzzahl
-        return int(data)
-    else:
-        # Andernfalls sind die Daten bereits serialisierbar
-        return data
-
-
 @app.route("/plots")
 def plots():
     """
-    Generates and renders real-time data plots based on the latest sensor data.
+    Generates and renders real-time data plots based on the latest sensor data, starting from the first non-empty data point and lasting for one hour.
     :return: HTML page with the real-time data plots or an error message if no sensor data is available.
     """
-    # Die neuesten Sensordaten vom MQTTClient abrufen
+    global start_time  # Define start_time as a global variable
+    start_time = start_time if 'start_time' in globals() else None  # Initialize start_time if not defined
+
     sensor_data = mqtt_client.get_latest_sensor_data()
 
-    # Prüfen, ob Sensordaten vorhanden sind
     if sensor_data:
-        # die notwendigen Daten für das Plotten extrahieren
-        co2_data = sensor_data.get('co2', [])
-        temperature_data = sensor_data.get('temperature', [])
-        humidity_data = sensor_data.get('humidity', [])
-        tvoc_data = sensor_data.get('tvoc', [])
+        if not start_time:
+            start_time = datetime.now()  # Set start time when data first becomes non-empty
 
-        # Rendering der HTML-Seite mit den Echtzeit-Datenplots
+        current_time = datetime.now()
+        if current_time - start_time > timedelta(hours=1):
+            return "Data display interval has passed."
+
+        # Prepare lists to collect filtered data
+        co2_data = [data.get('co2', None) for data in sensor_data]
+        temperature_data = [data.get('temperature', None) for data in sensor_data]
+        humidity_data = [data.get('humidity', None) for data in sensor_data]
+        tvoc_data = [data.get('tvoc', None) for data in sensor_data]
+        time_data = [data.get('time', None) for data in sensor_data]
+
+        # Align data points to ensure each sensor's data has the same length
+        max_length = max(len(co2_data), len(temperature_data), len(humidity_data), len(tvoc_data), len(time_data))
+        co2_data += [None] * (max_length - len(co2_data))
+        temperature_data += [None] * (max_length - len(temperature_data))
+        humidity_data += [None] * (max_length - len(humidity_data))
+        tvoc_data += [None] * (max_length - len(tvoc_data))
+        time_data += [None] * (max_length - len(time_data))
+
+        # Render the HTML page with real-time data plots
         return render_template(
             "plots.html",
             co2_data=co2_data,
             temperature_data=temperature_data,
             humidity_data=humidity_data,
-            tvoc_data=tvoc_data
+            tvoc_data=tvoc_data,
+            time_data=time_data
         )
     else:
-        return "Keine Daten vorhanden."
+        return "No data available."
 
 
 @app.route("/feedback", methods=["POST"])
@@ -283,37 +293,6 @@ def feedback():
 
     except Exception as e:
         return f"Fehler: {str(e)}"
-
-
-@app.route("/download_co2_data", methods=["GET"])
-def download_co2_data():
-    """
-    Ruft Sensordaten der letzten Woche ab und erstellt eine Excel-Datei mit diesen Daten sowie deskriptive Statistiken.
-    :return: Sendet die erstellte Excel-Datei als Download, falls Sensordaten vorhanden sind; ansonsten eine Fehlermeldung.
-    """
-    try:
-        # Sensordaten des letzten Monats abrufen
-        sensor_data = get_sensor_data_last_month()
-        # Überprüfen, ob Sensordaten vorhanden sind
-        if sensor_data:
-            df = pd.DataFrame(sensor_data, columns=["Timestamp", "Temperature", "Humidity", "CO2", "TVOC"])
-            descriptive_stats = df.describe()  # Deskriptive Statistiken über die Sensordaten berechnen
-            # Excel-Datei erstellen
-            output_path = "co2_data_last_month.xlsx"
-            with pd.ExcelWriter(output_path) as writer:
-                df.to_excel(writer, index=False, sheet_name="Sensor Data")
-                descriptive_stats.to_excel(writer, sheet_name="Descriptive Statistics")
-            # Excel-Datei als Download senden
-            return send_file(output_path, as_attachment=True)
-        else:
-            return "Keine Sensordaten verfügbar für den letzten Monat."
-    except Exception as e:
-        return f"Fehler: {str(e)}"
-
-
-@app.route('/select-design')
-def select_design():
-    return render_template('design.html')
 
 
 # Neue Route zum Rendern von contact.html
