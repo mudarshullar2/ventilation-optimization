@@ -62,25 +62,21 @@ class MQTTClient:
             self.combined_data.setdefault("humidity", []).append(round(payload["object"]["humidity"], 2))
             self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
             self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
-            logging.info("Data from device1: %s", self.combined_data)
 
         elif topic.endswith("647fda000000aa92/event/up"):
             self.combined_data.setdefault("time", []).append(payload["time"])
             self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
-            logging.info("Data from device2: %s", self.combined_data)
 
         elif topic.endswith("24e124707c481005/event/up"):
             # Prüfen, ob „tvoc“ in payload[„object“] vorhanden ist, sonst auf Null setzen
             tvoc_value = payload["object"].get("tvoc", 0)
             self.combined_data.setdefault("time", []).append(payload["time"])
             self.combined_data.setdefault("tvoc", []).append(tvoc_value)
-            logging.info("Data from device3: %s", self.combined_data)
 
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc"}
         if all(key in self.combined_data for key in required_keys):
             self.collect_data(self.combined_data)
             logging.info("All required data is present.")
-            logging.info("self.combined_data content: %s", self.combined_data)
 
 
     def collect_data(self, combined_data):
@@ -92,7 +88,6 @@ class MQTTClient:
                     if i < len(combined_data[key]):
                         data[key] = combined_data[key][i]
                 self.data_points.append(data)
-            logging.info("collect_data content: %s", self.data_points)
         except Exception as e:
             logging.error(f"Unexpected error occurred during data collection: {e}")
 
@@ -112,18 +107,15 @@ class MQTTClient:
                     # Durchschnittsdaten für Nicht-Zeit-Felder vorbereiten
                     avg_data = df.mean(numeric_only=True).to_dict()
                     avg_data['avg_time'] = avg_time.timestamp()  # In Zeitstempel umwandeln
-                    logging.info("avg_data: %s", avg_data)
 
                     # Merkmale für die Vorhersage vorbereiten
                     features_df = pd.DataFrame([avg_data])
-                    logging.info("features_df: %s", features_df)
                     
                     # Auf die richtige Reihenfolge und Einbeziehung achten !
                     features_prepared = self.prepare_features(features_df)
 
                     # Empfehlungen mit jedem Modell zurückgeben
                     predictions = {name: model.predict(features_prepared)[0] for name, model in self.models.items()}
-                    logging.info("predictions: %s", predictions)
 
                     # Prediction in combined_data hinzufügen, damit sie mit index() angezeigt werden können 
                     self.combined_data['predictions'] = predictions
@@ -197,6 +189,7 @@ def index():
         tvoc = sensor_data.get("tvoc", "Currently not available")
         ambient_temp = sensor_data.get("ambient_temp", 0)
         predictions = sensor_data.get('predictions', {})  # Standardmäßig auf ein leeres Dict eingestellt
+
         # Die Vorlage index.html mit den Daten rendern
         return render_template(
             "index.html",
@@ -257,7 +250,7 @@ def plots():
             time_data=time_data
         )
     else:
-        return "No data available."
+        return "Keine Daten zur Verfügung"
 
 
 @app.route("/feedback", methods=["POST"])
