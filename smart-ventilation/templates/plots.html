@@ -98,7 +98,7 @@
         var humidity_data = JSON.parse('{{ humidity_data | tojson | safe }}');
         var tvoc_data = JSON.parse('{{ tvoc_data | tojson | safe }}');
 
-        // Plot CO2 data
+        // CO2-Daten mit Schwellenwertlinien aufzeichnen
         var co2_trace = {
             x: time_data,
             y: co2_data,
@@ -106,9 +106,29 @@
             type: 'scatter',
             name: 'CO2'
         };
-        Plotly.newPlot('co2-plot', [co2_trace], {title: 'Co2 Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'Co2 Werte'}});
+        var high_co2_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [1200, 1200],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Hoher CO2-Schwellenwert',
+            line: {color: 'red'}
+        };
+        var normal_co2_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [500, 500],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Niedriger CO2-Schwellenwert',
+            line: {color: 'blue'}
+        };
+        Plotly.newPlot('co2-plot', [co2_trace, high_co2_line, normal_co2_line], {
+            title: 'CO2 Diagramm',
+            xaxis: {title: 'Zeit'},
+            yaxis: {title: 'CO2 Werte in ppm'}
+        });
 
-        // Plot temperature data
+        // Temperaturdaten mit Schwellenwertlinien aufzeichnen 
         var temperature_trace = {
             x: time_data,
             y: temperature_data,
@@ -116,9 +136,29 @@
             type: 'scatter',
             name: 'Temperature'
         };
-        Plotly.newPlot('temperature-plot', [temperature_trace], {title: 'Temperatur Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'Temperatur'}});
+        var high_temperature_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [22, 22],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Hoher Temperaturschwellenwert',
+            line: {color: 'red'}
+        };
+        var normal_temperature_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [19, 19],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Niedriger Temperaturschwellenwert',
+            line: {color: 'blue'}
+        };
+        Plotly.newPlot('temperature-plot', [temperature_trace, high_temperature_line, normal_temperature_line], {
+            title: 'Temperatur Diagramm',
+            xaxis: {title: 'Zeit'},
+            yaxis: {title: 'Temperatur Werte in °C'}
+        });
 
-        // Plot humidity data
+        // Luftfeuchtigkeitsdaten mit Schwellenwertlinien aufzeichnen
         var humidity_trace = {
             x: time_data,
             y: humidity_data,
@@ -126,9 +166,29 @@
             type: 'scatter',
             name: 'Humidity'
         };
-        Plotly.newPlot('humidity-plot', [humidity_trace], {title: 'Luftfeuchtigkeit Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'Luftfeuchtigkeit'}});
-
-        // Plot TVOC data
+        var high_humidity_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [60, 60],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Schwellenwert für hohe Luftfeuchtigkeit',
+            line: {color: 'red'}
+        };
+        var low_humidity_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [30, 30],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Schwelle für niedrige Luftfeuchtigkeit',
+            line: {color: 'blue'}
+        };
+        Plotly.newPlot('humidity-plot', [humidity_trace, high_humidity_line, low_humidity_line], {
+            title: 'Luftfeuchtigkeit Diagramm',
+            xaxis: {title: 'Zeit'},
+            yaxis: {title: 'Luftfeuchtigkeit in g/m3'}
+        });
+        
+        // TVOC-Daten mit Schwellenwertlinien aufzeichnen 
         var tvoc_trace = {
             x: time_data,
             y: tvoc_data,
@@ -136,7 +196,28 @@
             type: 'scatter',
             name: 'TVOC'
         };
-        Plotly.newPlot('tvoc-plot', [tvoc_trace], {title: 'TVOC Diagramm', xaxis: {title: 'Zeit'}, yaxis: {title: 'TVOC Werte'}});
+        var high_tvoc_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [700, 700],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Hoher TVOC-Schwellenwert',
+            line: {color: 'red'}
+        };
+        var low_tvoc_line = {
+            x: [time_data[0], time_data[time_data.length - 1]],
+            y: [200, 200],
+            mode: 'lines',
+            type: 'scatter',
+            name: 'Niedriger TVOC-Schwellenwert',
+            line: {color: 'blue'}
+        };
+        Plotly.newPlot('tvoc-plot', [tvoc_trace, high_tvoc_line, low_tvoc_line], {
+            title: 'TVOC Diagramm',
+            xaxis: {title: 'Zeit'},
+            yaxis: {title: 'TVOC Werte in mg/m³'}
+        });
+
     </script>
 </body>
 </html>
