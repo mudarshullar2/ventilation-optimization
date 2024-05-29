@@ -3,20 +3,19 @@ from sklearn.discriminant_analysis import StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from load_api import load_api_config
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from flask import Flask, render_template, request
+from flask import Flask, jsonify, render_template, request
 from datetime import datetime, timedelta
+import datetime as dt
 import paho.mqtt.client as mqtt
 import pandas as pd
-import numpy as np
+import copy
 import threading
 import requests
 import logging
-import smtplib
 import joblib
 import json
 import time 
+import requests, json
 
 logging.basicConfig(level=logging.INFO)
 
@@ -32,9 +31,13 @@ class MQTTClient:
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.parameters = {}
+        self.latest_predictions = {}
         self.combined_data = {}
-        self.data_points = [] 
+        self.data_points = []
+        self.thread_alive = True
         self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
+        self.prediction_thread.start()
+        self.data_lock = threading.Lock()
 
         # die vortrainierten Machine-Learning-Modelle laden
         self.models = {
@@ -49,84 +52,111 @@ class MQTTClient:
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up")
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
-        self.prediction_thread.start()
 
-
+        if not self.prediction_thread.is_alive():
+            logging.warning("Prediction thread has stopped, restarting...")
+            self.restart_thread()
+    
+    
     def on_message(self, client, userdata, msg):
         topic = msg.topic
         payload = json.loads(msg.payload.decode())
 
+        # Function to adjust and format the time
+        def adjust_and_format_time(raw_time):
+                utc_time = dt.datetime.strptime(raw_time, "%Y-%m-%dT%H:%M:%S.%f%z")
+                local_time = utc_time + dt.timedelta(hours=2)
+                return local_time.strftime("%Y-%m-%d %H:%M")
+        
         # Daten von allen Sensoren in einem Dictionary zusammenfassen.
         if topic.endswith("0004a30b01045883/event/up"):
-            self.combined_data.setdefault("time", []).append(payload["time"])
+            formatted_time = adjust_and_format_time(payload["time"])
+            self.combined_data.setdefault("time", []).append(formatted_time)
             self.combined_data.setdefault("humidity", []).append(round(payload["object"]["humidity"], 2))
             self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
             self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
 
         elif topic.endswith("647fda000000aa92/event/up"):
-            self.combined_data.setdefault("time", []).append(payload["time"])
+            formatted_time = adjust_and_format_time(payload["time"])
+            self.combined_data.setdefault("time", []).append(formatted_time)
             self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
 
         elif topic.endswith("24e124707c481005/event/up"):
-            # Prüfen, ob „tvoc“ in payload[„object“] vorhanden ist, sonst auf Null setzen
-            tvoc_value = payload["object"].get("tvoc", 0)
-            self.combined_data.setdefault("time", []).append(payload["time"])
-            self.combined_data.setdefault("tvoc", []).append(tvoc_value)
+            formatted_time = adjust_and_format_time(payload["time"])
+            tvos_value = payload["object"].get("tvoc")
+            self.combined_data.setdefault("time", []).append(formatted_time)
+            # Only append "tvoc" value if it is not None
+            if tvos_value is not None:
+                self.combined_data.setdefault("tvoc", []).append(tvos_value)
+                logging.info("current ambient_temp levels: %s", tvos_value)
 
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc"}
         if all(key in self.combined_data for key in required_keys):
             self.collect_data(self.combined_data)
             logging.info("All required data is present.")
-
+        
 
     def collect_data(self, combined_data):
         try:
-            max_length = max(len(combined_data[key]) for key in combined_data.keys())
+            max_length = max(len(combined_data[key]) for key in combined_data if isinstance(combined_data[key], list))  # Only consider lists
             for i in range(max_length):
                 data = {}
-                for key in combined_data.keys():
-                    if i < len(combined_data[key]):
+                for key in combined_data:
+                    # Ensure the key points to a list and index is within range
+                    if isinstance(combined_data[key], list) and i < len(combined_data[key]):
                         data[key] = combined_data[key][i]
-                self.data_points.append(data)
+                if data:  # Ensure data is not empty before appending
+                    self.data_points.append(data)
         except Exception as e:
             logging.error(f"Unexpected error occurred during data collection: {e}")
-
+            logging.error(f"combined data content: {combined_data}")
+            logging.swrror(f"data_points content: {self.data_points}")
+    
 
     def run_periodic_predictions(self):
-        while True:
+        while self.thread_alive:
             time.sleep(3600)  # für 60 Minuten schlafen
             if self.data_points:
                 try:
-                    # data_points in DataFrame umwandeln
-                    df = pd.DataFrame(self.data_points)
+                    data_points_copy = copy.deepcopy(self.data_points)
+                    df = pd.DataFrame(data_points_copy)
+                    logging.info("DataFrame wurde erfolgreich erstellt.")
 
                     # Parsen von Zeitstempeln und Berechnen des durchschnittlichen Zeitstempels
                     df['parsed_time'] = pd.to_datetime(df['time'])
                     avg_time = df['parsed_time'].mean()
-                    
+                    logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
+
                     # Durchschnittsdaten für Nicht-Zeit-Felder vorbereiten
                     avg_data = df.mean(numeric_only=True).to_dict()
                     avg_data['avg_time'] = avg_time.timestamp()  # In Zeitstempel umwandeln
+                    logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
 
                     # Merkmale für die Vorhersage vorbereiten
                     features_df = pd.DataFrame([avg_data])
-                    
-                    # Auf die richtige Reihenfolge und Einbeziehung achten !
                     features_prepared = self.prepare_features(features_df)
+                    logging.info("Vorbereitung der Merkmale für die Vorhersage erfolgreich.")
 
                     # Empfehlungen mit jedem Modell zurückgeben
                     predictions = {name: model.predict(features_prepared)[0] for name, model in self.models.items()}
-
-                    # Prediction in combined_data hinzufügen, damit sie mit index() angezeigt werden können 
                     self.combined_data['predictions'] = predictions
-                    
-                    # Logging
-                    logging.info("Processed data and generated predictions.")
-                    self.data_points.clear()
+                    logging.info("Vorhersagen wurden generiert und zu combined_data hinzugefügt.")
+                    self.latest_predictions = predictions
+
+                    # data_points nach erfolgreicher Verarbeitung löschen
+                    data_points_copy.clear()
                 except Exception as e:
-                    logging.error(f"Error during prediction: {e}")
+                    logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("No data has been collected in the last 3 minutes.")
+                logging.info("In den letzten 60 Minuten wurden keine Daten gesammelt.")
+    
+
+    def restart_thread(self):
+        """Restart the thread if it has stopped."""
+        self.thread_alive = True
+        self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
+        self.prediction_thread.start()
+        logging.info("Prediction thread restarted successfully.")
 
 
     def prepare_features(self, X):
@@ -151,7 +181,11 @@ class MQTTClient:
     def get_latest_sensor_data(self):
         # Return a copy of the latest sensor data
         return self.data_points.copy()
-
+    
+    def clear_data(self):
+        # Clear the data points and combined data
+        self.data_points.clear()
+        self.combined_data.clear()
 
     def initialize(self):
         self.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
@@ -209,38 +243,43 @@ def index():
 @app.route("/plots")
 def plots():
     """
-    Generates and renders real-time data plots based on the latest sensor data, starting from the first non-empty data point and lasting for one hour.
-    :return: HTML page with the real-time data plots or an error message if no sensor data is available.
+    Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten, beginnend beim ersten nicht-leeren Datenpunkt und dauert eine Stunde.
+    Wenn das einstündige Intervall erreicht ist, wird die Startzeit zurückgesetzt und die Anzeige beginnt erneut mit den neuen Daten.
+    :return: HTML-Seite mit den Echtzeit-Datenplots oder eine Fehlermeldung, falls keine Sensordaten verfügbar sind.
     """
-    global start_time  # Define start_time as a global variable
-    start_time = start_time if 'start_time' in globals() else None  # Initialize start_time if not defined
-
+    global start_time  # Startzeit als globale Variable definieren
+    start_time = start_time if 'start_time' in globals() else None  # Startzeit initialisieren, falls nicht definiert
+    
     sensor_data = mqtt_client.get_latest_sensor_data()
 
-    if sensor_data:
+    if sensor_data: 
         if not start_time:
-            start_time = datetime.now()  # Set start time when data first becomes non-empty
+            start_time = datetime.now()  # Startzeit setzen, wenn Daten zum ersten Mal nicht leer sind
 
         current_time = datetime.now()
         if current_time - start_time > timedelta(hours=1):
-            return "Data display interval has passed."
+        #if current_time - start_time > timedelta(minutes=5):
+            start_time = datetime.now()  # Startzeit für ein neues Intervall zurücksetzen
+            logging.info("Resetting plots() after reaching 5 minutes")
+            #mqtt_client.clear_data()  # Clear the sensor data from the source
+            return "Datenanzeigeintervall wurde zurückgesetzt. Neue Daten werden angezeigt."
 
-        # Prepare lists to collect filtered data
+        # Listen vorbereiten, um gefilterte Daten zu sammeln
         co2_data = [data.get('co2', None) for data in sensor_data]
         temperature_data = [data.get('temperature', None) for data in sensor_data]
         humidity_data = [data.get('humidity', None) for data in sensor_data]
         tvoc_data = [data.get('tvoc', None) for data in sensor_data]
         time_data = [data.get('time', None) for data in sensor_data]
 
-        # Align data points to ensure each sensor's data has the same length
-        max_length = max(len(co2_data), len(temperature_data), len(humidity_data), len(tvoc_data), len(time_data))
+        # Datenpunkte ausrichten, um sicherzustellen, dass die Daten jedes Sensors die gleiche Länge haben
+        max_length = max(len(co2_data), len(temperature_data), len(humidity_data), len(time_data) , len(tvoc_data))
         co2_data += [None] * (max_length - len(co2_data))
         temperature_data += [None] * (max_length - len(temperature_data))
         humidity_data += [None] * (max_length - len(humidity_data))
         tvoc_data += [None] * (max_length - len(tvoc_data))
         time_data += [None] * (max_length - len(time_data))
 
-        # Render the HTML page with real-time data plots
+        # HTML-Seite mit Echtzeit-Datenplots rendern
         return render_template(
             "plots.html",
             co2_data=co2_data,
@@ -251,41 +290,64 @@ def plots():
         )
     else:
         return "Keine Daten zur Verfügung"
+    
 
-
-@app.route("/feedback", methods=["POST"])
+@app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
-    """
-    Verarbeitet das Feedback, das über ein Formular gesendet wurde.
-    :return: Weiterleitung zur Indexseite nach erfolgreicher Verarbeitung des Feedbacks
-    """
-    try:
-        # Konvertiere das Feedback zu einer Ganzzahl (0 oder 1)
-        is_correct = int(request.form["is_correct"])
-        payload = {
-            "temperature": request.form["temperature"],  # Temperaturwert aus dem Payload
-            "humidity": request.form["humidity"],  # Luftfeuchtigkeitswert aus dem Payload
-            "co2": request.form["co2"],  # CO2-Level aus dem Payload
-            "accurate_prediction": is_correct,  # Genauigkeitsbewertung des Modells (0 oder 1)
-        }
-        headers = {
-            "X-Api-Key": POST_DELETE_API_KEY,  # API-Schlüssel für den POST-Request
-            "Content-Type": "application/json",  # Angegebener Inhaltstyp für die Anfrage
-        }
-        response = requests.post(API_BASE_URL, headers=headers, json=payload)  # POST-Anfrage an die API senden
-        if response.status_code == 200:
-            feedback_message = (
-                "Vielen Dank! Dein Feedback wird die Genauigkeit "
-                "des Modells verbessern!"
-            )
-        else:
-            feedback_message = "Feedback konnte nicht gespeichert werden."
-            
-            # HTML-Seite mit Rückmeldung rendern
-        return render_template("feedback.html", feedback_message=feedback_message)
+    if request.method == 'POST':
+        try:
+            predictions = mqtt_client.latest_predictions
+            if not predictions:
+                return "No predictions available to submit feedback on", 400
 
-    except Exception as e:
-        return f"Fehler: {str(e)}"
+            feedback_data = {
+                "temperature": predictions.get('temperature', 0),
+                "humidity": predictions.get('humidity', 0),
+                "co2": predictions.get('co2', 0),
+                "outdoor_temperature": predictions.get('outdoor_temperature', 0),
+                "accurate_prediction": int(request.form['accurate_prediction'])
+            }
+
+            headers = {
+                "X-Api-Key": "9dcff132-400a-41bd-9391-24f08e66f383-kisamadm",
+                "Content-Type": "application/json"
+            }
+
+            response = requests.post(
+                "https://cs1-swp.westeurope.cloudapp.azure.com:8443/air_data",
+                headers=headers,
+                json=feedback_data
+            )
+
+            logging.info(f"Payload sent: {feedback_data}")
+            logging.info(f"API Response: {response.json()}")
+
+            if response.status_code == 200:
+                # Clear the latest_predictions to free up memory
+                mqtt_client.latest_predictions = {}
+                return render_template('thank_you.html')
+            else:
+                return jsonify({"message": "Failed to submit feedback", "status": response.status_code, "response": response.text}), 400
+
+        except Exception as e:
+            logging.error(f"An unexpected error occurred: {e}")
+            return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
+
+    else:
+        try:
+            # Fetch the latest predictions
+            predictions = mqtt_client.latest_predictions
+            if predictions:
+                return render_template('feedback.html', predictions=predictions)
+            else:
+                return "No predictions available", 400
+        except Exception as e:
+            return str(e), 500
+
+
+@app.route('/thank_you')
+def thank_you():
+    return render_template('thank_you.html')
 
 
 # Neue Route zum Rendern von contact.html
@@ -296,51 +358,6 @@ def contact():
     :return: Die gerenderte HTML-Seite contact.html.
     """
     return render_template('contact.html')
-
-
-receiver_email = "mudarshullar22@gmail.com"
-
-
-@app.route('/send_email', methods=['POST'])
-def send_email():
-    """
-    Verarbeitet das Senden einer E-Mail über ein Formular.
-    :return: Eine Bestätigungsmeldung bei erfolgreicher E-Mail-Zustellung oder eine Fehlermeldung.
-    """
-    if request.method == 'POST':
-        name = request.form['name']
-        email = request.form['email']
-        message = request.form['message']
-
-        try:
-            smtp_server = 'smtp.gmail.com'
-            smtp_port = 587
-
-            # Sichere Verbindung zum SMTP-Server von Gmail herstellen
-            smtp = smtplib.SMTP(smtp_server, smtp_port)
-            smtp.starttls()
-
-            # Anmelden beim SMTP-Server von Gmail mit Ihren Anmeldeinformationen
-            gmail_user = 'your_email@gmail.com'  # Durch Gmail-Adresse ersetzen
-            gmail_password = 'your_password'  # Durch Ihr Gmail-Passwort ersetzen
-            smtp.login(gmail_user, gmail_password)
-
-            # E-Mail-Nachricht erstellen
-            msg = MIMEMultipart()
-            msg['From'] = email
-            msg['To'] = receiver_email
-            msg['Subject'] = f"New Message from {name} ({email})"
-            msg.attach(MIMEText(message, 'plain'))
-
-            # E-Mail senden
-            smtp.sendmail(email, receiver_email, msg.as_string())
-
-            # SMTP-Verbindung beenden
-            smtp.quit()
-
-            return "E-Mail erfolgreich gesendet!"
-        except Exception as e:
-            return f"Fehler: {str(e)}"
 
 
 if __name__ == "__main__":
