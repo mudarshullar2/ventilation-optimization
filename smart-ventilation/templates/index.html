@@ -117,24 +117,15 @@
             {% if sensor_data.co2 | int > 1000 %}
             <p style="color: red; font-weight: bold;">Warnung: CO2-Niveau ist zu hoch für optimalen Komfort von Schülern und Lehrern. Es wird dringend empfohlen, Fenster zu öffnen!</p>
             {% endif %}
-            <form onsubmit="return submitFeedback(event, this);">
-                <input type="hidden" name="is_correct" value="1">
-                <input type="submit" value="Die Empfehlung war richtig" class="button">
-            </form>
-            <form onsubmit="return submitFeedback(event, this);">
-                <input type="hidden" name="is_correct" value="0">
-                <input type="submit" value="Die Empfehlung war nicht richtig" class="button">
-            </form>
-            <form action="/shutdown" method="POST">
-                <input type="submit" value="Server herunterfahren" class="button">
-            </form>
+
             {% else %}
             <p>Keine Sensordaten verfügbar.</p>
             {% endif %}
+            <p><a href="/feedback" class="button">Feedback Senden</a></p>
         </section>
         <section>
             <h2>Kontakt</h2>
-            <p>Hast du Fragen oder Anregungen? Kontaktiere uns gerne.</p>
+            <p>Haben Sie Fragen oder Anregungen? Kontaktieren Sie uns gerne.</p>
             <button class="button" onclick="window.location.href=`{{ url_for('contact') }}`;">Kontakt</button>
         </section>              
 
@@ -169,33 +160,8 @@
             <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Sensor Werte als Dashboard anzeigen</button>
         </section>                   
     </div>
-
+    
     <script>
-        function submitFeedback(event, form) {
-            event.preventDefault();
-            var isCorrect = form.querySelector('input[name="is_correct"]').value;
-            // Formularübermittlung simulieren (optional)
-            var xhr = new XMLHttpRequest();
-            xhr.open("POST", "/feedback", true);
-            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (xhr.status === 200) {
-                        var response = JSON.parse(xhr.responseText);
-                        var feedbackMessage = response.feedback_message;
-                        // Feedback-Meldung auf der Seite anzeigen
-                        var messageElement = document.createElement('p');
-                        messageElement.textContent = feedbackMessage;
-                        form.parentNode.appendChild(messageElement); // Nachricht nach dem Formular anhängen
-                    } else {
-                        console.error("Error sending feedback:", xhr.status);
-                    }
-                }
-            };
-            xhr.send("is_correct=" + isCorrect);
-            return false;
-        }
-        
         function updateTextColor() {
             var bodyBackgroundColor = document.body.style.backgroundColor;
             var bodyColor = document.body.style.color;
