@@ -32,14 +32,20 @@ def load_and_prepare_data(filepath):
     return df
 
 def feature_engineering(X):
-    X['hour'] = X['timestamp'].dt.hour
+    X['avg_time'] = X['timestamp'].view(np.int64) // 10**9  # Convert timestamp to Unix time in seconds
     X.drop('timestamp', axis=1, inplace=True)
+
+    # Ensuring the order of columns
+    X = X[['humidity', 'temperature', 'co2', 'tvoc', 'avg_time']]
 
     pipeline = Pipeline([
         ('imputer', SimpleImputer(strategy='median')),
         ('scaler', StandardScaler())
     ])
-    return pipeline.fit_transform(X)
+
+    X_prepared = pipeline.fit_transform(X)
+    X_prepared_df = pd.DataFrame(X_prepared, columns=X.columns)
+    return X_prepared_df
 
 def train_models(X_train, y_train):
     X_train_prepared = feature_engineering(X_train)
@@ -61,6 +67,32 @@ def save_models(models, directory):
         joblib.dump(model, filename)
         print(f"Saved {name} model to {filename}")
 
+def prepare_prediction_data(data):
+    df = pd.DataFrame(data)
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
+    df['avg_time'] = df['timestamp'].view(np.int64) // 10**9
+    df.drop(['timestamp'], axis=1, inplace=True)
+
+    # Ensuring the order of columns
+    df = df[['humidity', 'temperature', 'co2', 'tvoc', 'avg_time']]
+
+    pipeline = Pipeline([
+        ('imputer', SimpleImputer(strategy='median')),
+        ('scaler', StandardScaler())
+    ])
+
+    df_prepared = pipeline.fit_transform(df)
+    df_prepared_df = pd.DataFrame(df_prepared, columns=df.columns)
+    return df_prepared_df
+
+def load_models(directory):
+    models = {
+        'Logistic Regression': joblib.load(f"{directory}/Logistic_Regression.pkl"),
+        'Decision Tree': joblib.load(f"{directory}/Decision_Tree.pkl"),
+        'Random Forest': joblib.load(f"{directory}/Random_Forest.pkl")
+    }
+    return models
+
 def main(filepath):
     df = load_and_prepare_data(filepath)
     # Including 'timestamp' for model training to consider hourly variations
@@ -75,3 +107,4 @@ def main(filepath):
 if __name__ == "__main__":
     dataset_path = "/Users/mudarshullar/Desktop/TelemetryData/data.csv"
     main(dataset_path)
+    
