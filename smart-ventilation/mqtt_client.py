@@ -7,7 +7,18 @@ import json
 import logging
 import time
 import datetime as dt
+from api_config_loader import load_api_config
 
+# Pfad zu Ihrer YAML-Konfigurationsdatei
+config_file_path = 'smart-ventilation/api_config.yaml'
+
+# API-Konfiguration aus YAML-Datei laden
+api_config = load_api_config(config_file_path)
+
+# API-Schlüssel und Basis-URL extrahieren
+CLOUD_SERVICE_URL = api_config["CLOUD_SERVICE_URL"]
+USERNAME = api_config["USERNAME"]
+PASSWORD = api_config["PASSWORD"]
 
 class MQTTClient:
     """
@@ -22,7 +33,7 @@ class MQTTClient:
         """
         self.client = mqtt.Client()
         self.client.tls_set()
-        self.client.username_pw_set(username="kisam", password="dd9e3f43-a5bc-440d-8647-9c187376c1ef-kisam")
+        self.client.username_pw_set(username=USERNAME, password=PASSWORD)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
         self.parameters = {}
@@ -134,8 +145,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 5 Minuten warten
-            time.sleep(300)
+            # 45 Minuten warten
+            time.sleep(2700)
             if self.data_points:
                 try:
                     # Tiefe Kopie der Datenpunkte erstellen
@@ -167,7 +178,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 5 Minuten wurden keine Daten gesammelt.")
+                logging.info("In den letzten 45 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -194,12 +205,12 @@ class MQTTClient:
         Löscht periodisch die gesammelten Daten alle 20 Minuten.
         """
         while True:
-            # 10 Minuten warten
-            time.sleep(600)
+            # 2 Stunden warten
+            time.sleep(3600)
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 10 Minuten gelöscht.")
+            logging.info("Datenpunkte und kombinierte Daten wurden nach 2 Stunden gelöscht.")
             logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
 
@@ -208,5 +219,5 @@ class MQTTClient:
         """
         Initialisiert die Verbindung zum MQTT-Broker und startet den Loop.
         """
-        self.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
+        self.client.connect(CLOUD_SERVICE_URL, 8883)
         self.client.loop_start()
