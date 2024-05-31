@@ -190,7 +190,7 @@ api_config = load_api_config(config_file_path)
 
 # API-Schlüssel und Basis-URL extrahieren
 READ_API_KEY = api_config['READ_API_KEY']
-POST_DELETE_API_KEY = api_config['POST_DELETE_API_KEY']
+POST_API_KEY = api_config['POST_API_KEY']
 API_BASE_URL = api_config['API_BASE_URL']
 
 # MQTT-Client initialisieren

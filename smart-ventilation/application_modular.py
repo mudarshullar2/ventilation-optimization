@@ -7,10 +7,10 @@ from api_config_loader import load_api_config
 
 logging.basicConfig(level=logging.INFO)
 
-app = Flask(__name__, static_folder='smart-ventilation/static', template_folder='smart-ventilation/templates')
+app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/static')
 
 # Pfad zu Ihrer YAML-Konfigurationsdatei
-config_file_path = 'smart-ventilation/api_config.yaml'
+config_file_path = './smart-ventilation/api_config.yaml'
 
 # API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)
@@ -28,19 +28,9 @@ mqtt_client.initialize()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    """
-    Diese Funktion rendert die Hauptseite der Anwendung und zeigt Sensordaten an.
-    
-    Versucht die kombinierte Daten des MQTT-Clients zu erhalten.
-    Wartet, falls keine Daten verfügbar sind.
-    Extrahiert Temperatur, Luftfeuchtigkeit, CO2, TVOC und Umgebungstemperatur.
-    Rendert die 'index.html'-Vorlage mit den Sensordaten.
-    
-    :return: gerenderte HTML-Seite oder Fehlerseite
-    """
     try:
         # Check if combined_data is available, if not set default values
-        if not mqtt_client.combined_data or not isinstance(mqtt_client.combined_data, dict):
+        if not mqtt_client.combined_data:
             sensor_data = {}
             temperature = 0
             humidity = 0
