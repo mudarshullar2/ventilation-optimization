@@ -39,7 +39,7 @@ def index():
     """
     try:
         # Check if combined_data is available, if not set default values
-        if not mqtt_client.combined_data:
+        if not mqtt_client.combined_data or not isinstance(mqtt_client.combined_data, dict):
             sensor_data = {}
             temperature = 0
             humidity = 0
