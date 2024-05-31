@@ -39,6 +39,10 @@ class MQTTClient:
         self.prediction_thread.start()
         self.data_lock = threading.Lock()
 
+        # Start the periodic clearing thread
+        self.clearing_thread = threading.Thread(target=self.periodic_clear)
+        self.clearing_thread.start()
+
         # die vortrainierten Machine-Learning-Modelle laden
         self.models = {
             'Logistic Regression': joblib.load('smart-ventilation/models/Logistic_Regression.pkl'),
@@ -88,13 +92,12 @@ class MQTTClient:
             # Only append "tvoc" value if it is not None
             if tvos_value is not None:
                 self.combined_data.setdefault("tvoc", []).append(tvos_value)
-                logging.info("current ambient_temp levels: %s", tvos_value)
 
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc"}
         if all(key in self.combined_data for key in required_keys):
             self.collect_data(self.combined_data)
             logging.info("All required data is present.")
-        
+
 
     def collect_data(self, combined_data):
         try:
@@ -115,7 +118,7 @@ class MQTTClient:
 
     def run_periodic_predictions(self):
         while self.thread_alive:
-            time.sleep(3600)  # für 60 Minuten schlafen
+            time.sleep(600)  # für 10 Minuten schlafen
             if self.data_points:
                 try:
                     data_points_copy = copy.deepcopy(self.data_points)
@@ -148,7 +151,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 60 Minuten wurden keine Daten gesammelt.")
+                logging.info("In den letzten 10 Minuten wurden keine Daten gesammelt.")
     
 
     def restart_thread(self):
@@ -181,11 +184,18 @@ class MQTTClient:
     def get_latest_sensor_data(self):
         # Return a copy of the latest sensor data
         return self.data_points.copy()
-    
-    def clear_data(self):
-        # Clear the data points and combined data
-        self.data_points.clear()
-        self.combined_data.clear()
+
+
+    def periodic_clear(self):
+        while True:
+            time.sleep(1200)  # Sleep for 20 minutes
+            with self.data_lock:
+                self.data_points.clear()
+                self.combined_data.clear()
+            logging.info("Data points and combined data have been cleared after 20 minutes.")
+            logging.info(f"content of self.data_points after clearning: {self.data_points}")
+            logging.info(f"content of self.combined_data after clearning is: {self.combined_data}")
+
 
     def initialize(self):
         self.client.connect("cs1-swp.westeurope.cloudapp.azure.com", 8883)
@@ -214,7 +224,7 @@ def index():
     try:
         # Warten, bis die Daten ankommen
         while not mqtt_client.combined_data:
-            time.sleep(1)
+            time.sleep(15)
         # Extrahieren von Sensordaten aus mqtt_client.combined_data
         sensor_data = mqtt_client.combined_data
         temperature = sensor_data.get("temperature", 0)
@@ -289,8 +299,23 @@ def plots():
             time_data=time_data
         )
     else:
-        return "Keine Daten zur Verfügung"
-    
+        # Prepare empty data sets for the plots
+        co2_data = []
+        temperature_data = []
+        humidity_data = []
+        tvoc_data = []
+        time_data = []
+
+        # Render the template with empty data sets
+        return render_template(
+            "plots.html",
+            co2_data=co2_data,
+            temperature_data=temperature_data,
+            humidity_data=humidity_data,
+            tvoc_data=tvoc_data,
+            time_data=time_data
+        )
+
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
