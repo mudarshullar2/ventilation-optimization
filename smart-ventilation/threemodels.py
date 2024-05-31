@@ -21,11 +21,10 @@ def load_and_prepare_data(filepath):
     df.rename(columns=column_names, inplace=True)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
 
-    # Adjusting condition to include TVOC <= 700
     conditions = [
         (df['temperature'].between(19, 21)) &
-        (df['co2'] <= 1200) &
-        (df['tvoc'] <= 700) &
+        (df['co2'] <= 1000) &
+        (df['tvoc'] <= 500) &
         (df['humidity'].between(40, 60))
     ]
     df['optimal'] = np.select(conditions, [1], default=0)
