@@ -10,6 +10,16 @@ from sklearn.pipeline import Pipeline
 import joblib
 
 def load_and_prepare_data(filepath):
+    """
+    Lädt die Daten aus einer CSV-Datei und bereitet sie vor, indem die Spalten umbenannt werden
+    und eine neue Spalte hinzugefügt wird, die angibt, ob die Bedingungen optimal sind.
+
+    Parameter:
+    filepath (str): Der Pfad zur CSV-Datei.
+
+    Rückgabe:
+    pd.DataFrame: Das vorbereitete DataFrame mit umbenannten Spalten und einer neuen Spalte 'optimal'.
+    """
     df = pd.read_csv(filepath)
     column_names = {
         "Time": "timestamp",
@@ -31,10 +41,21 @@ def load_and_prepare_data(filepath):
     return df
 
 def feature_engineering(X):
-    X['avg_time'] = X['timestamp'].view(np.int64) // 10**9  # Convert timestamp to Unix time in seconds
+    """
+    Führt Feature Engineering auf den Daten durch, indem eine neue Spalte 'avg_time' erstellt,
+    die den Unix-Zeitstempel in Sekunden darstellt und die ursprüngliche 'timestamp'-Spalte entfernt wird.
+    Anschließend werden die Daten skaliert und fehlende Werte ersetzt.
+
+    Parameter:
+    X (pd.DataFrame): Das Eingabe-DataFrame.
+
+    Rückgabe:
+    pd.DataFrame: Das vorbereitete DataFrame mit neuen Features und skalierten Werten.
+    """
+    X['avg_time'] = X['timestamp'].view(np.int64) // 10**9  # Konvertiert den Zeitstempel in Unix-Zeit in Sekunden
     X.drop('timestamp', axis=1, inplace=True)
 
-    # Ensuring the order of columns
+    # Sicherstellen der Reihenfolge der Spalten
     X = X[['humidity', 'temperature', 'co2', 'tvoc', 'avg_time']]
 
     pipeline = Pipeline([
@@ -47,6 +68,17 @@ def feature_engineering(X):
     return X_prepared_df
 
 def train_models(X_train, y_train):
+    """
+    Trainiert verschiedene Modelle (Logistische Regression, Entscheidungsbaum und Random Forest)
+    auf den vorbereiteten Trainingsdaten.
+
+    Parameter:
+    X_train (pd.DataFrame): Die Trainingsdaten.
+    y_train (pd.Series): Die Zielvariable.
+
+    Rückgabe:
+    dict: Ein Wörterbuch mit den trainierten Modellen.
+    """
     X_train_prepared = feature_engineering(X_train)
     
     models = {
@@ -61,18 +93,35 @@ def train_models(X_train, y_train):
     return models
 
 def save_models(models, directory):
+    """
+    Speichert die trainierten Modelle in einem angegebenen Verzeichnis ab.
+
+    Parameter:
+    models (dict): Ein Wörterbuch mit den trainierten Modellen.
+    directory (str): Das Verzeichnis, in dem die Modelle gespeichert werden sollen.
+    """
     for name, model in models.items():
         filename = f"{directory}/{name.replace(' ', '_')}.pkl"
         joblib.dump(model, filename)
         print(f"Saved {name} model to {filename}")
 
 def prepare_prediction_data(data):
+    """
+    Bereitet die Eingabedaten für Vorhersagen vor, indem sie in ein DataFrame konvertiert,
+    der Zeitstempel in Unix-Zeit umgewandelt und fehlende Werte ersetzt und skaliert werden.
+
+    Parameter:
+    data (dict): Die Eingabedaten.
+
+    Rückgabe:
+    pd.DataFrame: Das vorbereitete DataFrame für Vorhersagen.
+    """
     df = pd.DataFrame(data)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     df['avg_time'] = df['timestamp'].view(np.int64) // 10**9
     df.drop(['timestamp'], axis=1, inplace=True)
 
-    # Ensuring the order of columns
+    # Sicherstellen der Reihenfolge der Spalten
     df = df[['humidity', 'temperature', 'co2', 'tvoc', 'avg_time']]
 
     pipeline = Pipeline([
@@ -85,6 +134,15 @@ def prepare_prediction_data(data):
     return df_prepared_df
 
 def load_models(directory):
+    """
+    Lädt die gespeicherten Modelle aus einem angegebenen Verzeichnis.
+
+    Parameter:
+    directory (str): Das Verzeichnis, aus dem die Modelle geladen werden sollen.
+
+    Rückgabe:
+    dict: Ein Wörterbuch mit den geladenen Modellen.
+    """
     models = {
         'Logistic Regression': joblib.load(f"{directory}/Logistic_Regression.pkl"),
         'Decision Tree': joblib.load(f"{directory}/Decision_Tree.pkl"),
@@ -93,8 +151,14 @@ def load_models(directory):
     return models
 
 def main(filepath):
+    """
+    Der Hauptprozess des Skripts: lädt und bereitet die Daten vor, trainiert die Modelle und speichert sie.
+
+    Parameter:
+    filepath (str): Der Pfad zur CSV-Datei.
+    """
     df = load_and_prepare_data(filepath)
-    # Including 'timestamp' for model training to consider hourly variations
+    # Einschließen des 'timestamp' für das Modelltraining, um stündliche Variationen zu berücksichtigen
     X = df[['timestamp', 'temperature', 'co2', 'humidity', 'tvoc']]
     y = df['optimal']
     X_train, _, y_train, _ = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -106,4 +170,3 @@ def main(filepath):
 if __name__ == "__main__":
     dataset_path = "/Users/mudarshullar/Desktop/TelemetryData/data.csv"
     main(dataset_path)
-    
