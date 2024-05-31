@@ -1,10 +1,6 @@
-from sklearn.compose import ColumnTransformer
-from sklearn.discriminant_analysis import StandardScaler
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
 from load_api import load_api_config
 from flask import Flask, jsonify, render_template, request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import datetime as dt
 import paho.mqtt.client as mqtt
 import pandas as pd
@@ -80,10 +76,10 @@ class MQTTClient:
             self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
             self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
 
-        elif topic.endswith("647fda000000aa92/event/up"):
-            formatted_time = adjust_and_format_time(payload["time"])
-            self.combined_data.setdefault("time", []).append(formatted_time)
-            self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
+        #elif topic.endswith("647fda000000aa92/event/up"):
+        #    formatted_time = adjust_and_format_time(payload["time"])
+        #    self.combined_data.setdefault("time", []).append(formatted_time)
+        #    self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
 
         elif topic.endswith("24e124707c481005/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
@@ -118,67 +114,51 @@ class MQTTClient:
 
     def run_periodic_predictions(self):
         while self.thread_alive:
-            time.sleep(600)  # für 10 Minuten schlafen
+            time.sleep(1800)  # Sleep for 30 minutes
             if self.data_points:
                 try:
                     data_points_copy = copy.deepcopy(self.data_points)
                     df = pd.DataFrame(data_points_copy)
-                    logging.info("DataFrame wurde erfolgreich erstellt.")
+                    logging.info("DataFrame created successfully: %s", df)
 
-                    # Parsen von Zeitstempeln und Berechnen des durchschnittlichen Zeitstempels
+                    # Parse timestamps and calculate the average timestamp
                     df['parsed_time'] = pd.to_datetime(df['time'])
                     avg_time = df['parsed_time'].mean()
-                    logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
+                    logging.info("Timestamp parsing and average calculation successful: avg_time=%s", avg_time)
 
-                    # Durchschnittsdaten für Nicht-Zeit-Felder vorbereiten
+                    # Prepare average data for non-time fields
                     avg_data = df.mean(numeric_only=True).to_dict()
                     avg_data['avg_time'] = avg_time.timestamp()  # In Zeitstempel umwandeln
-                    logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
 
-                    # Merkmale für die Vorhersage vorbereiten
+                    logging.info("Average data preparation successful: %s", avg_data)
+
+                    # Prepare features for prediction
                     features_df = pd.DataFrame([avg_data])
-                    features_prepared = self.prepare_features(features_df)
-                    logging.info("Vorbereitung der Merkmale für die Vorhersage erfolgreich.")
+                    logging.info("Features prepared for prediction: %s", features_df)
 
-                    # Empfehlungen mit jedem Modell zurückgeben
-                    predictions = {name: model.predict(features_prepared)[0] for name, model in self.models.items()}
+                    # Generate predictions with each model
+                    predictions = {name: model.predict(features_df)[0] for name, model in self.models.items()}
                     self.combined_data['predictions'] = predictions
-                    logging.info("Vorhersagen wurden generiert und zu combined_data hinzugefügt.")
                     self.latest_predictions = predictions
 
-                    # data_points nach erfolgreicher Verarbeitung löschen
-                    data_points_copy.clear()
-                except Exception as e:
-                    logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
-            else:
-                logging.info("In den letzten 10 Minuten wurden keine Daten gesammelt.")
-    
+                    # Store features_df for later use in feedback
+                    self.latest_features_df = features_df
 
+                    # Clear data_points after successful processing
+                    self.data_points.clear()
+                    logging.info("Data points cleared after processing.")
+                except Exception as e:
+                    logging.error(f"Error during prediction processing: {e}")
+            else:
+                logging.info("No data collected in the last 30 minutes.")
+
+    
     def restart_thread(self):
         """Restart the thread if it has stopped."""
         self.thread_alive = True
         self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
         self.prediction_thread.start()
         logging.info("Prediction thread restarted successfully.")
-
-
-    def prepare_features(self, X):
-        # Numerische und kategoriale Merkmale definieren
-        numeric_features = ['avg_time', 'temperature', 'co2', 'humidity', 'tvoc']
-
-        # numerische Merkmale transformationen
-        numeric_transformer = Pipeline(steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('scaler', StandardScaler())
-        ])
-
-        # Transformationen kombinieren
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', numeric_transformer, numeric_features)
-            ])
-
-        return preprocessor.fit_transform(X)
 
 
     def get_latest_sensor_data(self):
@@ -188,11 +168,11 @@ class MQTTClient:
 
     def periodic_clear(self):
         while True:
-            time.sleep(1200)  # Sleep for 20 minutes
+            time.sleep(2400)  # Sleep for 40 minutes
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
-            logging.info("Data points and combined data have been cleared after 20 minutes.")
+            logging.info("Data points and combined data have been cleared after 40 minutes.")
             logging.info(f"content of self.data_points after clearning: {self.data_points}")
             logging.info(f"content of self.combined_data after clearning is: {self.combined_data}")
 
@@ -322,14 +302,27 @@ def feedback():
     if request.method == 'POST':
         try:
             predictions = mqtt_client.latest_predictions
-            if not predictions:
+            # Check if combined_data exists and contains the 'predictions' key with actual values
+            if not predictions: 
                 return "No predictions available to submit feedback on", 400
+            
+            combined_data = mqtt_client.combined_data
+            logging.info(f"current combined_data: {combined_data}")
+
+            features_df = mqtt_client.latest_features_df  # Get the stored features_df
+            logging.info(f"current features_df: {features_df}")
+            
+            # Convert avg_time from UNIX timestamp to a readable format using timezone-aware datetime
+            avg_time_unix = float(features_df['avg_time'].iloc[0]) if 'avg_time' in features_df else 0.0
+            avg_time_readable = datetime.fromtimestamp(avg_time_unix, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
             feedback_data = {
-                "temperature": predictions.get('temperature', 0),
-                "humidity": predictions.get('humidity', 0),
-                "co2": predictions.get('co2', 0),
-                "outdoor_temperature": predictions.get('outdoor_temperature', 0),
+                "temperature": float(features_df['temperature'].iloc[0]),
+                "humidity": float(features_df['humidity'].iloc[0]),
+                "co2": float(features_df['co2'].iloc[0]),
+                "avg_time": avg_time_readable,
+                #"outdoor_temperature": float(features_df['outdoor_temperature'].iloc[0]),
+                "outdoor_temperature": 0,
                 "accurate_prediction": int(request.form['accurate_prediction'])
             }
 
@@ -357,16 +350,20 @@ def feedback():
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
             return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
-
+        
     else:
         try:
-            # Fetch the latest predictions
             predictions = mqtt_client.latest_predictions
-            if predictions:
-                return render_template('feedback.html', predictions=predictions)
-            else:
+            if not predictions:
                 return "No predictions available", 400
+            
+            predictions = mqtt_client.latest_predictions
+            features_df = mqtt_client.latest_features_df
+
+            return render_template('feedback.html', predictions=predictions, features=features_df.to_dict(orient='records')[0])
+
         except Exception as e:
+            logging.error(f"An unexpected error occurred while fetching predictions: {e}")
             return str(e), 500
 
 
