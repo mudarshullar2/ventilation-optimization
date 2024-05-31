@@ -17,8 +17,9 @@ api_config = load_api_config(config_file_path)
 
 # API-Schlüssel und Basis-URL extrahieren
 READ_API_KEY = api_config['READ_API_KEY']
-POST_DELETE_API_KEY = api_config['POST_DELETE_API_KEY']
+POST_API_KEY = api_config['POST_DELETE_API_KEY']
 API_BASE_URL = api_config['API_BASE_URL']
+CONTENT_TYPE = api_config["CONTENT_TYPE"]
 
 # MQTT-Client initialisieren
 mqtt_client = MQTTClient()
@@ -185,13 +186,13 @@ def feedback():
 
             # Header für die API-Anfrage
             headers = {
-                "X-Api-Key": "9dcff132-400a-41bd-9391-24f08e66f383-kisamadm",
-                "Content-Type": "application/json"
+                "X-Api-Key": POST_API_KEY,
+                "Content-Type": CONTENT_TYPE
             }
 
             # Feedback-Daten an die API senden
             response = requests.post(
-                "https://cs1-swp.westeurope.cloudapp.azure.com:8443/air_data",
+                API_BASE_URL,
                 headers=headers,
                 json=feedback_data
             )
