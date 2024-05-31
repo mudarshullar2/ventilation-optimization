@@ -114,7 +114,7 @@ class MQTTClient:
 
     def run_periodic_predictions(self):
         while self.thread_alive:
-            time.sleep(1800)  # Sleep for 30 minutes
+            time.sleep(3600)  # Sleep for 5 minutes
             if self.data_points:
                 try:
                     data_points_copy = copy.deepcopy(self.data_points)
@@ -150,7 +150,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Error during prediction processing: {e}")
             else:
-                logging.info("No data collected in the last 30 minutes.")
+                logging.info("No data collected in the last 5 minutes.")
 
     
     def restart_thread(self):
@@ -168,11 +168,11 @@ class MQTTClient:
 
     def periodic_clear(self):
         while True:
-            time.sleep(2400)  # Sleep for 40 minutes
+            time.sleep(600)  # Sleep for 10 minutes
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
-            logging.info("Data points and combined data have been cleared after 40 minutes.")
+            logging.info("Data points and combined data have been cleared after 10 minutes.")
             logging.info(f"content of self.data_points after clearning: {self.data_points}")
             logging.info(f"content of self.combined_data after clearning is: {self.combined_data}")
 
@@ -202,18 +202,24 @@ mqtt_client.client.loop_start()
 @app.route("/", methods=["GET", "POST"])
 def index():
     try:
-        # Warten, bis die Daten ankommen
-        while not mqtt_client.combined_data:
-            time.sleep(15)
-        # Extrahieren von Sensordaten aus mqtt_client.combined_data
-        sensor_data = mqtt_client.combined_data
-        temperature = sensor_data.get("temperature", 0)
-        humidity = sensor_data.get("humidity", 0)
-        co2 = sensor_data.get("co2", 0)
-        tvoc = sensor_data.get("tvoc", "Currently not available")
-        ambient_temp = sensor_data.get("ambient_temp", 0)
-        predictions = sensor_data.get('predictions', {})  # Standardmäßig auf ein leeres Dict eingestellt
-
+        # Check if combined_data is available, if not set default values
+        if not mqtt_client.combined_data:
+            sensor_data = {}
+            temperature = 0
+            humidity = 0
+            co2 = 0
+            tvoc = "Currently not available"
+            ambient_temp = 0
+            predictions = {}
+        else: 
+            # Extrahieren von Sensordaten aus mqtt_client.combined_data
+            sensor_data = mqtt_client.combined_data
+            temperature = sensor_data.get("temperature", 0)
+            humidity = sensor_data.get("humidity", 0)
+            co2 = sensor_data.get("co2", 0)
+            tvoc = sensor_data.get("tvoc", "Currently not available")
+            ambient_temp = sensor_data.get("ambient_temp", 0)
+            predictions = sensor_data.get('predictions', {})  # Standardmäßig auf ein leeres Dict eingestellt
         # Die Vorlage index.html mit den Daten rendern
         return render_template(
             "index.html",
