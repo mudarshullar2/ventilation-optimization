@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, render_template, request
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 import requests
 from mqtt_client import MQTTClient
 from api_config_loader import load_api_config
@@ -28,16 +28,18 @@ mqtt_client.initialize()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+
     try:
-        # Check if combined_data is available, if not set default values
+        # Prüfen, ob combined_data verfügbar ist, falls nicht, Standardwerte setzen
         if not mqtt_client.combined_data:
             sensor_data = {}
             temperature = 0
             humidity = 0
             co2 = 0
-            tvoc = "Currently not available"
+            tvoc = "Zurzeit nicht verfügbar"
             ambient_temp = 0
             predictions = {}
+
         else: 
             # Extrahieren von Sensordaten aus mqtt_client.combined_data
             sensor_data = mqtt_client.combined_data
@@ -47,6 +49,7 @@ def index():
             tvoc = sensor_data.get("tvoc", "Currently not available")
             ambient_temp = sensor_data.get("ambient_temp", 0)
             predictions = sensor_data.get('predictions', {})  # Standardmäßig auf ein leeres Dict eingestellt
+
         # Die Vorlage index.html mit den Daten rendern
         return render_template(
             "index.html",
@@ -58,6 +61,7 @@ def index():
             ambient_temp=ambient_temp,
             predictions=predictions,
         )
+    
     except Exception as e:
         logging.error("An error occurred in index(): %s", str(e))
         return "Internal server error", 500
@@ -65,6 +69,7 @@ def index():
 
 @app.route("/plots")
 def plots():
+
     """
     Diese Funktion rendert eine Seite mit Plot-Diagrammen der Sensordaten.
     
@@ -75,29 +80,16 @@ def plots():
     
     :return: gerenderte HTML-Seite oder Nachricht über das Zurücksetzen des Anzeigeintervalls
     """
-    global start_time
-    start_time = start_time if 'start_time' in globals() else None
-    
-    sensor_data = mqtt_client.get_latest_sensor_data()
+
+    sensor_data = mqtt_client.combined_data
 
     if sensor_data: 
-        if not start_time:
-            # Startzeit setzen, falls nicht vorhanden
-            start_time = datetime.now()
-
-        current_time = datetime.now()
-        if current_time - start_time > timedelta(hours=1):
-            # Startzeit nach einer Stunde zurücksetzen
-            start_time = datetime.now()
-            logging.info("Resetting plots() after reaching 1 hour")
-            return "Datenanzeigeintervall wurde zurückgesetzt. Neue Daten werden angezeigt."
-
         # Sensordaten für die Diagramme abrufen
-        co2_data = [data.get('co2', None) for data in sensor_data]
-        temperature_data = [data.get('temperature', None) for data in sensor_data]
-        humidity_data = [data.get('humidity', None) for data in sensor_data]
-        tvoc_data = [data.get('tvoc', None) for data in sensor_data]
-        time_data = [data.get('time', None) for data in sensor_data]
+        time_data = sensor_data.get('time', [])
+        co2_data = sensor_data.get('co2', [])
+        temperature_data = sensor_data.get('temperature', [])
+        humidity_data = sensor_data.get('humidity', [])
+        tvoc_data = sensor_data.get('tvoc', [])
 
         # Auffüllen der Listen für gleichmäßige Länge
         max_length = max(len(co2_data), len(temperature_data), len(humidity_data), len(time_data), len(tvoc_data))
@@ -106,6 +98,7 @@ def plots():
         humidity_data += [None] * (max_length - len(humidity_data))
         tvoc_data += [None] * (max_length - len(tvoc_data))
         time_data += [None] * (max_length - len(time_data))
+
 
         # HTML-Seite mit Diagrammdaten rendern
         return render_template(
@@ -116,7 +109,9 @@ def plots():
             tvoc_data=tvoc_data,
             time_data=time_data
         )
+    
     else:
+
         # Leere Listen für Diagrammdaten
         co2_data = []
         temperature_data = []
@@ -136,6 +131,7 @@ def plots():
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
+
     """
     Diese Funktion behandelt das Feedback der Benutzer bezüglich der Vorhersagen.
     
@@ -146,7 +142,9 @@ def feedback():
     
     :return: gerenderte HTML-Seite oder JSON-Antwort mit Fehlermeldung
     """
+
     if request.method == 'POST':
+
         try:
             # Vorhersagen vom MQTT-Client abrufen
             predictions = mqtt_client.latest_predictions
@@ -159,7 +157,7 @@ def feedback():
             features_df = mqtt_client.latest_features_df
             logging.info(f"current features_df: {features_df}")
             
-            # Convert avg_time from UNIX timestamp to a readable format using timezone-aware datetime
+            # Konvertierung von avg_time von UNIX-Zeitstempel in ein lesbares Format unter Verwendung von zeitzonengerechter datetime
             avg_time_unix = float(features_df['avg_time'].iloc[0]) if 'avg_time' in features_df else 0.0
             avg_time_readable = datetime.fromtimestamp(avg_time_unix, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
@@ -191,7 +189,7 @@ def feedback():
             logging.info(f"API Antwort: {response.json()}")
 
             if response.status_code == 200:
-                # Clear the latest_predictions to free up memory
+                # latest_predictions löschen, um Speicherplatz freizugeben
                 mqtt_client.latest_predictions = {}
                 return render_template('thank_you.html')
             else:
@@ -213,7 +211,7 @@ def feedback():
             return render_template('feedback.html', predictions=predictions, features=features_df.to_dict(orient='records')[0])
 
         except Exception as e:
-            logging.error(f"An unexpected error occurred while fetching predictions: {e}")
+            logging.error(f"Beim Abrufen von Vorhersagen ist ein unerwarteter Fehler aufgetreten: {e}")
             return str(e), 500
 
 
@@ -238,5 +236,6 @@ def contact():
 
 
 if __name__ == "__main__":
+
     # Anwendung im Debug-Modus starten
     app.run(debug=True)
