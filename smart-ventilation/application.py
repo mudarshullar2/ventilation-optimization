@@ -98,18 +98,18 @@ class MQTTClient:
             self.combined_data.setdefault("tvoc", []).append(tvoc_values)
             self.combined_data.setdefault("ambient_temp", []).append(ambient_temp_values)
 
-        #elif topic.endswith("647fda000000aa92/event/up"):
-        #    formatted_time = adjust_and_format_time(payload["time"])
-        #    self.combined_data.setdefault("time", []).append(formatted_time)
-        #    self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
+        elif topic.endswith("647fda000000aa92/event/up"):
+            formatted_time = adjust_and_format_time(payload["time"])
+            self.combined_data.setdefault("time", []).append(formatted_time)
+            self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
 
-        #elif topic.endswith("24e124707c481005/event/up"):
-        #    formatted_time = adjust_and_format_time(payload["time"])
-        #    tvos_value = payload["object"].get("tvoc")
-        #    self.combined_data.setdefault("time", []).append(formatted_time)
-        #    # Only append "tvoc" value if it is not None
-        #    if tvos_value is not None:
-        #        self.combined_data.setdefault("tvoc", []).append(tvos_value)
+        elif topic.endswith("24e124707c481005/event/up"):
+            formatted_time = adjust_and_format_time(payload["time"])
+            tvos_value = payload["object"].get("tvoc")
+            self.combined_data.setdefault("time", []).append(formatted_time)
+            # Only append "tvoc" value if it is not None
+            if tvos_value is not None:
+                self.combined_data.setdefault("tvoc", []).append(tvos_value)
 
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
         if all(key in self.combined_data for key in required_keys):

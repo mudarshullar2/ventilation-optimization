@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, render_template, request
 import logging
-from datetime import datetime, timezone
 import requests
 from mqtt_client import MQTTClient
 from api_config_loader import load_api_config
@@ -163,17 +162,13 @@ def feedback():
 
             features_df = mqtt_client.latest_features_df
             logging.info(f"current features_df: {features_df}")
-            
-            # Konvertierung von avg_time von UNIX-Zeitstempel in ein lesbares Format unter Verwendung von zeitzonengerechter datetime
-            avg_time_unix = float(features_df['avg_time'].iloc[0]) if 'avg_time' in features_df else 0.0
-            avg_time_readable = datetime.fromtimestamp(avg_time_unix, tz=timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
 
             # Feedback-Daten erstellen
             feedback_data = {
                 "temperature": float(features_df['temperature'].iloc[0]),
                 "humidity": float(features_df['humidity'].iloc[0]),
                 "co2": float(features_df['co2'].iloc[0]),
-                "avg_time": avg_time_readable,
+                "timestamp": combined_data["time"][-1],
                 "outdoor_temperature": float(features_df['ambient_temp'].iloc[0]),
                 "accurate_prediction": int(request.form['accurate_prediction'])
             }
