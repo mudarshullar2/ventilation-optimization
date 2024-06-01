@@ -221,5 +221,5 @@ def main(filepath, save_dir):
 if __name__ == "__main__":
     
     filepath = '/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/dataset/dataset.xlsx'
-    save_dir = '/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/models'  # Replace with the desired directory
+    save_dir = '/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart-ventilation/models'
     main(filepath, save_dir)
