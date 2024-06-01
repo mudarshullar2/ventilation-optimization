@@ -144,8 +144,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 10 Minuten warten
-            time.sleep(600)
+            # 30 Minuten warten
+            time.sleep(1800)
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -181,7 +181,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 4 Minuten wurden keine Daten gesammelt.")
+                logging.info("In den letzten 30 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -208,12 +208,12 @@ class MQTTClient:
         Löscht periodisch die gesammelten Daten alle 20 Minuten.
         """
         while True:
-            # 12 Minuten warten
-            time.sleep(720)
+            # 1.5 Stunden warten
+            time.sleep(5400)
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 12 Minuten gelöscht.")
+            logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
             logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
 
