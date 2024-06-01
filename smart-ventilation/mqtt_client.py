@@ -144,8 +144,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 30 Minuten warten
-            time.sleep(30)
+            # 10 Minuten warten
+            time.sleep(600)
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -160,11 +160,15 @@ class MQTTClient:
                     avg_data = df.mean(numeric_only=True).to_dict()
                     avg_data['avg_time'] = avg_time.timestamp()
                     logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
-                    
+
                     # Merkmale für die Vorhersage vorbereiten
                     features_df = pd.DataFrame([avg_data])
                     logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
                     
+                    # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
+                    correct_order = ['humidity', 'temperature', 'co2', 'tvoc', 'ambient_temp', 'avg_time']
+                    features_df = features_df[correct_order]
+
                     # Vorhersagen mit jedem Modell erstellen
                     predictions = {name: model.predict(features_df)[0] for name, model in self.models.items()}
                     self.combined_data['predictions'] = predictions
@@ -177,7 +181,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 10 Minuten wurden keine Daten gesammelt.")
+                logging.info("In den letzten 4 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -204,12 +208,12 @@ class MQTTClient:
         Löscht periodisch die gesammelten Daten alle 20 Minuten.
         """
         while True:
-            # 60 Minuten warten
-            time.sleep(3600)
+            # 12 Minuten warten
+            time.sleep(720)
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 60 Minuten gelöscht.")
+            logging.info("Datenpunkte und kombinierte Daten wurden nach 12 Minuten gelöscht.")
             logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
 
