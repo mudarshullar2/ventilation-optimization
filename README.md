@@ -1,63 +1,93 @@
-## **Lüftungsoptimierungssystem**
+# Smart Ventilation Optimization Project
 
-Dieses Projekt implementiert ein Lüftungsoptimierungssystem, das Echtzeitdaten von verschiedenen Sensoren sammelt und verarbeitet, um die Luftqualität in Innenräumen zu verbessern. Das System verwendet MQTT zur Datenübertragung und maschinelles Lernen zur Vorhersage der Luftqualität.
+## Übersicht
 
-## **Features**
+Das Smart Ventilation Optimization Project ist darauf ausgelegt, Sensordaten zu sammeln, basierend auf diesen Daten Vorhersagen zu treffen und eine Webschnittstelle bereitzustellen, um die Daten zu visualisieren und mit ihnen zu interagieren. Die Anwendung ist mit Flask für die Webschnittstelle und MQTT für die Datensammlung gebaut.
 
-## Echtzeit-Sensordatenerfassung:
-Sammelt Daten über Temperatur, Luftfeuchtigkeit, CO2, TVOC und Umgebungstemperatur.
-## Machine Learning Integration: 
-Nutzt vorab trainierte Modelle (Logistische Regression, Entscheidungsbaum, Random Forest), um Vorhersagen zur Luftqualität zu treffen.
-## Datenspeicherung und -verarbeitung: 
-Sammelt und aggregiert Sensorwerte, um durchschnittliche Umgebungszustände zu berechnen.
-## Webinterface: 
-Ein Flask-basiertes Dashboard zur Anzeige der gesammelten Daten und Vorhersagen.
+## Funktionen
 
+- Echtzeit-Datensammlung von Sensoren über MQTT.
+- Datenvisualisierung über eine Webschnittstelle.
+- Periodische Vorhersagen mit vortrainierten Maschinenlernmodellen.
+- Sammlung von Benutzerfeedback zu den Vorhersagen.
 
-## **Systemarchitektur**
-Die Anwendung setzt sich aus mehreren Hauptkomponenten zusammen:
+## Anforderungen
 
-**Flask-Server:**
-Bietet ein Webinterface zur Interaktion mit dem System.
+Die Anforderungen sind in der Datei `requirements.txt` definiert. 
+Um alle erforderlichen Pakete zu installieren, führen Sie den folgenden Befehl aus:
 
-**MQTT-Client:** 
-Kommuniziert mit IoT-Geräten, um Sensordaten in Echtzeit zu empfangen.
-
-**Data Processing:** 
-Verarbeitet die empfangenen Daten, führt Vorhersagen durch und stellt diese Daten über das Webinterface bereit.
-
-**E-Mail Benachrichtigung:** 
-Erlaubt das Senden von E-Mails durch Formulareingaben über das Webinterface.
-
-## **Installation**
-
-**1. Voraussetzungen installieren:**
 pip install -r requirements.txt
 
-**2. Vorab trainierte ML-Modelle bereitstellen:**
-Stellen Sie sicher, dass die ML-Modelle im Verzeichnis smart-ventilation/models vorhanden sind.
+## Installation
 
-**3. Konfigurationsdatei anpassen:**
-Aktualisieren Sie die api_config.yaml mit den entsprechenden API-Schlüsseln und URLs.
+1. Repository klonen:
 
-**4. MQTT-Server Konfiguration:**
-Richten Sie die Verbindung zu Ihrem MQTT-Server ein, wie in der Klasse MQTTClient beschrieben.
+    ```
+    git clone <repository_url>
+    cd <repository_directory>
+    ```
 
-## **Nutzung**
+2. Erstellen und Aktivieren eines virtuellen Umfelds:
 
-**Starten Sie das System mit:**
-python application.py
+    ```
+    python -m venv venv
+    source venv/bin/activate   # Unter Windows: `venv\Scripts\activate`
+    ```
 
-Besuchen Sie dann http://localhost:5000 in Ihrem Webbrowser, um auf das Dashboard zuzugreifen.
+3. Erforderliche Pakete installieren:
 
-## **APIs**
+    ```
+    pip install -r requirements.txt
+    ```
 
-Das System kommuniziert mit externen APIs zur Datenübermittlung und um Feedback zu empfangen. Die relevanten Endpunkte und Authentifizierungsdetails sind in der api_config.yaml definiert.
+## Konfiguration
 
-## **Sicherheitshinweise**
+1. Stellen Sie sicher, dass Sie die Konfigurationsdatei `api_config.yaml` im Verzeichnis `smart-ventilation` mit der folgenden Struktur haben:
 
-**API-Schlüssel:**
-Vermeiden Sie es, Ihre API-Schlüssel und andere sensible Informationen in Ihrem Code hart zu codieren.
+    ```
+    READ_API_KEY: "" # Ihr API-Schlüssel für Lesezugriff
+    POST_API SHOW_KEY: "" # Ihr API-Schlüssel für Schreibzugriff
+    API_BASE_URL: "" # Basis-URL der API
+    CONTENT_TYPE: "" # Inhaltstyp, der bei API-Anfragen verwendet wird
+    CLOUD_SERVICE_URL: "" # URL Ihres Cloud-Dienstes
+    USERNAME: "" # Benutzername für den Zugang zum Cloud-Dienst
+    PASSWORD: "" # Passwort für den Zugang zum Cloud-Dienst
+    ```
 
-**MQTT-Sicherheit:**
-Verwenden Sie TLS/SSL zur Verschlüsselung Ihrer MQTT-Kommunikation.
+## Modelle
+
+Im Verzeichnis `smart-ventilations/models/` befinden sich die folgenden vorbereiteten Machine Learning-Modelle im `.pkl`-Format. Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schnell in die Anwendung geladen und genutzt werden können:
+
+- `Logistic_Regression.pkl` — Ein Modell basierend auf der logistischen Regression.
+- `Decision_Tree.pkl` — Ein Entscheidungsbaummodell.
+- `Random_Forest.pkl` — Ein Modell, das auf dem Random-Forest-Algorithmus basiert.
+
+## Anwendung starten
+
+1. Starten Sie den MQTT-Client und die Flask-Anwendung:
+
+    ```
+    python application_modular.py
+    ```
+
+2. Greifen Sie auf die Webschnittstelle zu, indem Sie einen Browser öffnen und zu `http://127.0.0.1:5000` navigieren.
+
+## Endpunkte der Anwendung
+
+- `/`: Zeigt das Hauptdashboard mit Echtzeit-Sensordaten an.
+- `/plots`: Bietet Diagramme der Echtzeit-Sensordaten.
+- `/feedback`: Ermöglicht es Benutzern, Feedback zu den Vorhersagen zu geben.
+- `/thank_you`: Zeigt eine Dankesseite nach dem Absenden des Feedbacks an.
+- `/contact`: Zeigt die Kontaktseite der Anwendung an.
+
+## Logging
+
+Die Anwendung protokolliert wichtige Ereignisse und Fehler in der Konsole. Stellen Sie sicher, dass das Logging im `application_modular.py`-Skript mit dem logging-Modul entsprechend konfiguriert ist.
+
+## Hinweise
+
+Stellen Sie sicher, dass alle Pfade in `application_modular.py` und `mqtt_client.py` korrekt gemäß Ihrer Projektstruktur gesetzt sind. Die Anwendung geht davon aus, dass Sensordaten zu bestimmten MQTT-Themen veröffentlicht werden. Passen Sie die Themen und die Datenverarbeitung in `mqtt_client.py` nach Bedarf an.
+
+## Fehlerbehebung
+
+Falls die Anwendung nicht startet, überprüfen Sie die Konsolenprotokolle auf Fehler bezüglich fehlender Konfigurationsdateien, Modelle oder Abhängigkeiten. Stellen Sie sicher, dass Ihr MQTT-Broker läuft und mit den richtigen Anmeldeinformationen erreichbar ist.
