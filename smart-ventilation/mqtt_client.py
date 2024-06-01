@@ -66,13 +66,13 @@ class MQTTClient:
         :param flags: Antwortflaggen vom Broker
         :param rc: Verbindungs-Result-Code
         """
-        logging.info("Connected with result code " + str(rc))
+        logging.info("Verbunden mit Ergebniscode" + str(rc))
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up")
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
 
         if not self.prediction_thread.is_alive():
-            logging.warning("Prediction thread has stopped, restarting...")
+            logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
             self.restart_thread()
 
 
@@ -116,7 +116,6 @@ class MQTTClient:
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc"}
         if all(key in self.combined_data for key in required_keys):
             self.collect_data(self.combined_data)
-            logging.info("Alle erforderlichen Daten sind vorhanden.")
 
 
     def collect_data(self, combined_data):
@@ -149,7 +148,7 @@ class MQTTClient:
             time.sleep(2700)
             if self.data_points:
                 try:
-                    # Tiefe Kopie der Datenpunkte erstellen
+                    # Deep Kopie der Datenpunkte erstellen
                     data_points_copy = copy.deepcopy(self.data_points)
                     df = pd.DataFrame(data_points_copy)
                     logging.info("DataFrame wurde erfolgreich erstellt.")
@@ -162,16 +161,16 @@ class MQTTClient:
                     avg_data['avg_time'] = avg_time.timestamp()
                     logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
                     
-                    # Prepare features for prediction
+                    # Merkmale für die Vorhersage vorbereiten
                     features_df = pd.DataFrame([avg_data])
-                    logging.info("Features prepared for prediction: %s", features_df)
+                    logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
                     
-                    # Generate predictions with each model
+                    # Vorhersagen mit jedem Modell erstellen
                     predictions = {name: model.predict(features_df)[0] for name, model in self.models.items()}
                     self.combined_data['predictions'] = predictions
                     self.latest_predictions = predictions
 
-                    # Store features_df for later use in feedback
+                    # features_df zur späteren Verwendung im Feedback speichern
                     self.latest_features_df = features_df
 
                     data_points_copy.clear()
