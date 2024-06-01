@@ -166,11 +166,14 @@ class MQTTClient:
                     logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
                     
                     # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
-                    correct_order = ['humidity', 'temperature', 'co2', 'tvoc', 'ambient_temp', 'avg_time']
+                    #correct_order = ['humidity', 'temperature', 'co2', 'tvoc', 'ambient_temp', 'avg_time']
+                    
+                    correct_order = ['temperature', 'co2', 'tvoc', 'humidity', 'ambient_temp']
                     features_df = features_df[correct_order]
+                    features_array = features_df.to_numpy()
 
                     # Vorhersagen mit jedem Modell erstellen
-                    predictions = {name: model.predict(features_df)[0] for name, model in self.models.items()}
+                    predictions = {name: model.predict(features_array)[0] for name, model in self.models.items()}
                     self.combined_data['predictions'] = predictions
                     self.latest_predictions = predictions
 
