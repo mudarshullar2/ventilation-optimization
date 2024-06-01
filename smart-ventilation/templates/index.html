@@ -104,9 +104,9 @@
                 <p><strong>TVOC-Niveau:</strong> {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }}</p> 
                 <p><strong>Außentemperatur:</strong> {{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C</p>
                 {% if predictions|length > 0 %}
-                    <p><strong>Logistic Regression Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Logistic Regression', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
-                    <p><strong>Decision Tree Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Decision Tree', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
-                    <p><strong>Random Forest Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Random Forest', 0) == 1 else "Fenster soll geschlossen bleiben" }}</p>
+                    <p><strong>Logistic Regression Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Logistic Regression', 0) == 0 else "Fenster soll geschlossen bleiben" }}</p>
+                    <p><strong>Decision Tree Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Decision Tree', 0) == 0 else "Fenster soll geschlossen bleiben" }}</p>
+                    <p><strong>Random Forest Empfehlung:</strong> {{ "Fenster soll geöffnet werden" if predictions.get('Random Forest', 0) == 0 else "Fenster soll geschlossen bleiben" }}</p>
                 {% else %}
                     <p>Zur Zeit keine Informationen vorhanden.</p>
                 {% endif %}
