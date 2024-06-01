@@ -28,10 +28,23 @@ mqtt_client.initialize()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """
+    Diese Funktion wird aufgerufen, wenn auf die Route "/" zugegriffen wird. Sie dient dazu,
+    Sensordaten, die über MQTT empfangen wurden, auszulesen und in einer Webseite anzuzeigen.
+    Die Funktion handhabt sowohl GET- als auch POST-Anfragen, um Daten dynamisch darzustellen.
 
+    Die Sensordaten beinhalten typischerweise Temperatur, Feuchtigkeit, CO2, TVOC, Umgebungstemperatur
+    und Vorhersagen. Falls keine Daten vorhanden sind, werden Standardwerte verwendet.
+
+    Bei einem Fehler während der Verarbeitung wird eine benutzerfreundliche Fehlermeldung zurückgegeben,
+    und es wird protokolliert, was zum Fehler geführt hat.
+
+    :return: Ein gerendertes Template mit Sensordaten oder eine Fehlermeldung bei Problemen.
+    """
     try:
-        # Prüfen, ob combined_data verfügbar ist, falls nicht, Standardwerte setzen
-        if not mqtt_client.combined_data:
+        # Sicherstellen, dass combined_data initialisiert ist und alle erwarteten Schlüssel enthält
+        if not hasattr(mqtt_client, 'combined_data') or not mqtt_client.combined_data:
+            # Standardwerte einrichten, falls combined_data nicht verfügbar oder leer ist
             sensor_data = {}
             temperature = 0
             humidity = 0
@@ -39,18 +52,17 @@ def index():
             tvoc = "Zurzeit nicht verfügbar"
             ambient_temp = 0
             predictions = {}
-
-        else: 
-            # Extrahieren von Sensordaten aus mqtt_client.combined_data
+        else:
+            # Sensordaten aus mqtt_client.combined_data sicher extrahieren
             sensor_data = mqtt_client.combined_data
             temperature = sensor_data.get("temperature", 0)
             humidity = sensor_data.get("humidity", 0)
             co2 = sensor_data.get("co2", 0)
-            tvoc = sensor_data.get("tvoc", "Currently not available")
+            tvoc = sensor_data.get("tvoc", "Zurzeit nicht verfügbar")
             ambient_temp = sensor_data.get("ambient_temp", 0)
-            predictions = sensor_data.get('predictions', {})  # Standardmäßig auf ein leeres Dict eingestellt
+            predictions = sensor_data.get('predictions', {})
 
-        # Die Vorlage index.html mit den Daten rendern
+        # Das Template index.html mit den Daten rendern
         return render_template(
             "index.html",
             sensor_data=sensor_data,
@@ -63,8 +75,9 @@ def index():
         )
     
     except Exception as e:
-        logging.error("An error occurred in index(): %s", str(e))
-        return "Internal server error", 500
+        # Detailliertes Protokollieren des Fehlers und der Sensordaten zur Fehlerbehebung
+        logging.error("Ein Fehler ist in index() aufgetreten: %s. Sensordaten: %s", str(e), str(mqtt_client.combined_data))
+        return "Es gab ein Problem bei der Verarbeitung Ihrer Anfrage. Bitte aktualisieren Sie die Seite.", 500
 
 
 @app.route("/plots")

@@ -91,18 +91,25 @@ class MQTTClient:
             self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
             self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
 
-        elif topic.endswith("647fda000000aa92/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
-            self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
+            tvoc_values = 400
+            ambient_temp_values = 500
+            self.combined_data.setdefault("tvoc", []).append(tvoc_values)
+            self.combined_data.setdefault("ambient_temp", []).append(ambient_temp_values)
 
-        elif topic.endswith("24e124707c481005/event/up"):
-            formatted_time = adjust_and_format_time(payload["time"])
-            tvos_value = payload["object"].get("tvoc")
-            self.combined_data.setdefault("time", []).append(formatted_time)
-            # Only append "tvoc" value if it is not None
-            if tvos_value is not None:
-                self.combined_data.setdefault("tvoc", []).append(tvos_value)
+        #elif topic.endswith("647fda000000aa92/event/up"):
+        #    formatted_time = adjust_and_format_time(payload["time"])
+        #    self.combined_data.setdefault("time", []).append(formatted_time)
+        #    self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
+
+        #elif topic.endswith("24e124707c481005/event/up"):
+        #    formatted_time = adjust_and_format_time(payload["time"])
+        #    tvos_value = payload["object"].get("tvoc")
+        #    self.combined_data.setdefault("time", []).append(formatted_time)
+        #    # Only append "tvoc" value if it is not None
+        #    if tvos_value is not None:
+        #        self.combined_data.setdefault("tvoc", []).append(tvos_value)
 
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
         if all(key in self.combined_data for key in required_keys):
@@ -128,7 +135,7 @@ class MQTTClient:
 
     def run_periodic_predictions(self):
         while self.thread_alive:
-            time.sleep(600)  # Sleep for 10 minutes
+            time.sleep(120)  # Sleep for 2 minutes
             if self.data_points:
                 try:
                     data_points_copy = copy.deepcopy(self.data_points)
@@ -164,7 +171,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Error during prediction processing: {e}")
             else:
-                logging.info("No data collected in the last 10 minutes.")
+                logging.info("No data collected in the last 2 minutes.")
 
     
     def restart_thread(self):
@@ -182,11 +189,11 @@ class MQTTClient:
 
     def periodic_clear(self):
         while True:
-            time.sleep(900)  # Sleep for 15 minutes
+            time.sleep(360)  # Sleep for 6 minutes
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
-            logging.info("Data points and combined data have been cleared after 15 minutes.")
+            logging.info("Data points and combined data have been cleared after 6 minutes.")
             logging.info(f"content of self.data_points after clearning: {self.data_points}")
             logging.info(f"content of self.combined_data after clearning is: {self.combined_data}")
 
