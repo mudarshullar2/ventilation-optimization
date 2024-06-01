@@ -71,36 +71,30 @@ def index():
 def plots():
 
     """
-    Diese Funktion rendert eine Seite mit Plot-Diagrammen der Sensordaten.
-    
-    Initialisiert die Startzeit, falls nicht vorhanden.
-    Holt die neuesten Sensordaten vom MQTT-Client.
-    Reset nach einer Stunde zur Initialisierung der Anzeigeintervall.
-    Rendert die 'plots.html'-Vorlage mit den Sensordaten.
-    
-    :return: gerenderte HTML-Seite oder Nachricht über das Zurücksetzen des Anzeigeintervalls
+    Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten, beginnend beim ersten nicht-leeren Datenpunkt und dauert eine Stunde.
+    Wenn das einstündige Intervall erreicht ist, wird die Startzeit zurückgesetzt und die Anzeige beginnt erneut mit den neuen Daten.
+    :return: HTML-Seite mit den Echtzeit-Datenplots oder eine Fehlermeldung, falls keine Sensordaten verfügbar sind.
     """
-
-    sensor_data = mqtt_client.combined_data
+    
+    sensor_data = mqtt_client.get_latest_sensor_data()
 
     if sensor_data: 
-        # Sensordaten für die Diagramme abrufen
-        time_data = sensor_data.get('time', [])
-        co2_data = sensor_data.get('co2', [])
-        temperature_data = sensor_data.get('temperature', [])
-        humidity_data = sensor_data.get('humidity', [])
-        tvoc_data = sensor_data.get('tvoc', [])
+        # Listen vorbereiten, um gefilterte Daten zu sammeln
+        co2_data = [data.get('co2', None) for data in sensor_data]
+        temperature_data = [data.get('temperature', None) for data in sensor_data]
+        humidity_data = [data.get('humidity', None) for data in sensor_data]
+        tvoc_data = [data.get('tvoc', None) for data in sensor_data]
+        time_data = [data.get('time', None) for data in sensor_data]
 
-        # Auffüllen der Listen für gleichmäßige Länge
-        max_length = max(len(co2_data), len(temperature_data), len(humidity_data), len(time_data), len(tvoc_data))
+        # Datenpunkte ausrichten, um sicherzustellen, dass die Daten jedes Sensors die gleiche Länge haben
+        max_length = max(len(co2_data), len(temperature_data), len(humidity_data), len(time_data) , len(tvoc_data))
         co2_data += [None] * (max_length - len(co2_data))
         temperature_data += [None] * (max_length - len(temperature_data))
         humidity_data += [None] * (max_length - len(humidity_data))
         tvoc_data += [None] * (max_length - len(tvoc_data))
         time_data += [None] * (max_length - len(time_data))
 
-
-        # HTML-Seite mit Diagrammdaten rendern
+        # HTML-Seite mit Echtzeit-Datenplots rendern
         return render_template(
             "plots.html",
             co2_data=co2_data,
@@ -111,14 +105,14 @@ def plots():
         )
     
     else:
-
-        # Leere Listen für Diagrammdaten
+        # Prepare empty data sets for the plots
         co2_data = []
         temperature_data = []
         humidity_data = []
         tvoc_data = []
         time_data = []
 
+        # Render the template with empty data sets
         return render_template(
             "plots.html",
             co2_data=co2_data,
@@ -127,7 +121,7 @@ def plots():
             tvoc_data=tvoc_data,
             time_data=time_data
         )
-
+    
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
@@ -167,8 +161,7 @@ def feedback():
                 "humidity": float(features_df['humidity'].iloc[0]),
                 "co2": float(features_df['co2'].iloc[0]),
                 "avg_time": avg_time_readable,
-                #"outdoor_temperature": float(features_df['outdoor_temperature'].iloc[0]),
-                "outdoor_temperature": 0,
+                "outdoor_temperature": float(features_df['ambient_temp'].iloc[0]),
                 "accurate_prediction": int(request.form['accurate_prediction'])
             }
 

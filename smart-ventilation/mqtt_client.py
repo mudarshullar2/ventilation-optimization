@@ -100,10 +100,10 @@ class MQTTClient:
             self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
             self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
 
-        #elif topic.endswith("647fda000000aa92/event/up"):
-        #    formatted_time = adjust_and_format_time(payload["time"])
-        #    self.combined_data.setdefault("time", []).append(formatted_time)
-        #    self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
+        elif topic.endswith("647fda000000aa92/event/up"):
+            formatted_time = adjust_and_format_time(payload["time"])
+            self.combined_data.setdefault("time", []).append(formatted_time)
+            self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
 
         elif topic.endswith("24e124707c481005/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
@@ -113,7 +113,7 @@ class MQTTClient:
                 self.combined_data.setdefault("tvoc", []).append(tvos_value)
 
         # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
-        required_keys = {"time", "humidity", "temperature", "co2", "tvoc"}
+        required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
         if all(key in self.combined_data for key in required_keys):
             self.collect_data(self.combined_data)
 
@@ -144,8 +144,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 45 Minuten warten
-            time.sleep(2700)
+            # 10 Minuten warten
+            time.sleep(600)
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -177,7 +177,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 45 Minuten wurden keine Daten gesammelt.")
+                logging.info("In den letzten 10 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -204,12 +204,12 @@ class MQTTClient:
         Löscht periodisch die gesammelten Daten alle 20 Minuten.
         """
         while True:
-            # 2 Stunden warten
-            time.sleep(3600)
+            # 30 Minuten warten
+            time.sleep(1800)
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 2 Stunden gelöscht.")
+            logging.info("Datenpunkte und kombinierte Daten wurden nach 30 Minuten gelöscht.")
             logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
 
