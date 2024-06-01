@@ -1,8 +1,10 @@
-# Smart Ventilation Optimization Project
+# Ventilation Optimization Project
 
 ## Übersicht
 
-Das Smart Ventilation Optimization Project ist darauf ausgelegt, Sensordaten zu sammeln, basierend auf diesen Daten Vorhersagen zu treffen und eine Webschnittstelle bereitzustellen, um die Daten zu visualisieren und mit ihnen zu interagieren. Die Anwendung ist mit Flask für die Webschnittstelle und MQTT für die Datensammlung gebaut.
+Das Ventilation Optimization Projekt bildet einen zentralen Bestandteil meiner Bachelorarbeit und wurde in Zusammenarbeit mit Stadtwerk Potsdam entwickelt. Stadtwerk Potsdam hat für dieses Projekt die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam. 
+
+Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu treffen. Die Ergebnisse werden über eine benutzerfreundliche Webschnittstelle visualisiert und können interaktiv genutzt werden. Die technische Umsetzung erfolgt mittels Flask für das Web-Interface und MQTT für die Datenerfassung.
 
 ## Funktionen
 
