@@ -1,4 +1,4 @@
-# Ventilation Optimization Project
+# Ventilation Enhancement Project
 
 ## Übersicht
 
