@@ -41,7 +41,7 @@ def load_and_prepare_data(filepath):
     df['target'] = (
         (df['temperature'].between(19, 21)) &
         (df['co2'] <= 1000) &
-        (df['tvoc'] <= 500) &
+        (df['tvoc'] <= 400) &
         (df['humidity'].between(40, 60)) &
         (df['ambient_temp'].between(15, 25))
     ).astype(int)
