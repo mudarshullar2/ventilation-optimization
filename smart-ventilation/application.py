@@ -194,17 +194,17 @@ def feedback():
                 mqtt_client.latest_predictions = {}
                 return render_template('thank_you.html')
             else:
-                return jsonify({"message": "Failed to submit feedback", "status": response.status_code, "response": response.text}), 400
+                return jsonify({"message": "Keine Rückmeldung übermittelt", "status": response.status_code, "response": response.text}), 400
 
         except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
-            return jsonify({"message": "An unexpected error occurred", "error": str(e)}), 500
+            logging.error(f"Ein unerwarteter Fehler ist aufgetreten:: {e}")
+            return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500
         
     else:
         try:
             predictions = mqtt_client.latest_predictions
             if not predictions:
-                return "No predictions available", 400
+                return render_template('feedback.html', error=True)
             
             predictions = mqtt_client.latest_predictions
             features_df = mqtt_client.latest_features_df
