@@ -87,7 +87,7 @@ Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schne
 ## Logging
 
 Die Anwendung protokolliert wichtige Ereignisse und Fehler in der Konsole. 
-Stellen Sie sicher, dass das Logging im `application_modular.py`-Skript mit dem logging-Modul entsprechend konfiguriert ist.
+Stellen Sie sicher, dass das Logging im `application.py`-Skript mit dem logging-Modul entsprechend konfiguriert ist.
 
 ## Hinweise
 
