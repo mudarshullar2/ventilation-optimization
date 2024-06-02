@@ -52,66 +52,45 @@
             text-decoration: none;
         }
         .button:hover {
-            background-color: #ec4899; /* Darker pink on hover */
+            background-color: #ec4896; /* Darker pink on hover */
         }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
+        img {
             width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
+            max-width: 300px;
+            height: auto;
+            margin-bottom: 20px;
         }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
+        .contact-card {
+            background-color: #ffffff;
+            color: #333;
+            margin-bottom: 10px;
+            padding: 10px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        a {
+            color: #3b82f6;
+        }
+        a:hover {
+            text-decoration: underline;
         }
     </style>
-
 </head>
 <body>
-    <div class="content">
-        <h1>Kontaktiere uns</h1>
-        <form action="/send_email" method="POST">
-
-            <!-- Form Elemente -->
-            <label for="name">Name:</label><br>
-            <input type="text" id="name" name="name" required><br><br>
-            <label for="email">E-Mail:</label><br>
-            <input type="email" id="email" name="email" required><br><br>
-            <label for="message">Nachricht:</label><br>
-            <textarea id="message" name="message" rows="4" cols="30" required></textarea><br><br>
-            <input type="submit" value="Senden">
-        </form>
-
-        <!-- Zurück zur Startseite -->
+    <header>
+        <img src="{{ url_for('static', filename='img/stadtwerke_potsdam_logo.png') }}" alt="Stadtwerke Potsdam GmbH Logo">
+    </header>
+    <div class="container">
+        <h1>Kontaktieren Sie uns</h1>
+        <p><strong>Haben Sie irgendwelche Fragen oder Beschwerden? Dann schreiben Sie uns unter:</strong></p>
+        <div class="contact-card">
+            <h2>Andreas Becker - Stadtwerke Potsdam</h2>
+            <p><a href="mailto:Andreas.Becker@swp-potsdam.de">Andreas.Becker@swp-potsdam.de</a></p>
+        </div>
+        <div class="contact-card">
+            <h2>Mudar Shullar</h2>
+            <p><a href="mailto:mudarshullar22@gmail.com">mudarshullar22@gmail.com</a></p>
+        </div>
         <a href="/" class="button">Zurück zur Startseite</a>
     </div>
-
-    <script>
-        // Funktion zum Festlegen eines Themas
-        function setTheme(themeName) {
-            localStorage.setItem('theme', themeName);
-            document.documentElement.className = themeName;
-        }
-
-        // Sofort aufgerufene Funktion zum Festlegen des Themas beim Initialisieren
-        (function () {
-            if (localStorage.getItem('theme') === 'theme-dark') {
-                setTheme('theme-dark');
-            } else {
-                setTheme('theme-light');
-            }
-        })();
-    </script>
-    
 </body>
 </html>
