@@ -91,7 +91,7 @@ Stellen Sie sicher, dass das Logging im `application.py`-Skript mit dem logging-
 
 ## Hinweise
 
-Stellen Sie sicher, dass alle Pfade in `application_modular.py` und `mqtt_client.py` korrekt gemäß Ihrer Projektstruktur gesetzt sind. 
+Stellen Sie sicher, dass alle Pfade in `application.py` und `mqtt_client.py` korrekt gemäß Ihrer Projektstruktur gesetzt sind. 
 Die Anwendung geht davon aus, dass Sensordaten zu bestimmten MQTT-Themen veröffentlicht werden. 
 Passen Sie die Themen und die Datenverarbeitung in `mqtt_client.py` nach Bedarf an.
 
