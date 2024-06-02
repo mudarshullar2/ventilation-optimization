@@ -143,7 +143,7 @@
                     <div class="sensor-box"><strong>Decision Tree Empfehlung</strong><div class="sensor-data">{{ "Fenster soll geöffnet werden" if predictions.get('Decision Tree', 0) == 0 else "Fenster soll geschlossen bleiben" }}</div></div>
                     <div class="sensor-box"><strong>Random Forest Empfehlung</strong><div class="sensor-data">{{ "Fenster soll geöffnet werden" if predictions.get('Random Forest', 0) == 0 else "Fenster soll geschlossen bleiben" }}</div></div>
                 {% else %}
-                    <div class="sensor-box">Keine Sensordaten verfügbar.</div>
+                    <div class="sensor-box">Keine Sensordaten verfügbar</div>
                 {% endif %}
             </div>
             <p><a href="/feedback" class="button">Feedback Senden</a></p>
