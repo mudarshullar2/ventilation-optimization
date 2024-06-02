@@ -71,7 +71,7 @@ Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schne
 1. Starten Sie den MQTT-Client und die Flask-Anwendung:
 
     ```
-    python application_modular.py
+    python application.py
     ```
 
 2. Öffnen Sie einen Browser Ihrer Wahl und besuchen Sie die URL `http://127.0.0.1:5000`, um auf die Webschnittstelle zuzugreifen.
