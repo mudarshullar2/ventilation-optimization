@@ -106,6 +106,9 @@
                 width: 90%; /* Full width on smaller screens */
             }
         }
+        .green { color: green; }
+        .yellow { color: yellow; }
+        .red { color: red; }
     </style>
 
 </head>
@@ -128,19 +131,95 @@
             <p>Erhalten Sie aktuelle Sensordaten zu Temperatur, Luftfeuchtigkeit und CO2-Gehalt.</p>
             <p>Das System analysiert die Raumluftqualität und bietet Empfehlungen zur optimalen Belüftung für eine gesunde Lernumgebung.</p>
         </section>
+        
         <section>
             <h2>Sensordaten</h2>
             <div class="sensor-container">
+                {% macro determine_class(value, low_threshold, high_threshold) %}
+                    {% set numeric_value = value|float %}  <!-- Convert value to float for comparison -->
+                    {% if numeric_value < low_threshold %}
+                        green
+                    {% elif numeric_value <= high_threshold %}
+                        yellow
+                    {% else %}
+                        red
+                    {% endif %}
+                {% endmacro %}
+        
                 {% if sensor_data %}
-                    <div class="sensor-box"><strong>Zeit</strong><div class="sensor-data">{{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] }}</div></div>
-                    <div class="sensor-box"><strong>Temperatur</strong><div class="sensor-data">{{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C</div></div>
-                    <div class="sensor-box"><strong>Luftfeuchtigkeit</strong><div class="sensor-data">{{ sensor_data.get('humidity', ['Zurzeit nicht verfügbar'])[-1] }} %</div></div>
-                    <div class="sensor-box"><strong>CO2-Niveau</strong><div class="sensor-data">{{ sensor_data.get('co2', ['Zurzeit nicht verfügbar'])[-1] }} ppm</div></div>
-                    <div class="sensor-box"><strong>TVOC-Niveau</strong><div class="sensor-data">{{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }}</div></div>
-                    <div class="sensor-box"><strong>Außentemperatur</strong><div class="sensor-data">{{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C</div></div>
-                    <div class="sensor-box"><strong>Logistic Regression Empfehlung</strong><div class="sensor-data">{{ "Fenster soll geöffnet werden" if predictions.get('Logistic Regression', 0) == 0 else "Fenster soll geschlossen bleiben" }}</div></div>
-                    <div class="sensor-box"><strong>Decision Tree Empfehlung</strong><div class="sensor-data">{{ "Fenster soll geöffnet werden" if predictions.get('Decision Tree', 0) == 0 else "Fenster soll geschlossen bleiben" }}</div></div>
-                    <div class="sensor-box"><strong>Random Forest Empfehlung</strong><div class="sensor-data">{{ "Fenster soll geöffnet werden" if predictions.get('Random Forest', 0) == 0 else "Fenster soll geschlossen bleiben" }}</div></div>
+                    <div class="sensor-box">
+                        <strong>Datum und Uhrzeit</strong>
+                        <div class="sensor-data">{{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] }}</div>
+                    </div>
+                    <div class="sensor-box {{ determine_class(sensor_data.get('temperature', [22])[-1], 20, 21) }}">
+                        <strong>Temperatur</strong>
+                        <div class="sensor-data">
+                            {{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C
+                        </div>
+                    </div>
+                    <div class="sensor-box {{ determine_class(sensor_data.get('humidity', [61])[-1], 50, 60) }}">
+                        <strong>Luftfeuchtigkeit</strong>
+                        <div class="sensor-data">
+                            {{ sensor_data.get('humidity', ['Zurzeit nicht verfügabel'])[-1] }} %
+                        </div>
+                    </div>
+                    <div class="sensor-box {{ determine_class(sensor_data.get('co2', [1001])[-1], 800, 1000) }}">
+                        <strong>CO2-Niveau</strong>
+                        <div class="sensor-data">
+                            {{ sensor_data.get('co2', ['Zurzeit nicht verfügbar'])[-1] }} ppm
+                        </div>
+                    </div>
+                    <div class="sensor-box {{ determine_class(sensor_data.get('tvoc', [501])[-1], 400, 500) }}">
+                        <strong>TVOC-Niveau</strong>
+                        <div class="sensor-data">
+                            {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }}
+                        </div>
+                    </div>
+                    <div class="sensor-box {{ determine_class(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}">
+                        <strong>Außentemperatur</strong>
+                        <div class="sensor-data">
+                            {{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C
+                        </div>
+                    </div>
+                    <div class="sensor-box">
+                        <strong>Logistic Regression Empfehlung</strong>
+                        <div class="sensor-data">
+                            {% set lr_prediction = predictions.get('Logistic Regression', None) %}
+                            {% if lr_prediction == 0 %}
+                                {{ "Fenster soll geöffnet werden" }}
+                            {% elif lr_prediction == 1 %}
+                                {{ "Fenster soll geschlossen bleiben" }}
+                            {% else %}
+                                {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="sensor-box">
+                        <strong>Decision Tree Empfehlung</strong>
+                        <div class="sensor-data">
+                            {% set dt_prediction = predictions.get('Decision Tree', None) %}
+                            {% if dt_prediction == 0 %}
+                                {{ "Fenster soll geöffnet werden" }}
+                            {% elif dt_prediction == 1 %}
+                                {{ "Fenster soll geschlossen bleiben" }}
+                            {% else %}
+                                {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="sensor-box">
+                        <strong>Random Forest Empfehlung</strong>
+                        <div class="sensor-data">
+                            {% set rf_prediction = predictions.get('Random Forest', None) %}
+                            {% if rf_prediction == 0 %}
+                                {{ "Fenster soll geöffnet werden" }}
+                            {% elif rf_prediction == 1 %}
+                                {{ "Fenster soll geschlossen bleiben" }}
+                            {% else %}
+                                {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
+                            {% endif %}
+                        </div>
+                    </div>
                 {% else %}
                     <div class="sensor-box">Keine Sensordaten verfügbar</div>
                 {% endif %}
