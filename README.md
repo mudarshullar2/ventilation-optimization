@@ -87,11 +87,11 @@ Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schne
 ## Logging
 
 Die Anwendung protokolliert wichtige Ereignisse und Fehler in der Konsole. 
-Stellen Sie sicher, dass das Logging im `application_modular.py`-Skript mit dem logging-Modul entsprechend konfiguriert ist.
+Stellen Sie sicher, dass das Logging im `application.py`-Skript mit dem logging-Modul entsprechend konfiguriert ist.
 
 ## Hinweise
 
-Stellen Sie sicher, dass alle Pfade in `application_modular.py` und `mqtt_client.py` korrekt gemäß Ihrer Projektstruktur gesetzt sind. 
+Stellen Sie sicher, dass alle Pfade in `application.py` und `mqtt_client.py` korrekt gemäß Ihrer Projektstruktur gesetzt sind. 
 Die Anwendung geht davon aus, dass Sensordaten zu bestimmten MQTT-Themen veröffentlicht werden. 
 Passen Sie die Themen und die Datenverarbeitung in `mqtt_client.py` nach Bedarf an.
 
