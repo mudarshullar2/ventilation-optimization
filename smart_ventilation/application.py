@@ -2,11 +2,13 @@ from flask_apscheduler import APScheduler
 from flask import Flask, jsonify, render_template, request, session
 import logging
 import requests
+from datetime import datetime, timedelta
 from mqtt_client import MQTTClient
 from api_config_loader import load_api_config
 from datetime import datetime, timedelta
 import secrets
-import copy 
+import numpy as np
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -149,6 +151,12 @@ def plots():
         )
     
 
+def convert_to_serializable(obj):
+    if isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
+        return obj.item()
+    raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
+
+
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
 
@@ -204,6 +212,18 @@ def feedback():
             logging.info(f"API Antwort: {response.json()}")
 
             if response.status_code == 200:
+                last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
+                logging.info(f"last_prediciton in feedback(): {last_prediction}")
+                #session['last_prediction'] = last_prediction
+
+                if isinstance(last_prediction, np.integer):
+                    last_prediction = int(last_prediction)
+                elif not isinstance(last_prediction, int):
+                    last_prediction = int(last_prediction)
+
+                session['last_prediction'] = last_prediction
+                session.permanent = True  # Mark the session as permanent
+
                 # latest_predictions löschen, um Speicherplatz freizugeben
                 mqtt_client.latest_predictions = {}
                 return render_template('thank_you.html')
@@ -236,84 +256,118 @@ def get_data(timestamp):
         return mqtt_client.fetch_data(timestamp)
     except Exception as e:
         logging.error(f"Failed to fetch data: {e}")
-        return []
-    
+        return {}
+
 
 @app.route('/leaderboard', methods=['GET', 'POST'])
-def leaderboard(): 
+def leaderboard():
     try:
         if request.method == "POST":
-            predictions = mqtt_client.latest_predictions
-            if not predictions:
-                return "Keine Vorhersagen verfügbar, um Feedback zu geben", 400
+            predictions = mqtt_client.latest_predictions.get("Logistic Regression")
+            logging.info(f"prediction in leaderboard: {predictions}")
+
+            if predictions is None:  # Explicitly check for None
+                last_prediction = session.get('last_prediction')
+                logging.info(f"last_prediction in leaderboard {last_prediction}")
+                if last_prediction is not None:
+                    predictions = last_prediction  # Ensure predictions are retrieved from the session
+
+                if predictions is None:  # Explicitly check for None again
+                    logging.error("No predictions available in both latest_predictions and session")
+                    return render_template('leaderboard.html', error=True)
             
-            combined_data = mqtt_client.combined_data
-
-            latest_date = copy.deepcopy(combined_data["time"][-1])
-            logging.info(f"latest_data: within leaderboard function {latest_date}")
+            if 'last_prediction' not in session:
+                last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
+                if isinstance(last_prediction, np.integer):
+                    last_prediction = int(last_prediction)
+                elif not isinstance(last_prediction, int):
+                    last_prediction = int(last_prediction)
+                session['last_prediction'] = last_prediction
             
-            latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
+            if 'current_data' not in session:
+                combined_data = mqtt_client.combined_data
+                logging.info(f"combined_data in leaderboard: {combined_data}")
+                latest_date = combined_data["time"][-1]
+                logging.info(f"latest_data: within leaderboard function {latest_date}")
+                
+                latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
+                adjusted_date = latest_date - timedelta(minutes=1)
+                adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
+                logging.info(f"Adjusted date: {adjusted_date_str}")
 
-            # Subtract one minute from the latest_date
-            adjusted_date = latest_date - timedelta(minutes=1)
+                current_data = get_data(adjusted_date_str)
+                logging.info(f"latest current_data within leaderboard function: {current_data}")
+                
+                formatted_current_data = [{
+                    'timestamp': current_data.get('timestamp'),
+                    'co2_values': float(current_data.get('co2_values')) if current_data.get('co2_values') is not None else None,
+                    'temperature': float(current_data.get('temperature')) if current_data.get('temperature') is not None else None,
+                    'humidity': float(current_data.get('humidity')) if current_data.get('humidity') is not None else None,
+                }]
 
-            adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
-            logging.info(f"Adjusted date: {adjusted_date_str}")
+                session['latest_date'] = adjusted_date_str
+                logging.info(f"session['latest_date'] {session['latest_date']}")
+                session['current_data'] = formatted_current_data
+                logging.info(f"session['current_data']  {session['current_data'] }")
+                session.permanent = True  # Mark the session as permanent
 
-            current_data = get_data(adjusted_date_str)
-            logging.info(f"latest current_data within leaderboard function: {current_data}")
-            
-            # Ensure data is formatted correctly for the template
-            formatted_current_data = [{
-                'timestamp': current_data.get('timestamp'),
-                'co2_values': float(current_data.get('co2_values')) if current_data.get('co2_values') is not None else None,
-                'temperature': float(current_data.get('temperature')) if current_data.get('temperature') is not None else None,
-                'humidity': float(current_data.get('humidity')) if current_data.get('humidity') is not None else None,
-                'outdoor_temperature': float(current_data.get('outdoor_temperature')) if current_data.get('outdoor_temperature') is not None else None,
-                'tvoc_values': float(current_data.get('tvoc_values')) if current_data.get('tvoc_values') is not None else None
-            }]
+            else:
+                formatted_current_data = session['current_data']
+                adjusted_date_str = session['latest_date']
 
-            # Set session data
-            session['last_prediction_id'] = predictions['id']
-            session['latest_date'] = adjusted_date_str
-            session['current_data'] = formatted_current_data
-            session.permanent = True  # Mark the session as permanent
-
-            return render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str)
+            if predictions == 1:
+                return render_template('leaderboard2.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
+            else:
+                return render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
 
         elif request.method == "GET":
             adjusted_date_str = session.get('latest_date')
+            logging.info(f"session['latest_date'] {session['latest_date']}")
             current_data = session.get('current_data')
+            logging.info(f"session['current_data']  {session['current_data'] }")
+            predictions = session.get('last_prediction')  # Retrieve predictions from the session
 
             if not adjusted_date_str or not current_data:
+                logging.error("No data available in session, please make a prediction first")
                 return "Keine Daten verfügbar, bitte führen Sie eine Vorhersage durch.", 400
 
-            # Fetch future data
-            future_data = get_future_data(adjusted_date_str).get_json()
+            future_data_response = get_future_data(adjusted_date_str)
+            if future_data_response.status_code != 200:
+                return future_data_response
+            future_data = future_data_response.get_json()
             logging.info(f"latest future_data within leaderboard function: {future_data}")
 
-            # Ensure data is formatted correctly for the template
             formatted_future_data = [{
                 'timestamp': future_data.get('timestamp'),
                 'co2_values': float(future_data.get('co2_values')) if future_data.get('co2_values') is not None else None,
                 'temperature': float(future_data.get('temperature')) if future_data.get('temperature') is not None else None,
                 'humidity': float(future_data.get('humidity')) if future_data.get('humidity') is not None else None,
-                'outdoor_temperature': float(future_data.get('outdoor_temperature')) if future_data.get('outdoor_temperature') is not None else None,
-                'tvoc_values': float(future_data.get('tvoc_values')) if future_data.get('tvoc_values') is not None else None
             }]
 
-            return render_template('leaderboard.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str)
+            if predictions == 1:
+                response = render_template('leaderboard2.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
+            else:
+                response = render_template('leaderboard.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
+
+            # Clear session data after using it
+            session.pop('last_prediction_id', None)
+            session.pop('latest_date', None)
+            session.pop('current_data', None)
+            session.pop('last_prediction', None)
+            
+            return response
 
     except Exception as e:
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten:: {e}")
-        return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500   
+        return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500
 
-
+    
 @app.route('/future_data/<timestamp>')
 def get_future_data(timestamp):
     try:
-        last_prediction_id = session.get('last_prediction_id')
-        if not last_prediction_id:
+        last_prediction = session.get('last_prediction')
+        if last_prediction is None:
+            logging.error("No prediction ID found in session")
             return jsonify({"error": "No prediction ID found in session"}), 400
         
         logging.info(f"Fetching future data for timestamp: {timestamp}")
@@ -328,8 +382,6 @@ def get_future_data(timestamp):
             'co2_values': float(future_data.get('co2_values')) if future_data.get('co2_values') is not None else None,
             'temperature': float(future_data.get('temperature')) if future_data.get('temperature') is not None else None,
             'humidity': float(future_data.get('humidity')) if future_data.get('humidity') is not None else None,
-            'outdoor_temperature': float(future_data.get('outdoor_temperature')) if future_data.get('outdoor_temperature') is not None else None,
-            'tvoc_values': float(future_data.get('tvoc_values')) if future_data.get('tvoc_values') is not None else None
         }
 
         logging.info(f"Future data fetched successfully: {formatted_future_data}")

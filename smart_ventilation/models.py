@@ -220,6 +220,6 @@ def main(filepath, save_dir):
 
 if __name__ == "__main__":
     
-    filepath = '/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart_ventilation/dataset/dataset.xlsx'
-    save_dir = '/Users/mudarshullar/Desktop/ventilation-optimization Project/ventilation-optimization/smart_ventilation/models'
+    filepath = '/Users/mudarshullar/Desktop/ventilation-optimization/smart_ventilation/dataset/dataset.xlsx'
+    save_dir = '/Users/mudarshullar/Desktop/ventilation-optimization/smart_ventilation/models'
     main(filepath, save_dir)

@@ -160,7 +160,7 @@
                     <div class="sensor-box {{ determine_class(sensor_data.get('humidity', [61])[-1], 50, 60) }}">
                         <strong>Luftfeuchtigkeit</strong>
                         <div class="sensor-data">
-                            {{ sensor_data.get('humidity', ['Zurzeit nicht verfügabel'])[-1] }} %
+                            {{ sensor_data.get('humidity', ['Zurzeit nicht verfügbar'])[-1] }} %
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('co2', [1001])[-1], 800, 1000) }}">
@@ -183,45 +183,30 @@
                     </div>
                     <div class="sensor-box">
                         <strong>Systems Empfehlung</strong>
-                        <div class="sensor-data">
+                        <div class="sensor-data" id="logistic-regression-result">
                             {% set lr_prediction = predictions.get('Logistic Regression', None) %}
                             {% if lr_prediction == 0 %}
-                                {{ "Fenster soll geöffnet werden" }}
+                                {{ "Fenster soll geschlossen bleiben" }}
                             {% elif lr_prediction == 1 %}
-                                {{ "Fenster soll geschlossen bleiben" }}
-                            {% else %}
-                                {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
-                            {% endif %}
-                        </div>
-                    </div>
-                    <!--
-                    <div class="sensor-box">
-                        <strong>Decision Tree Empfehlung</strong>
-                        <div class="sensor-data">
-                            {% set dt_prediction = predictions.get('Decision Tree', None) %}
-                            {% if dt_prediction == 0 %}
                                 {{ "Fenster soll geöffnet werden" }}
-                            {% elif dt_prediction == 1 %}
-                                {{ "Fenster soll geschlossen bleiben" }}
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
                             {% endif %}
                         </div>
                     </div>
-                    <div class="sensor-box">
-                        <strong>Random Forest Empfehlung</strong>
-                        <div class="sensor-data">
-                            {% set rf_prediction = predictions.get('Random Forest', None) %}
-                            {% if rf_prediction == 0 %}
-                                {{ "Fenster soll geöffnet werden" }}
-                            {% elif rf_prediction == 1 %}
-                                {{ "Fenster soll geschlossen bleiben" }}
+                    <!-- New div for Random Forest value -->
+                    <div class="sensor-box" id="random-forest-div">
+                        <strong>Dauer der Lüftung</strong>
+                        <div class="sensor-data" id="random-forest-value">
+                            {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
+                            {% set lr_prediction_forest = predictions.get('Random Forest', None) %}
+                            {% if lr_prediction_logistic == 1 %}
+                                {{ lr_prediction_forest | round(2) }} Minuten !
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
                             {% endif %}
                         </div>
-                    </div>
-                    -->
+                    </div>                    
                 {% else %}
                     <div class="sensor-box">Keine Sensordaten verfügbar</div>
                 {% endif %}
@@ -296,19 +281,26 @@
         document.addEventListener('DOMContentLoaded', function() {
             selectDesign('dark'); // Dunklen Modus anfangs anwenden
         });
+
         function updatePredictions() {
-        fetch("/predictions")
-            .then(response => response.json())
-            .then(predictions => {
-                console.log("Received predictions:", predictions); // Diese Zeile ist für Debugging gedacht
-                // HTML-Elemente mit Vorhersagen aktualisieren
-                document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
-                document.getElementById("decision-tree").innerText = predictions["Decision Tree"] || "N/A";
-                document.getElementById("random-forest").innerText = predictions["Random Forest"] || "N/A";
-            })
-            .catch(error => {
-                console.error("Error fetching predictions:", error);
-            });
+            fetch("/predictions")
+                .then(response => response.json())
+                .then(predictions => {
+                    console.log("Received predictions:", predictions); // This line is for debugging
+                    // Show the Random Forest div if Logistic Regression is 1
+                    document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
+                    if (predictions["Logistic Regression"] == 1) {
+                        console.log("Logistic Regression returned 1. Displaying Random Forest value.");
+                        document.getElementById("random-forest-div").style.display = 'block';
+                        document.getElementById("random-forest-value").innerText = predictions["Random Forest"];
+                    } else {
+                        console.log("Logistic Regression returned 0. Hiding Random Forest value.");
+                        document.getElementById("random-forest-div").style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching predictions:", error);
+                });
         }
 
         // Funktion zum Festlegen eines Themas
