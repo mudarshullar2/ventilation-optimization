@@ -48,18 +48,21 @@ class MQTTClient:
         self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
         self.prediction_thread.start()
         self.data_lock = threading.Lock()
+        self.first_time = None
+        self.first_topic_data = []
 
         self.clearing_thread = threading.Thread(target=self.periodic_clear)
         self.clearing_thread.start()
 
         self.conn = connect_to_database(db)
 
-        # Modelle laden
+        logistic_regression_model, _ = joblib.load('smart_ventilation/Models1/Logistic_Regression.pkl')
+        random_forest_model = joblib.load('smart_ventilation/Models1/Random_Forest.pkl')
+
         self.models = {
-            'Logistic Regression': joblib.load('smart_ventilation/models/Logistic_Regression.pkl'),
-            'Decision Tree': joblib.load('smart_ventilation/models/Decision_Tree.pkl'),
-            'Random Forest': joblib.load('smart_ventilation/models/Random_Forest.pkl')
-        }
+            'Logistic Regression': logistic_regression_model,
+            'Random Forest': random_forest_model
+            }
 
 
     def on_connect(self, client, userdata, flags, rc):
@@ -102,29 +105,31 @@ class MQTTClient:
         if topic.endswith("0004a30b01045883/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
+
             self.combined_data.setdefault("humidity", []).append(round(payload["object"]["humidity"], 2))
             self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
             self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
 
+            data_point = {
+                'time': formatted_time,
+                'humidity': round(payload["object"]["humidity"], 2),
+                'temperature': round(payload["object"]["temperature"], 2),
+                'co2': round(payload["object"]["co2"], 2)
+            }
+            self.store_first_topic_data(data_point)  
+
+        elif topic.endswith("647fda000000aa92/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
-            ambient_temp = 14
-            self.combined_data.setdefault("ambient_temp", []).append(ambient_temp)
-            tvos_value = 100
-            self.combined_data.setdefault("tvoc", []).append(tvos_value)
+            self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
 
-        #elif topic.endswith("647fda000000aa92/event/up"):
-        #    formatted_time = adjust_and_format_time(payload["time"])
-        #    self.combined_data.setdefault("time", []).append(formatted_time)
-        #    self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
-
-        #elif topic.endswith("24e124707c481005/event/up"):
-        #    formatted_time = adjust_and_format_time(payload["time"])
-        #    tvos_value = payload["object"].get("tvoc")
-        #    self.combined_data.setdefault("time", []).append(formatted_time)
-        #    if tvos_value is not None:
-        #        self.combined_data.setdefault("tvoc", []).append(tvos_value)
-
+        elif topic.endswith("24e124707c481005/event/up"):            
+            formatted_time = adjust_and_format_time(payload["time"])
+            tvos_value = payload["object"].get("tvoc")
+            self.combined_data.setdefault("time", []).append(formatted_time)
+            if tvos_value is not None:
+                self.combined_data.setdefault("tvoc", []).append(tvos_value)
+        
         # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
         if all(key in self.combined_data for key in required_keys):
@@ -147,7 +152,7 @@ class MQTTClient:
                 if data:
                     self.data_points.append(data)
                     logging.debug(f"data_points within collect_data function!: {data}")
-                    self.store_into_db()
+
         except Exception as e:
             logging.error(f"Unerwarteter Fehler bei der Datensammlung: {e}")
             logging.error(f"Inhalt der kombinierten Daten: {combined_data}")
@@ -159,8 +164,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 10 Minuten warten
-            time.sleep(720)
+            # 5 Minuten warten
+            time.sleep(300)
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -181,7 +186,7 @@ class MQTTClient:
                     logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
                     
                     # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
-                    correct_order = ['temperature', 'co2', 'tvoc', 'humidity', 'ambient_temp']
+                    correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp']
                     features_df = features_df[correct_order]
                     features_array = features_df.to_numpy()
 
@@ -189,6 +194,7 @@ class MQTTClient:
                     predictions = {name: model.predict(features_array)[0] for name, model in self.models.items()}
                     self.combined_data['predictions'] = predictions
                     self.latest_predictions = predictions
+                    logging.info(f"latest predictions are: {self.latest_predictions}")
 
                     # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
                     prediction_id = str(uuid.uuid4())
@@ -201,7 +207,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 10 Minuten wurden keine Daten gesammelt.")
+                logging.info("In den letzten 5 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -238,39 +244,34 @@ class MQTTClient:
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
     
 
-    def store_into_db(self):
-        """Stores collected sensor data into the PostgreSQL database, ensuring data completeness."""
+    def store_first_topic_data(self, data_point):
+        """Stores sensor data from the first topic into the PostgreSQL database, ensuring data completeness."""
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
-                # Iterate through each collected data point
-                for data in self.data_points:
-                    # Ensure all required fields are present and contain no None values
-                    if all(data.get(key) is not None for key in ['time', 'co2', 'temperature', 'humidity', 'ambient_temp', 'tvoc']):
-                        query = """
-                            INSERT INTO classroom_environment_data
-                            (timestamp, co2_values, temperature, humidity, outdoor_temperature, tvoc_values, classroom_number)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s)
-                        """
-                        # Execute the insert query with the required values
-                        cursor.execute(query, (
-                            data['time'], 
-                            data['co2'], 
-                            data['temperature'],
-                            data['humidity'], 
-                            data['ambient_temp'], 
-                            data['tvoc'],
-                            '10c'  # Fixed classroom number '10c'
-                        ))
-                # Commit the transaction to ensure data is saved to the database
+                if all(data_point.get(key) is not None for key in ['time', 'co2', 'temperature', 'humidity']):
+                    query = """
+                        INSERT INTO classroom_environment_data
+                        (timestamp, co2_values, temperature, 
+                        humidity, classroom_number)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, (
+                        data_point['time'], 
+                        data_point['co2'], 
+                        data_point['temperature'],
+                        data_point['humidity'], 
+                        '10c'  # Fixed classroom number '10c'
+                    ))
                 self.conn.commit()
-                logging.info("Data successfully stored in the database.")
+                # Clear the data point to free up memory
+                data_point = None
             except Exception as e:
                 logging.error(f"Error storing data in the database: {e}")
                 self.conn.rollback()
             finally:
                 cursor.close()
-    
+
 
     def fetch_data(self, timestamp):
         """
@@ -284,19 +285,17 @@ class MQTTClient:
                 logging.info(f"Fetching data for timestamp: {timestamp}")
 
                 # Query to fetch data within 30 minutes prior to the given timestamp
-                query = """
-                    SELECT 
-                        AVG(co2_values) as co2_values,
-                        AVG(temperature) as temperature,
-                        AVG(humidity) as humidity,
-                        AVG(outdoor_temperature) as outdoor_temperature,
-                        AVG(tvoc_values) as tvoc_values
-                    FROM classroom_environment_data
-                    WHERE timestamp >= (CAST(%s AS timestamp) - INTERVAL '30 minutes')
-                    AND timestamp <= CAST(%s AS timestamp);
+                query = """ 
+                SELECT 
+                    AVG(co2_values) as co2_values, 
+                    AVG(temperature) as temperature, 
+                    AVG(humidity) as humidity
+                FROM classroom_environment_data 
+                WHERE 
+                    timestamp > CAST(%s AS timestamp); 
                 """
                 logging.info(f"Executing query with timestamp: {timestamp}")
-                cursor.execute(query, (timestamp, timestamp))
+                cursor.execute(query, (timestamp,))
 
                 result = cursor.fetchone()
                 logging.info(f"Query successful, fetched data: {result}")
@@ -308,8 +307,6 @@ class MQTTClient:
                         'co2_values': result[0],
                         'temperature': result[1],
                         'humidity': result[2],
-                        'outdoor_temperature': result[3],
-                        'tvoc_values': result[4]
                     }
                 else:
                     averaged_data = {}
@@ -341,11 +338,9 @@ class MQTTClient:
                     SELECT 
                         AVG(co2_values) as co2_values,
                         AVG(temperature) as temperature,
-                        AVG(humidity) as humidity,
-                        AVG(outdoor_temperature) as outdoor_temperature,
-                        AVG(tvoc_values) as tvoc_values
+                        AVG(humidity) as humidity
                     FROM classroom_environment_data
-                    WHERE timestamp >= CAST(%s AS timestamp);
+                    WHERE timestamp > CAST(%s AS timestamp);
                 """
                 logging.info(f"Executing query with timestamp: {timestamp}")
                 cursor.execute(query, (timestamp,))
@@ -360,8 +355,6 @@ class MQTTClient:
                         'co2_values': float(result[0]) if result[0] is not None else None,
                         'temperature': float(result[1]) if result[1] is not None else None,
                         'humidity': float(result[2]) if result[2] is not None else None,
-                        'outdoor_temperature': float(result[3]) if result[3] is not None else None,
-                        'tvoc_values': float(result[4]) if result[4] is not None else None
                     }
                 else:
                     averaged_data = {
@@ -369,8 +362,6 @@ class MQTTClient:
                         'co2_values': None,
                         'temperature': None,
                         'humidity': None,
-                        'outdoor_temperature': None,
-                        'tvoc_values': None
                     }
 
                 return averaged_data
@@ -383,8 +374,6 @@ class MQTTClient:
                     'co2_values': None,
                     'temperature': None,
                     'humidity': None,
-                    'outdoor_temperature': None,
-                    'tvoc_values': None
                 }
             finally:
                 # Ensure cursor is closed after operation

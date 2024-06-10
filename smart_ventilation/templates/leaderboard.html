@@ -62,12 +62,14 @@
         }
         .modal-content {
             background-color: #fefefe;
+            color: black; /* Ensure text color is black */
             margin: 15% auto;
             padding: 20px;
             border: 1px solid #888;
             width: 80%;
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
         }
         .sensor-container {
             display: flex;
@@ -110,170 +112,195 @@
         th, td {
             text-align: center;
         }
-        .improvement {
+        .positive-feedback {
             color: green;
+            font-weight: bold;
         }
-        .decline {
+        .negative-feedback {
             color: red;
+            font-weight: bold;
+        }
+        .neutral-feedback {
+            color: orange;
+            font-weight: bold;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .timer {
+            font-size: 2em;
+            margin-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">Environmental Data Leaderboard</h1>
+        <h1 class="text-center mb-4">Umweltdaten Leaderboard</h1>
         
-        <!-- Back Button -->
-        <button onclick="window.location.href='/'" class="button mb-4">Back to Main Page</button>
-        
-        <!-- Clear Session Button -->
-        <button onclick="clearSession()" class="button mb-4">Clear Session Data</button>
+        <!-- Zurück-Button -->
+        <button onclick="window.location.href='/'" class="button mb-4">Zurück zur Hauptseite</button>
 
-        <h2>Current Data</h2>
+        <div id="timer" class="timer">05:00</div>
+        
+        {% if not error %}
+        <h2>Umweltdaten vor der Empfehlung des Systems</h2>
         <table class="table table-striped">
             <thead class="table-dark">
                 <tr>
-                    <th>Timestamp</th>
-                    <th>CO2 Values</th>
-                    <th>Temperature</th>
-                    <th>Humidity</th>
-                    <th>Outdoor Temperature</th>
-                    <th>TVOC Values</th>
+                    <th>CO2-Werte</th>
+                    <th>Temperatur</th>
+                    <th>Luftfeuchtigkeit</th>
                 </tr>
             </thead>
             <tbody id="current-data-body">
                 {% if current_data %}
                     {% for data in current_data %}
                         <tr>
-                            <td>{{ data.timestamp }}</td>
                             <td id="current-co2">{{ data.co2_values }}</td>
                             <td id="current-temperature">{{ data.temperature }}</td>
                             <td id="current-humidity">{{ data.humidity }}</td>
-                            <td id="current-outdoor-temperature">{{ data.outdoor_temperature }}</td>
-                            <td id="current-tvoc">{{ data.tvoc_values }}</td>
                         </tr>
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6">No data available.</td>
+                        <td colspan="6">Keine Daten verfügbar.</td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
 
-        <h2>Future Data (10 minutes later)</h2>
+        <h2>Umweltdaten nach der Empfehlung des Systems (5 Minuten später)</h2>
         <table class="table table-striped">
             <thead class="table-dark">
                 <tr>
-                    <th>Timestamp</th>
-                    <th>CO2 Values</th>
-                    <th>Temperature</th>
-                    <th>Humidity</th>
-                    <th>Outdoor Temperature</th>
-                    <th>TVOC Values</th>
+                    <th>CO2-Werte</th>
+                    <th>Temperatur</th>
+                    <th>Luftfeuchtigkeit</th>
                 </tr>
             </thead>
             <tbody id="future-data-body">
-                <tr>
-                    <td colspan="6">Future data will be displayed here once it becomes available.</td>
-                </tr>
+                {% if future_data %}
+                    {% for data in future_data %}
+                        <tr>
+                            <td>{{ data.timestamp }}</td>
+                            <td id="future-co2">{{ data.co2_values }}</td>
+                            <td id="future-temperature">{{ data.temperature }}</td>
+                            <td id="future-humidity">{{ data.humidity }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6">Zukünftige Daten werden hier angezeigt, sobald sie verfügbar sind.</td>
+                    {% endif %}
+                    </tr>
             </tbody>
         </table>
 
-        <h2>Comparison Data</h2>
+        <h2>Vergleichsdaten</h2>
         <table class="table table-striped">
             <thead class="table-dark">
                 <tr>
-                    <th>Metric</th>
-                    <th>Percentage Change</th>
+                    <th>Metrik</th>
+                    <th>Prozentuale Änderungen</th>
                 </tr>
             </thead>
             <tbody id="comparison-data-body">
                 <tr>
-                    <td>CO2 Values</td>
+                    <td>CO2-Werte</td>
                     <td id="comparison-co2">-</td>
                 </tr>
                 <tr>
-                    <td>Temperature</td>
+                    <td>Temperatur</td>
                     <td id="comparison-temperature">-</td>
                 </tr>
                 <tr>
-                    <td>Humidity</td>
+                    <td>Luftfeuchtigkeit</td>
                     <td id="comparison-humidity">-</td>
-                </tr>
-                <tr>
-                    <td>Outdoor Temperature</td>
-                    <td id="comparison-outdoor-temperature">-</td>
-                </tr>
-                <tr>
-                    <td>TVOC Values</td>
-                    <td id="comparison-tvoc">-</td>
                 </tr>
             </tbody>
         </table>
+        {% else %}
+        <div class="error-message">
+            Keine Vorhersagen verfügbar. Bitte versuchen Sie es später erneut.
+        </div>
+        <button onclick="window.location.href='/'" class="button">Zurück zur Startseite</button>
+        {% endif %}
+    </div>
+
+    <div id="popup" class="modal">
+        <div class="modal-content">
+            <h2>Hallo zusammen!</h2>
+            <p>Danke, dass Sie der Entscheidung des Systems gefolgt sind. 
+                Gute Raumluftqualität ist wichtig für die Gesundheit der Schülerinnen und Schüler. 
+                Bitte bleiben Sie auf dieser Seite, 
+                um die Verbesserung der Raumluftqualität in Ihrem Klassenzimmer vor 
+                und nach der Entscheidung des Systems zu überwachen!</p>
+            <button onclick="closePopup()" class="button">OK</button>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const adjustedDateStr = "{{ adjusted_date_str }}";
-        const initialDelay = 10 * 60 * 1000; // Initial delay in milliseconds (5 minutes)
-        const pollingInterval = 60 * 1000; // Polling interval in milliseconds (1 minute)
+        const delayInterval = 1 * 60 * 1000; // Initiale Verzögerung in Millisekunden (5 Minuten)
+        const pollingInterval = 60 * 1000; // Abfrageintervall in Millisekunden (1 Minute)
+        const clearSessionDelay = 60 * 1000; // Verzögerung vor dem Löschen der Sitzung (1 Minute)
 
         function fetchFutureData() {
             fetch(`/future_data/${adjustedDateStr}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        console.error('Error fetching data:', data.error);
+                        console.error('Fehler beim Abrufen der Daten:', data.error);
                         return;
                     }
 
-                    if (data.co2_values === null || data.temperature === null || data.humidity === null || data.outdoor_temperature === null || data.tvoc_values === null) {
-                        console.info('Future data not yet available, retrying...');
-                        setTimeout(fetchFutureData, pollingInterval);
+                    if (data.co2_values === null && data.temperature === null && data.humidity === null && data.outdoor_temperature === null && data.tvoc_values === null) {
+                        console.info('Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.');
+                        const futureDataBody = document.getElementById('future-data-body');
+                        futureDataBody.innerHTML = `
+                            <tr>
+                                <td colspan="6">Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.</td>
+                            </tr>
+                        `;
                         return;
                     }
 
                     const futureDataBody = document.getElementById('future-data-body');
                     futureDataBody.innerHTML = `
                         <tr>
-                            <td>${data.timestamp}</td>
                             <td id="future-co2">${data.co2_values}</td>
                             <td id="future-temperature">${data.temperature}</td>
                             <td id="future-humidity">${data.humidity}</td>
-                            <td id="future-outdoor-temperature">${data.outdoor_temperature}</td>
-                            <td id="future-tvoc">${data.tvoc_values}</td>
                         </tr>
                     `;
 
                     updateComparisonData();
+
+                    // Sitzung nach Anzeige der zukünftigen Daten löschen
+                    setTimeout(clearSession, clearSessionDelay);
                 })
-                .catch(error => console.error('Error fetching data:', error));
+                .catch(error => console.error('Fehler beim Abrufen der Daten:', error));
         }
 
         function updateComparisonData() {
             const currentCO2 = parseFloat(document.getElementById('current-co2').innerText);
             const currentTemperature = parseFloat(document.getElementById('current-temperature').innerText);
             const currentHumidity = parseFloat(document.getElementById('current-humidity').innerText);
-            const currentOutdoorTemperature = parseFloat(document.getElementById('current-outdoor-temperature').innerText);
-            const currentTVOC = parseFloat(document.getElementById('current-tvoc').innerText);
 
             const futureCO2 = parseFloat(document.getElementById('future-co2').innerText);
             const futureTemperature = parseFloat(document.getElementById('future-temperature').innerText);
             const futureHumidity = parseFloat(document.getElementById('future-humidity').innerText);
-            const futureOutdoorTemperature = parseFloat(document.getElementById('future-outdoor-temperature').innerText);
-            const futureTVOC = parseFloat(document.getElementById('future-tvoc').innerText);
 
             const co2Change = calculatePercentageChange(currentCO2, futureCO2);
             const temperatureChange = calculatePercentageChange(currentTemperature, futureTemperature);
             const humidityChange = calculatePercentageChange(currentHumidity, futureHumidity);
-            const outdoorTemperatureChange = calculatePercentageChange(currentOutdoorTemperature, futureOutdoorTemperature);
-            const tvocChange = calculatePercentageChange(currentTVOC, futureTVOC);
 
             updateComparisonRow('comparison-co2', co2Change);
             updateComparisonRow('comparison-temperature', temperatureChange);
             updateComparisonRow('comparison-humidity', humidityChange);
-            updateComparisonRow('comparison-outdoor-temperature', outdoorTemperatureChange);
-            updateComparisonRow('comparison-tvoc', tvocChange);
         }
 
         function calculatePercentageChange(current, future) {
@@ -286,12 +313,18 @@
         function updateComparisonRow(elementId, change) {
             const element = document.getElementById(elementId);
             element.innerText = `${change.toFixed(2)}%`;
+            
+            element.classList.remove('positive-feedback', 'negative-feedback', 'neutral-feedback');
+
             if (change < 0) {
-                element.classList.remove('improvement');
-                element.classList.add('decline');
+                element.classList.add('positive-feedback');
+                element.innerHTML += ' <span>👍 Sehr Gut!</span>';
+            } else if (change > 0) {
+                element.classList.add('negative-feedback');
+                element.innerHTML += ' <span>⚠️ Die Luftqualität wird schlechter. Bitte überprüfen Sie, ob alle Fenster geöffnet sind.</span>';
             } else {
-                element.classList.remove('decline');
-                element.classList.add('improvement');
+                element.classList.add('neutral-feedback');
+                element.innerHTML += ' <span>🔄 Keine Änderung. Bitte weiterhin aufmerksam bleiben.</span>';
             }
         }
 
@@ -302,13 +335,47 @@
                     console.log(data);
                     window.location.reload();
                 })
-                .catch(error => console.error('Error clearing session:', error));
+                .catch(error => console.error('Fehler beim Löschen der Sitzung:', error));
         }
 
+        function showPopup() {
+            const popup = document.getElementById('popup');
+            popup.style.display = 'block';
+        }
+
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            popup.style.display = 'none';
+        }
+
+        function startTimer(duration, display) {
+            let timer = duration, minutes, seconds;
+            setInterval(function () {
+                minutes = parseInt(timer / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    timer = duration;
+                }
+            }, 1000);
+        }
+
+        window.onload = function() {
+            showPopup();
+            const fiveMinutes = 60 * 5,
+                display = document.querySelector('#timer');
+            startTimer(fiveMinutes, display);
+        };
+
         setTimeout(() => {
-            fetchFutureData(); // Fetch once after initial delay
-            setInterval(fetchFutureData, pollingInterval); // Then continue polling every minute
-        }, initialDelay);
+            fetchFutureData(); // Einmaliges Abrufen nach der initialen Verzögerung
+            setInterval(fetchFutureData, pollingInterval); // Dann alle Minute erneut abrufen
+        }, delayInterval);
     </script>
 </body>
 </html>
