@@ -1,0 +1,7 @@
+DATABASES:
+  default:
+    NAME: "enviornmentalDB"
+    USER: "postgres"
+    PASSWORD: ""
+    HOST: "localhost"
+    PORT: "5432"

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rückmeldung zur Vorhersage</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 500px;
+        }
+        .error-message {
+            color: #ff0000; /* Red color for error messages */
+            font-size: 18px;
+            margin-top: 20px;
+        }
+        .button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f472b6;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 400;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #ec4899;
+        }
+        .radio-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Feedback zur Vorhersagegenauigkeit</h1>
+        {% if predictions %}
+        <form action="/feedback" method="post">
+            <div>
+                <h3>Temperatur: {{ predictions.temperature }}</h3>
+                <input type="hidden" name="temperature" value="{{ predictions.temperature }}">
+            </div>
+            <div>
+                <h3>Luftfeuchtigkeit: {{ predictions.humidity }}</h3>
+                <input type="hidden" name="humidity" value="{{ predictions.humidity }}">
+            </div>
+            <div>
+                <h3>CO2: {{ predictions.co2 }}</h3>
+                <input type="hidden" name="co2" value="{{ predictions.co2 }}">
+            </div>
+            <div>
+                <h3>Außentemperatur: {{ predictions.outdoor_temperature }}</h3>
+                <input type="hidden" name="outdoor_temperature" value="{{ predictions.outdoor_temperature }}">
+            </div>
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="accurate_prediction" value="1" checked> Korrekt
+                </label>
+                <label>
+                    <input type="radio" name="accurate_prediction" value="0"> Nicht korrekt
+                </label>
+            </div>
+            <button type="submit" class="button">Feedback senden</button>
+        </form>
+        {% else %}
+        <div class="error-message">
+            Keine Vorhersagen verfügbar. Bitte versuchen Sie es später erneut.
+        </div>
+        <button onclick="window.location.href='/'" class="button">Zurück zur Startseite</button>
+        {% endif %}
+    </div>
+</body>
+</html>
