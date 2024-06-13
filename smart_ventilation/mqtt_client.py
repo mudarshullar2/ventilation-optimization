@@ -12,7 +12,7 @@ import datetime as dt
 from api_config_loader import load_api_config
 
 # Pfad zu YAML-Konfigurationsdatei
-config_file_path = '/Users/mudarshullar/Desktop/ventilation-optimization/api_config.yaml'
+config_file_path = 'api_config.yaml'
 db_config_path = 'smart_ventilation/db/db_config.yaml'
 db = load_config(db_config_path)
 
@@ -56,8 +56,8 @@ class MQTTClient:
 
         self.conn = connect_to_database(db)
 
-        logistic_regression_model, _ = joblib.load('smart_ventilation/Models1/Logistic_Regression.pkl')
-        random_forest_model = joblib.load('smart_ventilation/Models1/Random_Forest.pkl')
+        logistic_regression_model, _ = joblib.load('smart_ventilation/models/Logistic_Regression.pkl')
+        random_forest_model = joblib.load('smart_ventilation/models/Random_Forest.pkl')
 
         self.models = {
             'Logistic Regression': logistic_regression_model,
