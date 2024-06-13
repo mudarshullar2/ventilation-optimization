@@ -1,0 +1,77 @@
+/* Globales Zurücksetzen */
+body, html {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #333; /* Dunkler Hintergrund */
+    color: #ffffff; /* Heller Text */
+}
+
+/* Inhalts-Wrapper */
+.content {
+    text-align: center;
+    padding: 20px;
+    border: 2px solid #3498db;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* Leicht angehoben */
+    background-color: #444; /* Dunklerer Hintergrund für Inhalt */
+    max-width: 400px;
+    margin: 20px auto; /* Inhalt horizontal zentrieren */
+}
+
+h1 {
+    color: #3498db; /* Akzentfarbe für Überschrift */
+}
+
+label {
+    font-weight: bold;
+    color: #ffffff; /* Weißer Text für Label */
+}
+
+input[type="text"],
+input[type="email"],
+textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    background-color: #666; /* Dunklerer Hintergrund für Eingabe */
+    color: #ffffff; /* Weißer Text für Eingabe */
+}
+
+input[type="submit"] {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+input[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Button-Stile */
+.button {
+    display: inline-block;
+    padding: 10px 20px;
+    margin-top: 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background-color: #3498db;
+    color: #ffffff;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover {
+    background-color: #2980b9;
+}

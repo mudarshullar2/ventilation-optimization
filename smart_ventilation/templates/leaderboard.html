@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environmental Data Leaderboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            color: white;
+        }
+        header {
+            background-color: transparent;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+        h1, h2 {
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+        .button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f472b6; /* Pink button */
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 400;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #ec4899; /* Darker pink on hover */
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            color: black; /* Ensure text color is black */
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .sensor-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px; /* Spacing between boxes */
+        }
+        .sensor-box {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 20px;
+            width: 200px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center; /* Center align text */
+            display: flex;
+            flex-direction: column; /* Stack label and data vertically */
+            align-items: center; /* Align items to the center */
+            justify-content: center;
+        }   
+        .sensor-label {
+            font-weight: bold;
+            margin-bottom: 10px; /* Space between label and data */
+        }
+        .sensor-data {
+            font-weight: normal; /* Ensure data is not bold */
+        }
+        /* Responsive adjustments */
+        @media (max-width: 600px) {
+            .sensor-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .sensor-box {
+                width: 90%; /* Full width on smaller screens */
+            }
+        }
+        .green { color: green; }
+        .yellow { color: orange; }
+        .red { color: red; }
+        th, td {
+            text-align: center;
+        }
+        .positive-feedback {
+            color: green;
+            font-weight: bold;
+        }
+        .negative-feedback {
+            color: red;
+            font-weight: bold;
+        }
+        .neutral-feedback {
+            color: orange;
+            font-weight: bold;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .timer {
+            font-size: 2em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Umweltdaten Leaderboard</h1>
+        
+        <!-- Zurück-Button -->
+        <button onclick="window.location.href='/'" class="button mb-4">Zurück zur Hauptseite</button>
+
+        <div id="timer" class="timer">05:00</div>
+        
+        {% if not error %}
+        <h2>Umweltdaten vor der Empfehlung des Systems</h2>
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>CO2-Werte</th>
+                    <th>Temperatur</th>
+                    <th>Luftfeuchtigkeit</th>
+                </tr>
+            </thead>
+            <tbody id="current-data-body">
+                {% if current_data %}
+                    {% for data in current_data %}
+                        <tr>
+                            <td id="current-co2">{{ data.co2_values }}</td>
+                            <td id="current-temperature">{{ data.temperature }}</td>
+                            <td id="current-humidity">{{ data.humidity }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6">Keine Daten verfügbar.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        <h2>Umweltdaten nach der Empfehlung des Systems (5 Minuten später)</h2>
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>CO2-Werte</th>
+                    <th>Temperatur</th>
+                    <th>Luftfeuchtigkeit</th>
+                </tr>
+            </thead>
+            <tbody id="future-data-body">
+                {% if future_data %}
+                    {% for data in future_data %}
+                        <tr>
+                            <td>{{ data.timestamp }}</td>
+                            <td id="future-co2">{{ data.co2_values }}</td>
+                            <td id="future-temperature">{{ data.temperature }}</td>
+                            <td id="future-humidity">{{ data.humidity }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6">Zukünftige Daten werden hier angezeigt, sobald sie verfügbar sind.</td>
+                    {% endif %}
+                    </tr>
+            </tbody>
+        </table>
+
+        <h2>Vergleichsdaten</h2>
+        <table class="table table-striped">
+            <thead class="table-dark">
+                <tr>
+                    <th>Metrik</th>
+                    <th>Prozentuale Änderungen</th>
+                </tr>
+            </thead>
+            <tbody id="comparison-data-body">
+                <tr>
+                    <td>CO2-Werte</td>
+                    <td id="comparison-co2">-</td>
+                </tr>
+                <tr>
+                    <td>Temperatur</td>
+                    <td id="comparison-temperature">-</td>
+                </tr>
+                <tr>
+                    <td>Luftfeuchtigkeit</td>
+                    <td id="comparison-humidity">-</td>
+                </tr>
+            </tbody>
+        </table>
+        {% else %}
+        <div class="error-message">
+            Keine Vorhersagen verfügbar. Bitte versuchen Sie es später erneut.
+        </div>
+        <button onclick="window.location.href='/'" class="button">Zurück zur Startseite</button>
+        {% endif %}
+    </div>
+
+    <div id="popup" class="modal">
+        <div class="modal-content">
+            <h2>Hallo!</h2>
+            <p>Danke, dass Sie der Entscheidung des Systems gefolgt sind. 
+                Gute Raumluftqualität ist wichtig für die Gesundheit der Schülerinnen und Schüler. 
+                Bitte bleiben Sie auf dieser Seite, 
+                um die Verbesserung der Raumluftqualität in Ihrem Klassenzimmer vor 
+                und nach der Entscheidung des Systems zu überwachen!</p>
+            <button onclick="closePopup()" class="button">OK</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const adjustedDateStr = "{{ adjusted_date_str }}";
+        const delayInterval = 1 * 60 * 1000; // Initiale Verzögerung in Millisekunden (5 Minuten)
+        const pollingInterval = 60 * 1000; // Abfrageintervall in Millisekunden (1 Minute)
+        const clearSessionDelay = 60 * 1000; // Verzögerung vor dem Löschen der Sitzung (1 Minute)
+
+        function fetchFutureData() {
+            fetch(`/future_data/${adjustedDateStr}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        console.error('Fehler beim Abrufen der Daten:', data.error);
+                        return;
+                    }
+
+                    if (data.co2_values === null && data.temperature === null && data.humidity === null && data.outdoor_temperature === null && data.tvoc_values === null) {
+                        console.info('Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.');
+                        const futureDataBody = document.getElementById('future-data-body');
+                        futureDataBody.innerHTML = `
+                            <tr>
+                                <td colspan="6">Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.</td>
+                            </tr>
+                        `;
+                        return;
+                    }
+
+                    const futureDataBody = document.getElementById('future-data-body');
+                    futureDataBody.innerHTML = `
+                        <tr>
+                            <td id="future-co2">${data.co2_values}</td>
+                            <td id="future-temperature">${data.temperature}</td>
+                            <td id="future-humidity">${data.humidity}</td>
+                        </tr>
+                    `;
+
+                    updateComparisonData();
+
+                    // Sitzung nach Anzeige der zukünftigen Daten löschen
+                    setTimeout(clearSession, clearSessionDelay);
+                })
+                .catch(error => console.error('Fehler beim Abrufen der Daten:', error));
+        }
+
+        function updateComparisonData() {
+            const currentCO2 = parseFloat(document.getElementById('current-co2').innerText);
+            const currentTemperature = parseFloat(document.getElementById('current-temperature').innerText);
+            const currentHumidity = parseFloat(document.getElementById('current-humidity').innerText);
+
+            const futureCO2 = parseFloat(document.getElementById('future-co2').innerText);
+            const futureTemperature = parseFloat(document.getElementById('future-temperature').innerText);
+            const futureHumidity = parseFloat(document.getElementById('future-humidity').innerText);
+
+            const co2Change = calculatePercentageChange(currentCO2, futureCO2);
+            const temperatureChange = calculatePercentageChange(currentTemperature, futureTemperature);
+            const humidityChange = calculatePercentageChange(currentHumidity, futureHumidity);
+
+            updateComparisonRow('comparison-co2', co2Change);
+            updateComparisonRow('comparison-temperature', temperatureChange);
+            updateComparisonRow('comparison-humidity', humidityChange);
+        }
+
+        function calculatePercentageChange(current, future) {
+            if (isNaN(current) || isNaN(future) || current === 0) {
+                return 0;
+            }
+            return ((future - current) / current) * 100;
+        }
+
+        function updateComparisonRow(elementId, change) {
+            const element = document.getElementById(elementId);
+            element.innerText = `${change.toFixed(2)}%`;
+            
+            element.classList.remove('positive-feedback', 'negative-feedback', 'neutral-feedback');
+
+            if (change < 0) {
+                element.classList.add('positive-feedback');
+                element.innerHTML += ' <span>👍 Sehr Gut!</span>';
+            } else if (change > 0) {
+                element.classList.add('negative-feedback');
+                element.innerHTML += ' <span>⚠️ Die Luftqualität wird schlechter. Bitte überprüfen Sie, ob alle Fenster geöffnet sind.</span>';
+            } else {
+                element.classList.add('neutral-feedback');
+                element.innerHTML += ' <span>🔄 Keine Änderung. Bitte weiterhin aufmerksam bleiben.</span>';
+            }
+        }
+
+        function clearSession() {
+            fetch('/clear_session')
+                .then(response => response.text())
+                .then(data => {
+                    console.log(data);
+                    window.location.reload();
+                })
+                .catch(error => console.error('Fehler beim Löschen der Sitzung:', error));
+        }
+
+        function isErrorMessagePresent() {
+            return document.querySelector('.error-message') !== null;
+        }
+
+        function showPopup() {
+            if (!isErrorMessagePresent()) {
+                const popup = document.getElementById('popup');
+                popup.style.display = 'block';
+            }
+        }
+
+        function closePopup() {
+            const popup = document.getElementById('popup');
+            popup.style.display = 'none';
+        }
+
+        function startTimer(duration, display) {
+            if (!isErrorMessagePresent()) {
+                let timer = duration, minutes, seconds;
+                setInterval(function () {
+                    minutes = parseInt(timer / 60, 10);
+                    seconds = parseInt(timer % 60, 10);
+
+                    minutes = minutes < 10 ? "0" + minutes : minutes;
+                    seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                    display.textContent = minutes + ":" + seconds;
+
+                    if (--timer < 0) {
+                        timer = duration;
+                    }
+                }, 1000);
+            }
+        }
+
+        window.onload = function() {
+            showPopup();
+            const fiveMinutes = 60 * 5,
+                display = document.querySelector('#timer');
+            startTimer(fiveMinutes, display);
+        };
+
+        setTimeout(() => {
+            fetchFutureData(); // Einmaliges Abrufen nach der initialen Verzögerung
+            setInterval(fetchFutureData, pollingInterval); // Dann alle Minute erneut abrufen
+        }, delayInterval);
+
+    </script>
+</body>
+</html>
