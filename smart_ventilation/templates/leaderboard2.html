@@ -337,9 +337,15 @@
                 .catch(error => console.error('Fehler beim Löschen der Sitzung:', error));
         }
 
+        function isErrorMessagePresent() {
+            return document.querySelector('.error-message') !== null;
+        }
+
         function showPopup() {
-            const popup = document.getElementById('popup');
-            popup.style.display = 'block';
+            if (!isErrorMessagePresent()) {
+                const popup = document.getElementById('popup');
+                popup.style.display = 'block';
+            }
         }
 
         function closePopup() {
@@ -348,20 +354,22 @@
         }
 
         function startTimer(duration, display) {
-            let timer = duration, minutes, seconds;
-            setInterval(function () {
-                minutes = parseInt(timer / 60, 10);
-                seconds = parseInt(timer % 60, 10);
+            if (!isErrorMessagePresent()) {
+                let timer = duration, minutes, seconds;
+                setInterval(function () {
+                    minutes = parseInt(timer / 60, 10);
+                    seconds = parseInt(timer % 60, 10);
 
-                minutes = minutes < 10 ? "0" + minutes : minutes;
-                seconds = seconds < 10 ? "0" + seconds : seconds;
+                    minutes = minutes < 10 ? "0" + minutes : minutes;
+                    seconds = seconds < 10 ? "0" + seconds : seconds;
 
-                display.textContent = minutes + ":" + seconds;
+                    display.textContent = minutes + ":" + seconds;
 
-                if (--timer < 0) {
-                    timer = duration;
-                }
-            }, 1000);
+                    if (--timer < 0) {
+                        timer = duration;
+                    }
+                }, 1000);
+            }
         }
 
         window.onload = function() {
@@ -375,6 +383,7 @@
             fetchFutureData(); // Einmaliges Abrufen nach der initialen Verzögerung
             setInterval(fetchFutureData, pollingInterval); // Dann alle Minute erneut abrufen
         }, delayInterval);
+        
     </script>
 </body>
 </html>
