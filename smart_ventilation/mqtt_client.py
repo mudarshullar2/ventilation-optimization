@@ -164,8 +164,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 5 Minuten warten
-            time.sleep(300)
+            # 30 Minuten warten
+            time.sleep(1800)
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -207,7 +207,7 @@ class MQTTClient:
                 except Exception as e:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 5 Minuten wurden keine Daten gesammelt.")
+                logging.info("In den letzten 30 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -251,7 +251,7 @@ class MQTTClient:
             try:
                 if all(data_point.get(key) is not None for key in ['time', 'co2', 'temperature', 'humidity']):
                     query = """
-                        INSERT INTO classroom_environment_data
+                        INSERT INTO classroom_environmental_data
                         (timestamp, co2_values, temperature, 
                         humidity, classroom_number)
                         VALUES (%s, %s, %s, %s, %s)
@@ -290,7 +290,7 @@ class MQTTClient:
                     AVG(co2_values) as co2_values, 
                     AVG(temperature) as temperature, 
                     AVG(humidity) as humidity
-                FROM classroom_environment_data 
+                FROM classroom_environmental_data 
                 WHERE 
                     timestamp > CAST(%s AS timestamp); 
                 """
@@ -339,7 +339,7 @@ class MQTTClient:
                         AVG(co2_values) as co2_values,
                         AVG(temperature) as temperature,
                         AVG(humidity) as humidity
-                    FROM classroom_environment_data
+                    FROM classroom_environmental_data
                     WHERE timestamp > CAST(%s AS timestamp);
                 """
                 logging.info(f"Executing query with timestamp: {timestamp}")
