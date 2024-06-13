@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Kontaktiere uns</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/contact-styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            color: white;
+        }
+        header {
+            background-color: transparent;
+            padding: 20px;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+            text-align: center;
+        }
+        h1, h2 {
+            font-weight: 600;
+            margin: 10px 0;
+        }
+        p {
+            font-size: 16px;
+            line-height: 1.5;
+            font-weight: 300;
+        }
+        .button {
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f472b6; /* Pink button */
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 400;
+            display: inline-block;
+            text-decoration: none;
+        }
+        .button:hover {
+            background-color: #ec4896; /* Darker pink on hover */
+        }
+        img {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        .contact-card {
+            background-color: #ffffff;
+            color: #333;
+            margin-bottom: 10px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: left;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .sub-title {
+            font-size: 14px;
+            font-weight: 400;
+        }
+        a {
+            color: #3b73f6;
+            font-weight: 400;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Stadtwerke Potsdam GmbH Logo">
+    </header>
+    <div class="container">
+        <h1>Kontaktieren Sie uns</h1>
+        <p><strong>Haben Sie irgendwelche Fragen oder Beschwerden? Dann schreiben Sie uns unter:</strong></p>
+        <div class="contact-card">
+            <h2>Andreas Becker</h2>
+            <p class="sub-title">Stadtwerke Potsdam</p>
+            <p><a href="mailto:Andreas.Becker@swp-potsdam.de">Andreas.Becker@swp-potsdam.de</a></p>
+        </div>
+        <div class="contact-card">
+            <h2>Mudar Shullar</h2>
+            <p><a href="mailto:shullar@uni-potsdam.de">shullar@uni-potsdam.de</a></p>
+        </div>
+        <a href="/" class="button">Zurück zur Startseite</a>
+    </div>
+</body>
+</html>
