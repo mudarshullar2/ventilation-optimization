@@ -40,7 +40,7 @@
             margin-top: 20px;
             border: none;
             border-radius: 8px;
-            background-color: #f472b6; /* Pink button */
+            background-color: #f472b6;
             color: white;
             cursor: pointer;
             transition: background-color 0.3s ease;
@@ -49,7 +49,7 @@
             text-decoration: none;
         }
         .button:hover {
-            background-color: #ec4899; /* Darker pink on hover */
+            background-color: #ec4899;
         }
         .modal {
             display: none;
@@ -75,7 +75,7 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 20px; /* Spacing between boxes */
+            gap: 20px;
         }
         .sensor-box {
         background: rgba(255, 255, 255, 0.2);
@@ -83,27 +83,27 @@
         padding: 20px;
         width: 200px;
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        text-align: center; /* Center align text */
+        text-align: center;
         display: flex;
-        flex-direction: column; /* Stack label and data vertically */
-        align-items: center; /* Align items to the center */
+        flex-direction: column;
+        align-items: center;
         justify-content: center;
         }   
         .sensor-label {
             font-weight: bold;
-            margin-bottom: 10px; /* Space between label and data */
+            margin-bottom: 10px;
         }
         .sensor-data {
-            font-weight: normal; /* Ensure data is not bold */
+            font-weight: normal;
         }
-        /* Responsive adjustments */
+
         @media (max-width: 600px) {
             .sensor-container {
                 flex-direction: column;
                 align-items: center;
             }
             .sensor-box {
-                width: 90%; /* Full width on smaller screens */
+                width: 90%;
             }
         }
         .green { color: green; }
@@ -136,7 +136,7 @@
             <h2>Sensordaten</h2>
             <div class="sensor-container">
                 {% macro determine_class(value, low_threshold, high_threshold) %}
-                    {% set numeric_value = value|float %}  <!-- Convert value to float for comparison -->
+                    {% set numeric_value = value|float %}
                     {% if numeric_value < low_threshold %}
                         green
                     {% elif numeric_value <= high_threshold %}
@@ -152,7 +152,7 @@
                         <div class="sensor-data">{{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] }}</div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('temperature', [22])[-1], 20, 21) }}">
-                        <strong>Temperatur</strong>
+                        <strong>Innenraumtemperatur</strong>
                         <div class="sensor-data">
                             {{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C
                         </div>
@@ -194,9 +194,9 @@
                             {% endif %}
                         </div>
                     </div>
-                    <!-- New div for Random Forest value -->
+                    
                     <div class="sensor-box" id="random-forest-div">
-                        <strong>Dauer der Lüftung</strong>
+                        <strong>Notwendige Zeit zur Lüftung beträgt</strong>
                         <div class="sensor-data" id="random-forest-value">
                             {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
                             {% set lr_prediction_forest = predictions.get('Random Forest', None) %}
@@ -216,7 +216,7 @@
         
         <section>
             <form method="post" action="/leaderboard">
-                <button type="submit" class="button">Following the system's instructions</button>
+                <button type="submit" class="button">Empfehlungen folgen!</button>
             </form>
         </section>
 
@@ -226,12 +226,11 @@
             <button class="button" onclick="window.location.href=`{{ url_for('contact') }}`;">Kontakt</button>
         </section>              
 
-        <!-- New section for Design Auswählen button -->
-        <section style="text-align: center;"> <!-- Ensure center alignment like other sections -->
+        
+        <section style="text-align: center;">
             <button class="button" onclick="openDesignModal()">Design Auswählen</button>
         </section>
 
-        <!-- Design Selection Modal -->
         <div id="designModal" class="modal">
             <div class="modal-content">
                 <h2>Wählen Sie ein Design</h2>
@@ -241,7 +240,6 @@
             </div>
         </div>
 
-        <!-- Modal for selecting themes -->
         <div id="designModal" class="modal">
             <div class="modal-content">
                 <span onclick="closeModal('designModal')" style="float:right; cursor:pointer;">&times;</span>
@@ -263,7 +261,6 @@
         function updateTextColor() {
             var bodyBackgroundColor = document.body.style.backgroundColor;
             var bodyColor = document.body.style.color;
-            // Sicherstellen, dass die Textfarbe mit der Hintergrundfarbe kontrastiert
             if (bodyBackgroundColor === '#333') {
                 // Dunkler Hintergrund, Text auf helle Farbe setzen
                 document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
@@ -286,8 +283,7 @@
             fetch("/predictions")
                 .then(response => response.json())
                 .then(predictions => {
-                    console.log("Received predictions:", predictions); // This line is for debugging
-                    // Show the Random Forest div if Logistic Regression is 1
+                    console.log("Received predictions:", predictions);
                     document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
                     if (predictions["Logistic Regression"] == 1) {
                         console.log("Logistic Regression returned 1. Displaying Random Forest value.");
@@ -317,6 +313,7 @@
                 setTheme('theme-dark');
             }
         }
+
         // Sofort aufgerufene Funktion zum Festlegen des Themas beim Initialisieren
         (function () {
             if (localStorage.getItem('theme') === 'theme-dark') {
@@ -336,7 +333,6 @@
             closeModal('designModal');
         }
     </script>
-    <!-- Link to external JavaScript for theme handling -->
     <script src="{{ url_for('static', filename='js/theme-handler.js') }}"></script>
 </body>
 </html>
