@@ -8,15 +8,18 @@ from api_config_loader import load_api_config
 from datetime import datetime, timedelta
 import secrets
 import numpy as np
+import os
 
 
 logging.basicConfig(level=logging.INFO)
+base_dir = os.path.abspath(os.path.dirname(__file__))
+static_folder = os.path.join(base_dir, 'static')
 
-app = Flask(__name__, static_folder='/Users/mudarshullar/Desktop/ventilation-optimization/smart_ventilation/static')
+app = Flask(__name__, static_folder=static_folder)
 app.secret_key = secrets.token_hex(16)
 
 # Pfad zu YAML-Konfigurationsdatei
-config_file_path = '/Users/mudarshullar/Desktop/ventilation-optimization/api_config.yaml'
+config_file_path = 'smart_ventilation/api_config.yaml'
 
 # API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)
@@ -107,6 +110,7 @@ def plots():
     sensor_data = mqtt_client.get_latest_sensor_data()
 
     if sensor_data: 
+
         # Listen vorbereiten, um gefilterte Daten zu sammeln
         co2_data = [data.get('co2', None) for data in sensor_data]
         temperature_data = [data.get('temperature', None) for data in sensor_data]
@@ -133,14 +137,14 @@ def plots():
         )
     
     else:
-        # Prepare empty data sets for the plots
+        # Leere Datensätze für die Diagramme vorbereiten
         co2_data = []
         temperature_data = []
         humidity_data = []
         tvoc_data = []
         time_data = []
 
-        # Render the template with empty data sets
+        # Template mit leeren Datensätzen rendern
         return render_template(
             "plots.html",
             co2_data=co2_data,
@@ -214,7 +218,6 @@ def feedback():
             if response.status_code == 200:
                 last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
                 logging.info(f"last_prediciton in feedback(): {last_prediction}")
-                #session['last_prediction'] = last_prediction
 
                 if isinstance(last_prediction, np.integer):
                     last_prediction = int(last_prediction)
@@ -222,17 +225,17 @@ def feedback():
                     last_prediction = int(last_prediction)
 
                 session['last_prediction'] = last_prediction
-                session.permanent = True  # Mark the session as permanent
+                session.permanent = True  # Sitzung als permanent markieren
 
                 # latest_predictions löschen, um Speicherplatz freizugeben
                 mqtt_client.latest_predictions = {}
                 return render_template('thank_you.html')
             else:
-                return jsonify({"message": "Keine Rückmeldung übermittelt", "status": response.status_code, "response": response.text}), 400
+                return jsonify({"Meldung": "Keine Rückmeldung übermittelt", "status": response.status_code, "response": response.text}), 400
 
         except Exception as e:
             logging.error(f"Ein unerwarteter Fehler ist aufgetreten:: {e}")
-            return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500
+            return jsonify({"Meldung": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500
         
     else:
         try:
@@ -251,7 +254,11 @@ def feedback():
 
 
 def get_data(timestamp):
-    """Utility function to fetch data for a given timestamp."""
+
+    """
+    Utility-Funktion zum Abrufen von Daten für einen bestimmten Zeitstempel
+    """
+
     try:
         return mqtt_client.fetch_data(timestamp)
     except Exception as e:
@@ -264,39 +271,50 @@ def leaderboard():
     try:
         if request.method == "POST":
             predictions = mqtt_client.latest_predictions.get("Logistic Regression")
-            logging.info(f"prediction in leaderboard: {predictions}")
+            logging.info(f"Vorhersage im Leaderboard: {predictions}")
 
-            if predictions is None:  # Explicitly check for None
+            # Explizite Prüfung auf None
+            if predictions is None:
                 last_prediction = session.get('last_prediction')
                 logging.info(f"last_prediction in leaderboard {last_prediction}")
-                if last_prediction is not None:
-                    predictions = last_prediction  # Ensure predictions are retrieved from the session
 
-                if predictions is None:  # Explicitly check for None again
-                    logging.error("No predictions available in both latest_predictions and session")
+                if last_prediction is not None:
+                    predictions = last_prediction  # scherstellen, dass Vorhersagen aus der Sitzung abgerufen werden
+
+                if predictions is None:  # Nochmals explizit auf None prüfen
+                    logging.error("Keine Vorhersagen verfügbar in latest_predictions und session")
+
                     return render_template('leaderboard.html', error=True)
             
             if 'last_prediction' not in session:
+
                 last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
+
                 if isinstance(last_prediction, np.integer):
                     last_prediction = int(last_prediction)
+                
                 elif not isinstance(last_prediction, int):
                     last_prediction = int(last_prediction)
+                
                 session['last_prediction'] = last_prediction
             
             if 'current_data' not in session:
+                
                 combined_data = mqtt_client.combined_data
                 logging.info(f"combined_data in leaderboard: {combined_data}")
+
                 latest_date = combined_data["time"][-1]
-                logging.info(f"latest_data: within leaderboard function {latest_date}")
+                logging.info(f"latest_data: innerhalb der Leaderboard-Funktion {latest_date}")
                 
                 latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
+
                 adjusted_date = latest_date - timedelta(minutes=1)
                 adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
-                logging.info(f"Adjusted date: {adjusted_date_str}")
+                
+                logging.info(f"Angepasstes Datum: {adjusted_date_str}")
 
                 current_data = get_data(adjusted_date_str)
-                logging.info(f"latest current_data within leaderboard function: {current_data}")
+                logging.info(f"letzte current_data in der Leaderboard-Funktion: {current_data}")
                 
                 formatted_current_data = [{
                     'timestamp': current_data.get('timestamp'),
@@ -307,35 +325,44 @@ def leaderboard():
 
                 session['latest_date'] = adjusted_date_str
                 logging.info(f"session['latest_date'] {session['latest_date']}")
+
                 session['current_data'] = formatted_current_data
                 logging.info(f"session['current_data']  {session['current_data'] }")
-                session.permanent = True  # Mark the session as permanent
+                
+                session.permanent = True
 
             else:
+
                 formatted_current_data = session['current_data']
                 adjusted_date_str = session['latest_date']
 
             if predictions == 1:
                 return render_template('leaderboard2.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
+            
             else:
                 return render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
 
         elif request.method == "GET":
+
             adjusted_date_str = session.get('latest_date')
             logging.info(f"session['latest_date'] {session['latest_date']}")
+            
             current_data = session.get('current_data')
             logging.info(f"session['current_data']  {session['current_data'] }")
-            predictions = session.get('last_prediction')  # Retrieve predictions from the session
+            
+            predictions = session.get('last_prediction')  # Vorhersagen aus der Sitzung abrufen
 
             if not adjusted_date_str or not current_data:
-                logging.error("No data available in session, please make a prediction first")
+
+                logging.error("Keine Daten in der Sitzung verfügbar, bitte erst eine Vorhersage machen")
                 return "Keine Daten verfügbar, bitte führen Sie eine Vorhersage durch.", 400
 
             future_data_response = get_future_data(adjusted_date_str)
             if future_data_response.status_code != 200:
                 return future_data_response
+            
             future_data = future_data_response.get_json()
-            logging.info(f"latest future_data within leaderboard function: {future_data}")
+            logging.info(f"aktuellste future_data innerhalb der Leaderboard-Funktion: {future_data}")
 
             formatted_future_data = [{
                 'timestamp': future_data.get('timestamp'),
@@ -346,10 +373,12 @@ def leaderboard():
 
             if predictions == 1:
                 response = render_template('leaderboard2.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
+            
             else:
                 response = render_template('leaderboard.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
 
-            # Clear session data after using it
+            # Sitzungsdaten nach der Verwendung löschen
+
             session.pop('last_prediction_id', None)
             session.pop('latest_date', None)
             session.pop('current_data', None)
@@ -358,24 +387,29 @@ def leaderboard():
             return response
 
     except Exception as e:
+
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten:: {e}")
         return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500
 
     
 @app.route('/future_data/<timestamp>')
 def get_future_data(timestamp):
+
     try:
+
         last_prediction = session.get('last_prediction')
+
         if last_prediction is None:
-            logging.error("No prediction ID found in session")
-            return jsonify({"error": "No prediction ID found in session"}), 400
+            logging.error("Keine Vorhersage-ID in Sitzung gefunden")
+
+            return jsonify({"Error": "Keine Vorhersage-ID in Sitzung gefunden"}), 400
         
-        logging.info(f"Fetching future data for timestamp: {timestamp}")
+        logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {timestamp}")
         future_data = mqtt_client.fetch_future_data(timestamp)
         
         if not future_data:
-            logging.info(f"No future data available for timestamp: {timestamp}")
-            return jsonify({"error": "No future data available"}), 404
+            logging.info(f"Keine zukünftigen Daten für Zeitstempel verfügbar: {timestamp}")
+            return jsonify({"Error": "Keine zukünftigen Daten verfügbar"}), 404
         
         formatted_future_data = {
             'timestamp': future_data.get('timestamp'),
@@ -388,37 +422,45 @@ def get_future_data(timestamp):
         return jsonify(formatted_future_data)
     
     except Exception as e:
-        logging.error(f"Error fetching future data: {e}")
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Fehler beim Abrufen von Zukunftsdaten: {e}")
+        return jsonify({"Error": str(e)}), 500
 
 
 @app.route('/clear_session')
 def clear_session():
+
     try:
+
         session.clear()
-        return "Session data cleared successfully.", 200
+        return "Die Sitzungsdaten wurden erfolgreich gelöscht", 200
+    
     except Exception as e:
-        logging.error(f"Error clearing session data: {e}")
+
+        logging.error(f"Fehler beim Löschen von Sitzungsdaten: {e}")
         return jsonify({"error": str(e)}), 500
 
 
 @app.route('/thank_you')
 def thank_you():
+
     """
     Diese Funktion rendert die Dankeseite nach dem Absenden des Feedbacks.
     
     :return: gerenderte HTML-Seite
     """
+
     return render_template('thank_you.html')
 
 
 @app.route('/contact')
 def contact():
+
     """
     Diese Funktion rendert die Kontaktseite der Anwendung.
     
     :return: gerenderte HTML-Seite
     """
+    
     return render_template('contact.html')
 
 
