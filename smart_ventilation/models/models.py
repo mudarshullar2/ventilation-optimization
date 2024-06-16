@@ -339,12 +339,12 @@ def main(co2_last_30_days_path, co2_older_30_days_path, temp_last_30_days_path, 
 if __name__ == "__main__":
 
     main(
-        co2_last_30_days_path="smart_ventilation/dataset/10c_co2_last_30_days.csv",
-        co2_older_30_days_path="smart_ventilation/dataset/10c_co2_older_30_days.csv",
-        temp_last_30_days_path="smart_ventilation/dataset/10c_temp_last_30_days.csv",
-        temp_older_30_days_path="smart_ventilation/dataset/10c_temp_older_30_days.csv",
-        outdoor_temp_path="smart_ventilation/dataset/outdoor_temperature.txt",
-        main_dataset_path="smart_ventilation/dataset/dataset.xlsx",
-        final_dataset_path="smart_ventilation/dataset/final_dataset.xlsx",
-        models_directory="smart_ventilation/models"
+        co2_last_30_days_path="dataset/10c_co2_last_30_days.csv",
+        co2_older_30_days_path="dataset/10c_co2_older_30_days.csv",
+        temp_last_30_days_path="dataset/10c_temp_last_30_days.csv",
+        temp_older_30_days_path="dataset/10c_temp_older_30_days.csv",
+        outdoor_temp_path="dataset/outdoor_temperature.txt",
+        main_dataset_path="dataset/dataset.xlsx",
+        final_dataset_path="dataset/final_dataset.xlsx",
+        models_directory="models"
     )
