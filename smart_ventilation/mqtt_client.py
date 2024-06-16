@@ -9,6 +9,7 @@ import json
 import logging
 import time
 import datetime as dt
+from datetime import datetime
 from api_config_loader import load_api_config
 
 # Pfad zu YAML-Konfigurationsdatei
@@ -59,7 +60,7 @@ class MQTTClient:
 
         self.conn = connect_to_database(db)
 
-        logistic_regression_model, _ = joblib.load('smart_ventilation/models/Logistic_Regression.pkl')
+        logistic_regression_model = joblib.load('smart_ventilation/models/Logistic_Regression.pkl')
         random_forest_model = joblib.load('smart_ventilation/models/Random_Forest.pkl')
 
         self.models = {
@@ -186,7 +187,7 @@ class MQTTClient:
         
         while self.thread_alive:
             # 1 Minuten warten
-            time.sleep(60)
+            time.sleep(300)
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -202,14 +203,18 @@ class MQTTClient:
                     avg_data['avg_time'] = avg_time.timestamp()
                     logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
 
+                    avg_data['hour'] = avg_time.hour
+                    avg_data['day_of_week'] = avg_time.dayofweek
+                    avg_data['month'] = avg_time.month
+
                     # Merkmale für die Vorhersage vorbereiten
                     features_df = pd.DataFrame([avg_data])
                     logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
                     
                     # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
-                    correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp']
+                    correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
                     features_df = features_df[correct_order]
-                    features_array = features_df.to_numpy()
+                    features_array = features_df
 
                     # Vorhersagen mit jedem Modell erstellen
                     predictions = {name: model.predict(features_array)[0] for name, model in self.models.items()}
@@ -426,6 +431,51 @@ class MQTTClient:
             finally:
                 # Cursor muss nach dem Vorgang geschlossen werden
                 cursor.close()
+
+
+    def save_analysis_data(self, current_data, future_data, co2_change, temperature_change, humidity_change):
+        """
+        Speichert die aktuellen und zukünftigen Umweltdaten sowie die prozentualen Änderungen in der Datenbank.
+        
+        :param current_data: Aktuelle Umweltdaten
+        :param future_data: Zukünftige Umweltdaten
+        :param co2_change: Prozentuale Änderung des CO2-Wertes
+        :param temperature_change: Prozentuale Änderung der Temperatur
+        :param humidity_change: Prozentuale Änderung der Luftfeuchtigkeit
+        """
+        try:
+
+            cursor = self.conn.cursor()
+
+            query = """
+            INSERT INTO environmental_data_analysis (
+                    timestamp, current_co2, future_co2, co2_change, 
+                    current_temperature, future_temperature, temperature_change, 
+                    current_humidity, future_humidity, humidity_change
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+
+            logging.info(f"Statistische Auswertungen werden gespeichert!")
+
+            timestamp = datetime.now()
+            
+            values = (
+                timestamp,
+                current_data['co2_values'], future_data['co2_values'], co2_change,
+                current_data['temperature'], future_data['temperature'], temperature_change,
+                current_data['humidity'], future_data['humidity'], humidity_change
+            )
+            
+            cursor.execute(query, values)
+
+            self.conn.commit()
+
+            cursor.close()
+
+            logging.info("Data saved to environmental_data_analysis table successfully.")
+
+        except Exception as e:
+            logging.error(f"Error saving data to the database: {e}")
 
 
     def initialize(self):
