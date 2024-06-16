@@ -472,10 +472,10 @@ class MQTTClient:
 
             cursor.close()
 
-            logging.info("Data saved to environmental_data_analysis table successfully.")
+            logging.info("Daten in der Tabelle environmental_data_analysis erfolgreich gespeichert")
 
         except Exception as e:
-            logging.error(f"Error saving data to the database: {e}")
+            logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
 
 
     def initialize(self):

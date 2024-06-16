@@ -3,7 +3,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.linear_model import LogisticRegression
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import StandardScaler
 from imblearn.over_sampling import SMOTE
 from sklearn.pipeline import Pipeline
 from imblearn.pipeline import Pipeline
@@ -125,7 +125,8 @@ def merge_data(merged_df, df_outdoor_temp, data_set_ml, output_path):
 
 
 def feature_engineering(final_dataset):
-    # Add temporal features
+
+    # Zeitliche Aspekte hinzufügen
     def add_temporal_features(final_dataset):
         final_dataset['timestamp'] = pd.to_datetime(final_dataset['timestamp'])
         final_dataset['hour'] = final_dataset['timestamp'].dt.hour
@@ -133,7 +134,7 @@ def feature_engineering(final_dataset):
         final_dataset['month'] = final_dataset['timestamp'].dt.month
         return final_dataset
 
-    # Create the target variable `open_window` based on adjusted thresholds
+    #  Zielvariablen "open_window" auf der Grundlage der angepassten Schwellenwerte erstellen
     def create_open_window(final_dataset):
         adjusted_thresholds = {
             'co2': 1000,
@@ -160,11 +161,11 @@ def feature_engineering(final_dataset):
         final_dataset['open_window'] = (~adjusted_conditions).astype(int)
         return final_dataset
 
-    # Apply functions to add temporal features and create the target variable
+    # Funktionen anwenden, um zeitliche Merkmale hinzuzufügen und die Zielvariable zu erstellen
     final_dataset = add_temporal_features(final_dataset)
     final_dataset = create_open_window(final_dataset)
 
-    # Check class distribution
+    # Klassenverteilung prüfen
     print("Class distribution in 'open_window':")
     print(final_dataset['open_window'].value_counts())
 
@@ -185,21 +186,22 @@ def random_forest_classifier_model(final_dataset):
 
 
 def logistic_regression_model(final_dataset):
-    # Define features and target
+
+    # Merkmale und Ziel definieren
     X = final_dataset[['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']]
     y = final_dataset['open_window']
 
-    # Split the data
+    # Daten aufteilen
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
 
-    # Impute missing values and scale features
+    # Imputieren fehlender Werte und Skalieren von Merkmalen
     imputer = SimpleImputer(strategy='mean')
     scaler = StandardScaler()
 
-    # Define the logistic regression model
+    # logistische Regressionsmodell definieren
     model = LogisticRegression(random_state=42, class_weight='balanced')
 
-    # Create a pipeline
+    # eine Pipeline erstellen
     pipeline = Pipeline(steps=[
         ('imputer', imputer),
         ('scaler', scaler),
@@ -207,22 +209,22 @@ def logistic_regression_model(final_dataset):
         ('model', model)
     ])
 
-    # Fit the model
+    # Das Modell fitten
     pipeline.fit(X_train, y_train)
 
-    # Predict on the test set
+    # Vorhersage für den Testdatensatz
     y_pred = pipeline.predict(X_test)
 
-    # Evaluate the model
+    # Das Modell auswerten
     accuracy = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred)
     recall = recall_score(y_test, y_pred)
     roc_auc = roc_auc_score(y_test, y_pred)
 
-    print(f'Accuracy: {accuracy}')
+    print(f'Genauigkeit: {accuracy}')
     print(f'F1-Score: {f1}')
-    print(f'Precision: {precision}')
+    print(f'Präzision: {precision}')
     print(f'Recall: {recall}')
     print(f'ROC-AUC: {roc_auc}')
 
@@ -320,6 +322,7 @@ def save_models(models, directory):
         filename = f"{directory}/{name.replace(' ', '_')}.pkl"
         joblib.dump(model, filename)
         print(f"{name} gepsichert in {filename}")
+
 
 def main(co2_last_30_days_path, co2_older_30_days_path, temp_last_30_days_path, temp_older_30_days_path, outdoor_temp_path, main_dataset_path, final_dataset_path, models_directory):
     """
