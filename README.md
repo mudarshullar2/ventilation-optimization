@@ -1,8 +1,8 @@
-# Ventilation Enhancement Project
+# Projekt zur Optimierung des Lüftungsverhaltens in Schulen 
 
 ## Übersicht
 
-Das Ventilation Optimization Projekt bildet einen zentralen Bestandteil meiner Bachelorarbeit und wurde in Zusammenarbeit mit Stadtwerk Potsdam entwickelt. Stadtwerk Potsdam hat für dieses Projekt die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam. 
+Das Projekt bildet einen zentralen Bestandteil meiner Bachelorarbeit und wurde in Zusammenarbeit mit Stadtwerk Potsdam entwickelt. Stadtwerk Potsdam hat für dieses Projekt die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam.
 
 Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu treffen. Die Ergebnisse werden über eine benutzerfreundliche Webschnittstelle visualisiert und können interaktiv genutzt werden. Die technische Umsetzung erfolgt mittels Flask für das Web-Interface und MQTT für die Datenerfassung.
 
@@ -18,7 +18,9 @@ Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu tr
 Die Anforderungen sind in der Datei `requirements.txt` definiert. 
 Um alle erforderlichen Pakete zu installieren, führen Sie den folgenden Befehl aus:
 
+```
 pip install -r requirements.txt
+```
 
 ## Installation
 
@@ -33,7 +35,7 @@ pip install -r requirements.txt
 
     ```
     python -m venv venv
-    source venv/bin/activate   # Unter Windows: `venv\Scripts\activate`
+    source venv/bin/activate   # Für Windows: `venv\Scripts\activate`
     ```
 
 3. Erforderliche Pakete installieren:
@@ -47,8 +49,8 @@ pip install -r requirements.txt
 1. Stellen Sie sicher, dass Sie die Konfigurationsdatei `api_config.yaml` im Verzeichnis `smart-ventilation` mit der folgenden Struktur haben:
 
     ```
-    READ_API_KEY: "" # Ihr API-Schlüssel für Lesezugriff
-    POST_API SHOW_KEY: "" # Ihr API-Schlüssel für Schreibzugriff
+    READ_API_KEY: "" # API-Schlüssel für Lesezugriff
+    POST_API_KEY: "" # API-Schlüssel für Schreibzugriff
     API_BASE_URL: "" # Basis-URL der API
     CONTENT_TYPE: "" # Inhaltstyp, der bei API-Anfragen verwendet wird
     CLOUD_SERVICE_URL: "" # URL Ihres Cloud-Dienstes
@@ -63,7 +65,6 @@ Im Verzeichnis `smart-ventilations/models/` befinden sich die folgenden vorberei
 Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schnell in die Anwendung geladen und genutzt werden können:
 
 - `Logistic_Regression.pkl` — Ein Modell basierend auf der logistischen Regression.
-- `Decision_Tree.pkl` — Ein Entscheidungsbaummodell.
 - `Random_Forest.pkl` — Ein Modell, das auf dem Random-Forest-Algorithmus basiert.
 
 ## Anwendung starten
@@ -83,6 +84,10 @@ Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schne
 - `/feedback`: Ermöglicht es Benutzern, Feedback zu den Vorhersagen zu geben.
 - `/thank_you`: Zeigt eine Dankesseite nach dem Absenden des Feedbacks an.
 - `/contact`: Zeigt die Kontaktseite der Anwendung an.
+- `/leaderboard`: Zeigt die Bestenliste basierend auf den vorhergesagten Daten an.
+- `/future_data/<timestamp>`: Gibt die zukünftigen Daten für einen bestimmten Zeitstempel zurück.
+- `/save_analysis_data`: Speichert Analyse-Daten.
+- `/clear_session`: Löscht die Sitzungsdaten.
 
 ## Logging
 
@@ -94,6 +99,12 @@ Stellen Sie sicher, dass das Logging im `application.py`-Skript mit dem logging-
 Stellen Sie sicher, dass alle Pfade in `application.py` und `mqtt_client.py` korrekt gemäß Ihrer Projektstruktur gesetzt sind. 
 Die Anwendung geht davon aus, dass Sensordaten zu bestimmten MQTT-Themen veröffentlicht werden. 
 Passen Sie die Themen und die Datenverarbeitung in `mqtt_client.py` nach Bedarf an.
+
+## Fehlerbehebung
+
+Falls die Anwendung nicht startet, überprüfen Sie die Konsolenprotokolle auf Fehler bezüglich fehlender Konfigurationsdateien, Modelle oder Abhängigkeiten. 
+Stellen Sie sicher, dass Ihr MQTT-Broker läuft und mit den richtigen Anmeldeinformationen erreichbar ist.
+
 
 ## Fehlerbehebung
 
