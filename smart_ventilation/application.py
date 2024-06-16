@@ -426,6 +426,32 @@ def get_future_data(timestamp):
         return jsonify({"Error": str(e)}), 500
 
 
+@app.route('/save_analysis_data', methods=['POST'])
+def save_analysis_data():
+    try:
+        data = request.json
+        current_data = {
+            'co2_values': data['current_co2'],
+            'temperature': data['current_temperature'],
+            'humidity': data['current_humidity']
+        }
+        future_data = {
+            'co2_values': data['future_co2'],
+            'temperature': data['future_temperature'],
+            'humidity': data['future_humidity']
+        }
+        co2_change = data['co2_change']
+        temperature_change = data['temperature_change']
+        humidity_change = data['humidity_change']
+
+        mqtt_client.save_analysis_data(current_data, future_data, co2_change, temperature_change, humidity_change)
+
+        return jsonify({"message": "Data saved successfully"}), 200
+    except Exception as e:
+        logging.error(f"Error saving analysis data: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/clear_session')
 def clear_session():
 
