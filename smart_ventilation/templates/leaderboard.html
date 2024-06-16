@@ -300,6 +300,19 @@
             updateComparisonRow('comparison-co2', co2Change);
             updateComparisonRow('comparison-temperature', temperatureChange);
             updateComparisonRow('comparison-humidity', humidityChange);
+
+            saveAnalysisData({
+            current_co2: currentCO2,
+            future_co2: futureCO2,
+            co2_change: co2Change,
+            current_temperature: currentTemperature,
+            future_temperature: futureTemperature,
+            temperature_change: temperatureChange,
+            current_humidity: currentHumidity,
+            future_humidity: futureHumidity,
+            humidity_change: humidityChange
+            });
+
         }
 
         function calculatePercentageChange(current, future) {
@@ -325,6 +338,23 @@
                 element.classList.add('neutral-feedback');
                 element.innerHTML += ' <span>🔄 Keine Änderung. Bitte weiterhin aufmerksam bleiben.</span>';
             }
+        }
+
+        function saveAnalysisData(data) {
+            fetch('/save_analysis_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
         }
 
         function clearSession() {
