@@ -19,7 +19,7 @@ app = Flask(__name__, static_folder=static_folder)
 app.secret_key = secrets.token_hex(16)
 
 # Pfad zu YAML-Konfigurationsdatei
-config_file_path = 'smart_ventilation/api_config.yaml'
+config_file_path = 'api_config.yaml'
 
 # API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)
