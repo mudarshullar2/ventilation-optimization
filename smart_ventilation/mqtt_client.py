@@ -186,8 +186,8 @@ class MQTTClient:
             """
             
             while self.thread_alive:
-                # 1 Minuten warten
-                time.sleep(30)
+                # 25 Minuten warten
+                time.sleep(1500)
                 if self.data_points:
                     try:
                         # Deep Kopie der Datenpunkte erstellen
@@ -233,7 +233,7 @@ class MQTTClient:
                     except Exception as e:
                         logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
                 else:
-                    logging.info("In den letzten 1 Minuten wurden keine Daten gesammelt.")
+                    logging.info("In den letzten 25 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):

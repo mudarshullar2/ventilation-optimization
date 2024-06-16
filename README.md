@@ -13,9 +13,12 @@ Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu tr
 - Periodische Vorhersagen mit vortrainierten Machine-Learning Modellen.
 - Sammlung von Benutzerfeedback zu den Vorhersagen.
 
-## Anforderungen
+## Pythons Verison und Packages
 
-Die Anforderungen sind in der Datei `requirements.txt` definiert. 
+Dieses Projekt wurde mit Python 3.10.10 entwickelt. Es wird empfohlen, 
+diese Version zu verwenden, um Kompatibilitätsprobleme zu vermeiden.
+
+Die Packages sind in der Datei `requirements.txt` definiert. 
 Um alle erforderlichen Pakete zu installieren, führen Sie den folgenden Befehl aus:
 
 ```
