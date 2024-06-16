@@ -181,59 +181,59 @@ class MQTTClient:
 
     def run_periodic_predictions(self):
 
-        """
-        Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
-        """
-        
-        while self.thread_alive:
-            # 1 Minuten warten
-            time.sleep(300)
-            if self.data_points:
-                try:
-                    # Deep Kopie der Datenpunkte erstellen
-                    data_points_copy = copy.deepcopy(self.data_points)
-                    df = pd.DataFrame(data_points_copy)
-                    logging.info("DataFrame wurde erfolgreich erstellt.")
+            """
+            Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
+            """
+            
+            while self.thread_alive:
+                # 1 Minuten warten
+                time.sleep(30)
+                if self.data_points:
+                    try:
+                        # Deep Kopie der Datenpunkte erstellen
+                        data_points_copy = copy.deepcopy(self.data_points)
+                        df = pd.DataFrame(data_points_copy)
+                        logging.info("DataFrame wurde erfolgreich erstellt.")
 
-                    df['parsed_time'] = pd.to_datetime(df['time'])
-                    avg_time = df['parsed_time'].mean()
-                    logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
+                        df['parsed_time'] = pd.to_datetime(df['time'])
+                        avg_time = df['parsed_time'].mean()
+                        logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
 
-                    avg_data = df.mean(numeric_only=True).to_dict()
-                    avg_data['avg_time'] = avg_time.timestamp()
-                    logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
+                        avg_data = df.mean(numeric_only=True).to_dict()
+                        avg_data['avg_time'] = avg_time.timestamp()
+                        logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
 
-                    avg_data['hour'] = avg_time.hour
-                    avg_data['day_of_week'] = avg_time.dayofweek
-                    avg_data['month'] = avg_time.month
+                        avg_data['hour'] = avg_time.hour
+                        avg_data['day_of_week'] = avg_time.dayofweek
+                        avg_data['month'] = avg_time.month
 
-                    # Merkmale für die Vorhersage vorbereiten
-                    features_df = pd.DataFrame([avg_data])
-                    logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
-                    
-                    # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
-                    correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
-                    features_df = features_df[correct_order]
-                    features_array = features_df
+                        # Merkmale für die Vorhersage vorbereiten
+                        features_df = pd.DataFrame([avg_data])
+                        logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
+                        
+                        # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
+                        correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
+                        features_df = features_df[correct_order]
+                        features_array = features_df.to_numpy()
 
-                    # Vorhersagen mit jedem Modell erstellen
-                    predictions = {name: model.predict(features_array)[0] for name, model in self.models.items()}
-                    self.combined_data['predictions'] = predictions
-                    self.latest_predictions = predictions
-                    logging.info(f"latest predictions are: {self.latest_predictions}")
+                        # Vorhersagen mit jedem Modell erstellen
+                        predictions = {name: model.predict(features_array)[0] for name, model in self.models.items()}
+                        self.combined_data['predictions'] = predictions
+                        self.latest_predictions = predictions
+                        logging.info(f"latest predictions are: {self.latest_predictions}")
 
-                    # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
-                    prediction_id = str(uuid.uuid4())
-                    self.latest_predictions['id'] = prediction_id
+                        # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
+                        prediction_id = str(uuid.uuid4())
+                        self.latest_predictions['id'] = prediction_id
 
-                    # features_df zur späteren Verwendung im Feedback speichern
-                    self.latest_features_df = features_df
+                        # features_df zur späteren Verwendung im Feedback speichern
+                        self.latest_features_df = features_df
 
-                    data_points_copy.clear()
-                except Exception as e:
-                    logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
-            else:
-                logging.info("In den letzten 1 Minuten wurden keine Daten gesammelt.")
+                        data_points_copy.clear()
+                    except Exception as e:
+                        logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
+                else:
+                    logging.info("In den letzten 1 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -433,7 +433,7 @@ class MQTTClient:
                 cursor.close()
 
 
-    def save_analysis_data(self, current_data, future_data, co2_change, temperature_change, humidity_change):
+    def save_analysis_data(self, current_data, future_data, co2_change, temperature_change, humidity_change, decision):
         """
         Speichert die aktuellen und zukünftigen Umweltdaten sowie die prozentualen Änderungen in der Datenbank.
         
@@ -451,8 +451,8 @@ class MQTTClient:
             INSERT INTO environmental_data_analysis (
                     timestamp, current_co2, future_co2, co2_change, 
                     current_temperature, future_temperature, temperature_change, 
-                    current_humidity, future_humidity, humidity_change
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    current_humidity, future_humidity, humidity_change, decision
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             logging.info(f"Statistische Auswertungen werden gespeichert!")
@@ -463,7 +463,7 @@ class MQTTClient:
                 timestamp,
                 current_data['co2_values'], future_data['co2_values'], co2_change,
                 current_data['temperature'], future_data['temperature'], temperature_change,
-                current_data['humidity'], future_data['humidity'], humidity_change
+                current_data['humidity'], future_data['humidity'], humidity_change, decision
             )
             
             cursor.execute(query, values)

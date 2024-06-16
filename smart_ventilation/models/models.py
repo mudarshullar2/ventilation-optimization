@@ -186,36 +186,30 @@ def random_forest_classifier_model(final_dataset):
 
 
 def logistic_regression_model(final_dataset):
-
-    # Merkmale und Ziel definieren
-    X = final_dataset[['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']]
+    # Sicherstellen, dass die Merkmale in der richtigen Reihenfolge sind
+    feature_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
+    
+    X = final_dataset[feature_order]
     y = final_dataset['open_window']
 
     # Daten aufteilen
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
 
-    # Imputieren fehlender Werte und Skalieren von Merkmalen
-    imputer = SimpleImputer(strategy='mean')
-    scaler = StandardScaler()
-
-    # logistische Regressionsmodell definieren
-    model = LogisticRegression(random_state=42, class_weight='balanced')
-
-    # eine Pipeline erstellen
+    # Pipeline erstellen
     pipeline = Pipeline(steps=[
-        ('imputer', imputer),
-        ('scaler', scaler),
+        ('imputer', SimpleImputer(strategy='mean')),
+        ('scaler', StandardScaler()),
         ('smote', SMOTE(sampling_strategy='auto', random_state=42)),
-        ('model', model)
+        ('model', LogisticRegression(random_state=42, class_weight='balanced'))
     ])
 
-    # Das Modell fitten
+    # Pipeline fitten
     pipeline.fit(X_train, y_train)
 
-    # Vorhersage für den Testdatensatz
+    # Vorhersagen machen
     y_pred = pipeline.predict(X_test)
 
-    # Das Modell auswerten
+    # Modell bewerten
     accuracy = accuracy_score(y_test, y_pred)
     f1 = f1_score(y_test, y_pred)
     precision = precision_score(y_test, y_pred)
@@ -232,74 +226,58 @@ def logistic_regression_model(final_dataset):
 
 
 def random_forest_model(final_dataset):
-    """
-    Trainiert ein RandomForestRegressor-Modell, um die Dauer der Fensteröffnung vorherzusagen.
-
-    Parameter:
-    final_dataset (DataFrame): Das endgültige Dataset.
-
-    Rückgabewert:
-    model (RandomForestRegressor): Das trainierte RandomForestRegressor-Modell.
-    """
-    # Daten bereinigen
+    # Sicherstellen, dass die Merkmale in der richtigen Reihenfolge sind
+    feature_order = ['co2', 'humidity', 'temperature', 'ambient_temp', 'tvoc', 'hour', 'day_of_week', 'month']
+    
     final_dataset = final_dataset.dropna()
-
-    # Zeitstempel in datetime umwandeln und temporale Features extrahieren
     final_dataset['timestamp'] = pd.to_datetime(final_dataset['timestamp'])
     final_dataset['hour'] = final_dataset['timestamp'].dt.hour
     final_dataset['day_of_week'] = final_dataset['timestamp'].dt.dayofweek
     final_dataset['month'] = final_dataset['timestamp'].dt.month
 
-    # Grenzwerte für optimale Umweltbedingungen definieren
     co2_limit = 1000
     temp_limit = 21
     tvoc_limit = 400
     humidity_lower_limit = 40
     humidity_upper_limit = 60
 
-    # Funktion zur Simulation der erforderlichen Fensteröffnungsdauer für optimale Bedingungen definieren
     def calculate_duration(row):
         duration = 0
         if row['co2'] > co2_limit:
-            duration += (row['co2'] - co2_limit) / 30  # Erhöhtes Gewicht für CO2
+            duration += (row['co2'] - co2_limit) / 30
         if row['temperature'] > temp_limit:
-            duration += (row['temperature'] - temp_limit) * 3  # Erhöhtes Gewicht für Temperatur
+            duration += (row['temperature'] - temp_limit) * 3
         if row['ambient_temp'] > temp_limit:
-            duration += (row['ambient_temp'] - temp_limit) * 3  # Erhöhtes Gewicht für Außentemperatur
+            duration += (row['ambient_temp'] - temp_limit) * 3
         if row['tvoc'] > tvoc_limit:
-            duration += (row['tvoc'] - tvoc_limit) / 20  # Verringertes Gewicht für TVOC
+            duration += (row['tvoc'] - tvoc_limit) / 20
         if row['humidity'] < humidity_lower_limit:
-            duration += (humidity_lower_limit - row['humidity']) / 10  # Verringertes Gewicht für Luftfeuchtigkeit
+            duration += (humidity_lower_limit - row['humidity']) / 10
         if row['humidity'] > humidity_upper_limit:
-            duration += (row['humidity'] - humidity_upper_limit) / 10  # Verringertes Gewicht für Luftfeuchtigkeit
+            duration += (row['humidity'] - humidity_upper_limit) / 10
         return duration
 
-    # Synthetische Zielvariable generieren
     final_dataset['duration_open'] = final_dataset.apply(calculate_duration, axis=1)
 
-    # Merkmale und Zielvariable definieren
-    features = ['co2', 'humidity', 'temperature', 'ambient_temp', 'tvoc', 'hour', 'day_of_week', 'month']
-    target = 'duration_open'
+    X = final_dataset[feature_order]
+    y = final_dataset['duration_open'].values
 
-    X = final_dataset[features]
-    y = final_dataset[target].values
-
-    # Modell Pipeline erstellen
+    # Pipeline erstellen
     model = Pipeline(steps=[
         ('scaler', StandardScaler()),
         ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))
     ])
 
-    # Daten in Trainings- und Testmengen aufteilen
+    # Daten aufteilen
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    # Modell trainieren
+    # Modell fitten
     model.fit(X_train, y_train)
 
-    # Vorhersagen auf dem Testdatensatz machen
+    # Vorhersagen machen
     y_pred = model.predict(X_test)
 
-    # Modell evaluieren
+    # Modell bewerten
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
     print(f'Random Forest: Mean Squared Error: {mse}')

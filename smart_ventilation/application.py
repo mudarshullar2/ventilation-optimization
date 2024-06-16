@@ -402,14 +402,14 @@ def get_future_data(timestamp):
         if last_prediction is None:
             logging.error("Keine Vorhersage-ID in Sitzung gefunden")
 
-            return jsonify({"Error": "Keine Vorhersage-ID in Sitzung gefunden"}), 400
+            return jsonify({"Fehler": "Keine Vorhersage-ID in Sitzung gefunden"}), 400
         
         logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {timestamp}")
         future_data = mqtt_client.fetch_future_data(timestamp)
         
         if not future_data:
             logging.info(f"Keine zukünftigen Daten für Zeitstempel verfügbar: {timestamp}")
-            return jsonify({"Error": "Keine zukünftigen Daten verfügbar"}), 404
+            return jsonify({"Fehler": "Keine zukünftigen Daten verfügbar"}), 404
         
         formatted_future_data = {
             'timestamp': future_data.get('timestamp'),
@@ -418,12 +418,12 @@ def get_future_data(timestamp):
             'humidity': float(future_data.get('humidity')) if future_data.get('humidity') is not None else None,
         }
 
-        logging.info(f"Future data fetched successfully: {formatted_future_data}")
+        logging.info(f"Zukünftige Daten wurden erfolgreich abgerufen: {formatted_future_data}")
         return jsonify(formatted_future_data)
     
     except Exception as e:
         logging.error(f"Fehler beim Abrufen von Zukunftsdaten: {e}")
-        return jsonify({"Error": str(e)}), 500
+        return jsonify({"Fehler": str(e)}), 500
 
 
 @app.route('/save_analysis_data', methods=['POST'])
@@ -443,13 +443,14 @@ def save_analysis_data():
         co2_change = data['co2_change']
         temperature_change = data['temperature_change']
         humidity_change = data['humidity_change']
+        decision = data["decision"]
 
-        mqtt_client.save_analysis_data(current_data, future_data, co2_change, temperature_change, humidity_change)
+        mqtt_client.save_analysis_data(current_data, future_data, co2_change, temperature_change, humidity_change, decision)
 
-        return jsonify({"message": "Data saved successfully"}), 200
+        return jsonify({"message": "Daten erfolgreich gespeichert"}), 200
     except Exception as e:
-        logging.error(f"Error saving analysis data: {e}")
-        return jsonify({"error": str(e)}), 500
+        logging.error(f"Fehler beim Speichern von Analysedaten: {e}")
+        return jsonify({"Fehler": str(e)}), 500
 
 
 @app.route('/clear_session')
