@@ -6,8 +6,8 @@ from datetime import datetime, timedelta
 from mqtt_client import MQTTClient
 from api_config_loader import load_api_config
 from datetime import datetime, timedelta
-import secrets
 import numpy as np
+import redis
 import os
 
 
@@ -16,7 +16,11 @@ base_dir = os.path.abspath(os.path.dirname(__file__))
 static_folder = os.path.join(base_dir, 'static')
 
 app = Flask(__name__, static_folder=static_folder)
-app.secret_key = secrets.token_hex(16)
+#app.secret_key = secrets.token_hex(16)
+app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'default_secret_key')
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_REDIS'] = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
+
 
 # Pfad zu YAML-Konfigurationsdatei
 config_file_path = 'api_config.yaml'

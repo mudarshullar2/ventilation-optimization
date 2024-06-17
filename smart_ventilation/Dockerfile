@@ -19,6 +19,7 @@ COPY . /app
 
 # Packages installieren 
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install redis flask-session
 
 # Port, auf dem die Flask-Anwendung läuft 
 EXPOSE 8000
@@ -26,6 +27,8 @@ EXPOSE 8000
 # Umgebungsvariable definieren
 ENV FLASK_APP=application.py
 ENV PORT=8000
+ENV FLASK_SECRET_KEY='5b8d0ad3179d0b0bf3d8e12a98f5b309'
+ENV REDIS_URL='redis://host.docker.internal:6379'
 
 # Befehl ausführen, um den MQTT-Client und die Flask-Anwendung zu starten
 CMD ["sh", "-c", "python mqtt_client.py & gunicorn --workers 4 --bind 0.0.0.0:$PORT application:app"]
