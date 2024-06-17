@@ -35,7 +35,7 @@ Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu tr
     docker run -p 8000:8000 smart_ventilation
     ```
 
-4. Öffnen Sie einen Browser und besuchen Sie die URL `http://127.0.0.1:8000`, um auf die Webschnittstelle zuzugreifen.
+4. Öffnen Sie einen Browser und besuchen Sie die URL `http://0.0.0.0:8000`, um auf die Webschnittstelle zuzugreifen.
 
 ### Option 2: Manuelle Installation und Ausführung
 
