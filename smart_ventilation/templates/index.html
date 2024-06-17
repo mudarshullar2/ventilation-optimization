@@ -201,12 +201,13 @@
                             {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
                             {% set lr_prediction_forest = predictions.get('Random Forest', None) %}
                             {% if lr_prediction_logistic == 1 %}
-                                {{ '%.0f' | format(lr_prediction_forest)[:2] }} Minuten!
+                                {% set truncated_forest_prediction = ('%.0f' | format(lr_prediction_forest))[:2] %}
+                                {{ truncated_forest_prediction }} Minuten!
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
                             {% endif %}
                         </div>
-                    </div>                    
+                    </div>                                                      
                 {% else %}
                     <div class="sensor-box">Keine Sensordaten verfügbar</div>
                 {% endif %}
