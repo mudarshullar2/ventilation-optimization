@@ -28,4 +28,4 @@ ENV FLASK_APP=application.py
 ENV PORT=8000
 
 # Befehl ausführen, um den MQTT-Client und die Flask-Anwendung zu starten
-CMD ["sh", "-c", "python mqtt_client.py & flask run --host=0.0.0.0 --port=$PORT"]
+CMD ["sh", "-c", "python mqtt_client.py & gunicorn --workers 4 --bind 0.0.0.0:$PORT application:app"]
