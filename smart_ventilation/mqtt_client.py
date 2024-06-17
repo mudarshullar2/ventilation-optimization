@@ -268,14 +268,14 @@ class MQTTClient:
         
         while True:
 
-            # 45 Minuten warten
-            time.sleep(2700)
+            # 2 Stunden warten
+            time.sleep(7200)
 
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
 
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
+            logging.info("Datenpunkte und kombinierte Daten wurden nach 2 Stunden gelöscht.")
             logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
     
