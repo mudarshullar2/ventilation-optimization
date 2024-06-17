@@ -190,8 +190,8 @@ class MQTTClient:
             """
             
             while self.thread_alive:
-                # 20 Minuten warten
-                time.sleep(1200)
+                # 1 Minuten warten
+                time.sleep(60)
                 if self.data_points:
                     try:
                         # Deep Kopie der Datenpunkte erstellen
