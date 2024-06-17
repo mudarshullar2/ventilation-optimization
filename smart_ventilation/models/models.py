@@ -244,17 +244,17 @@ def random_forest_model(final_dataset):
     def calculate_duration(row):
         duration = 0
         if row['co2'] > co2_limit:
-            duration += (row['co2'] - co2_limit) / 30
+            duration += (row['co2'] - co2_limit) / 100  # Adjusted scaling factor
         if row['temperature'] > temp_limit:
-            duration += (row['temperature'] - temp_limit) * 3
+            duration += (row['temperature'] - temp_limit)  # Adjusted scaling factor
         if row['ambient_temp'] > temp_limit:
-            duration += (row['ambient_temp'] - temp_limit) * 3
+            duration += (row['ambient_temp'] - temp_limit)  # Adjusted scaling factor
         if row['tvoc'] > tvoc_limit:
-            duration += (row['tvoc'] - tvoc_limit) / 20
+            duration += (row['tvoc'] - tvoc_limit) / 50  # Adjusted scaling factor
         if row['humidity'] < humidity_lower_limit:
-            duration += (humidity_lower_limit - row['humidity']) / 10
+            duration += (humidity_lower_limit - row['humidity']) / 10  # Adjusted scaling factor
         if row['humidity'] > humidity_upper_limit:
-            duration += (row['humidity'] - humidity_upper_limit) / 10
+            duration += (row['humidity'] - humidity_upper_limit) / 10  # Adjusted scaling factor
         return duration
 
     final_dataset['duration_open'] = final_dataset.apply(calculate_duration, axis=1)
