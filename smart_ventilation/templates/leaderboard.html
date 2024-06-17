@@ -326,21 +326,33 @@
         function updateComparisonRow(elementId, change) {
             const element = document.getElementById(elementId);
             element.innerText = `${change.toFixed(2)}%`;
-            
+
             element.classList.remove('positive-feedback', 'negative-feedback', 'neutral-feedback');
 
             if (change < 0) {
                 element.classList.add('positive-feedback');
-                element.innerHTML += ' <span>👍 Sehr Gut!</span>';
+                element.innerHTML += ' <span>👍 Sehr gut!</span>';
             } else if (change > 0) {
                 element.classList.add('negative-feedback');
-                element.innerHTML += ' <span>⚠️ Die Luftqualität wird schlechter. Bitte überprüfen Sie, ob alle Fenster geschlossen sind.</span>';
+                switch(elementId) {
+                    case 'comparison-co2':
+                        element.innerHTML += ' <span>⚠️ Hoher CO2-Gehalt festgestellt: Stellen Sie sicher, dass alle Fenster geschlossen sind</span>';
+                        break;
+                    case 'comparison-temperature':
+                        element.innerHTML += ' <span>⚠️ Die Innentemperatur steigt: Überprüfen Sie, ob die Fenster richtig geschlossen sind</span>';
+                        break;
+                    case 'comparison-humidity':
+                        element.innerHTML += ' <span>⚠️ Luftfeuchtigkeit steigt: Stellen Sie sicher, dass die Fenster geschlossen sind.</span>';
+                        break;
+                    default:
+                        element.innerHTML += ' <span>⚠️ Die Luftqualität verschlechtert sich. Bitte überprüfen Sie, ob alle Fenster geschlossen sind.</span>';
+                }
             } else {
                 element.classList.add('neutral-feedback');
-                element.innerHTML += ' <span>🔄 Keine Änderung. Bitte weiterhin aufmerksam bleiben.</span>';
+                element.innerHTML += ' <span>🔄 Keine Veränderung. Bitte weiterhin beobachten.</span>';
             }
         }
-
+        
         function saveAnalysisData(data) {
             fetch('/save_analysis_data', {
                 method: 'POST',
