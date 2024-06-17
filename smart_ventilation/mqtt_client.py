@@ -128,6 +128,10 @@ class MQTTClient:
                 'co2': round(payload["object"]["co2"], 2)
             }
             self.store_first_topic_data(data_point)
+            
+            self.combined_data.setdefault("ambient_temp", []).append(17)
+            self.combined_data.setdefault("tvoc", []).append(108)
+
 
         elif topic.endswith("647fda000000aa92/event/up"):
 
@@ -268,14 +272,15 @@ class MQTTClient:
         
         while True:
 
-            # 2 Stunden warten
-            time.sleep(7200)
+            # 1.5 Stunden warten
+            time.sleep(5400)
 
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
+                self.latest_predictions.clear()
 
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 2 Stunden gelöscht.")
+            logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
             logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
     
@@ -477,6 +482,18 @@ class MQTTClient:
         except Exception as e:
             logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
 
+    
+    def clear_predictions(self):
+        """
+        Löscht alte Vorhersagen
+
+        """
+
+        with self.data_lock:
+                logging.info("Alte Vorhersagen werden gelöscht!")
+                self.latest_predictions.clear()
+                logging.info(f"lates_prediction: {self.latest_predictions}")
+        
 
     def initialize(self):
 

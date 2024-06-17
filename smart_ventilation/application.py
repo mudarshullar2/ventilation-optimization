@@ -236,11 +236,6 @@ def feedback():
                 elif not isinstance(last_prediction, int):
                     last_prediction = int(last_prediction)
 
-                session['last_prediction'] = last_prediction
-                session.permanent = True  # Sitzung als permanent markieren
-
-                # latest_predictions löschen, um Speicherplatz freizugeben
-                mqtt_client.latest_predictions = {}
                 return render_template('thank_you.html')
             else:
                 return jsonify({"Meldung": "Keine Rückmeldung übermittelt", "status": response.status_code, "response": response.text}), 400
@@ -282,21 +277,13 @@ def get_data(timestamp):
 def leaderboard():
     try:
         if request.method == "POST":
-            predictions = mqtt_client.latest_predictions.get("Logistic Regression")
+            predictions = mqtt_client.latest_predictions
             logging.info(f"Vorhersage im Leaderboard: {predictions}")
 
-            # Explizite Prüfung auf None
-            if predictions is None:
-                last_prediction = session.get('last_prediction')
-                logging.info(f"last_prediction in leaderboard {last_prediction}")
+            if not predictions:
+                logging.error("Keine Vorhersagen verfügbar in latest_predictions und session")
 
-                if last_prediction is not None:
-                    predictions = last_prediction  # scherstellen, dass Vorhersagen aus der Sitzung abgerufen werden
-
-                if predictions is None:  # Nochmals explizit auf None prüfen
-                    logging.error("Keine Vorhersagen verfügbar in latest_predictions und session")
-
-                    return render_template('leaderboard.html', error=True)
+                return render_template('leaderboard.html', error=True)
             
             if 'last_prediction' not in session:
 
@@ -388,13 +375,6 @@ def leaderboard():
             
             else:
                 response = render_template('leaderboard.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
-
-            # Sitzungsdaten nach der Verwendung löschen
-
-            session.pop('last_prediction_id', None)
-            session.pop('latest_date', None)
-            session.pop('current_data', None)
-            session.pop('last_prediction', None)
             
             return response
 
