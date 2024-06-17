@@ -272,8 +272,8 @@ class MQTTClient:
         
         while True:
 
-            # 1.5 Stunden warten
-            time.sleep(5400)
+            # 45 Minuten warten
+            time.sleep(2700)
 
             with self.data_lock:
                 self.data_points.clear()
