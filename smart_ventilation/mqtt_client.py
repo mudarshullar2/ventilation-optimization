@@ -128,10 +128,6 @@ class MQTTClient:
                 'co2': round(payload["object"]["co2"], 2)
             }
             self.store_first_topic_data(data_point)
-            
-            self.combined_data.setdefault("ambient_temp", []).append(17)
-            self.combined_data.setdefault("tvoc", []).append(108)
-
 
         elif topic.endswith("647fda000000aa92/event/up"):
 
