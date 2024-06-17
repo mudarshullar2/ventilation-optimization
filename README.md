@@ -38,6 +38,7 @@ Die Packages sind in der Datei `requirements.txt` definiert.
 Um alle erforderlichen Pakete zu installieren, führen Sie den folgenden Befehl aus:
 
     ```
+    cd smart_ventilation
     pip install -r requirements.txt
     ```
 
