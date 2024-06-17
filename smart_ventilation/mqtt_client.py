@@ -129,6 +129,10 @@ class MQTTClient:
             }
             self.store_first_topic_data(data_point)
 
+            self.combined_data.setdefault("ambient_temp", []).append(25)
+            self.combined_data.setdefault("tvoc", []).append(300)
+
+
         elif topic.endswith("647fda000000aa92/event/up"):
 
             formatted_time = adjust_and_format_time(payload["time"])
@@ -186,8 +190,8 @@ class MQTTClient:
             """
             
             while self.thread_alive:
-                # 25 Minuten warten
-                time.sleep(1500)
+                # 20 Minuten warten
+                time.sleep(1200)
                 if self.data_points:
                     try:
                         # Deep Kopie der Datenpunkte erstellen

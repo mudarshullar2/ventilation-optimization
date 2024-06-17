@@ -201,7 +201,7 @@
                             {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
                             {% set lr_prediction_forest = predictions.get('Random Forest', None) %}
                             {% if lr_prediction_logistic == 1 %}
-                                {{ lr_prediction_forest | round(2) }} Minuten !
+                                {{ '%.0f' | format(lr_prediction_forest)[:2] }} Minuten!
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
                             {% endif %}
