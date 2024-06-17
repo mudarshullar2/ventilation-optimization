@@ -193,6 +193,14 @@ def feedback():
             features_df = mqtt_client.latest_features_df
             logging.info(f"current features_df: {features_df}")
 
+            logistic_prediction = predictions.get("Logistic Regression")
+            user_feedback = int(request.form['accurate_prediction'])
+
+            if user_feedback == 1:  # "Korrekt"
+                accurate_prediction = int(logistic_prediction)
+            else:  # "Nicht Korrekt"
+                accurate_prediction = 1 - int(logistic_prediction)
+
             # Feedback-Daten erstellen
             feedback_data = {
                 "temperature": float(features_df['temperature'].iloc[0]),
@@ -200,7 +208,7 @@ def feedback():
                 "co2": float(features_df['co2'].iloc[0]),
                 "timestamp": combined_data["time"][-1],
                 "outdoor_temperature": float(features_df['ambient_temp'].iloc[0]),
-                "accurate_prediction": int(request.form['accurate_prediction'])
+                "accurate_prediction": accurate_prediction
             }
 
             # Header für die API-Anfrage
