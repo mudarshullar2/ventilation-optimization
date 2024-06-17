@@ -117,6 +117,8 @@ Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schne
 
 1. Starten Sie den MQTT-Client und die Flask-Anwendung:
 
+    Vor dem Start der Anwendung bitte die Zeilen 20 bis 22 in `application.py` auskommentieren und Zeile 19 einkommentieren. Diese Änderung waren wichitg, um das Session-Management im Docker-Container korrekt zu konfigurieren.
+
     ```
     python application.py
     ```
