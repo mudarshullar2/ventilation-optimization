@@ -276,6 +276,7 @@ def random_forest_model(final_dataset):
 
     # Vorhersagen machen
     y_pred = model.predict(X_test)
+    y_pred = [int(str(int(pred))[:2]) for pred in y_pred]
 
     # Modell bewerten
     mse = mean_squared_error(y_test, y_pred)
