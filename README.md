@@ -2,7 +2,7 @@
 
 ## Übersicht
 
-Das Projekt bildet einen zentralen Bestandteil meiner Bachelorarbeit und wurde in Zusammenarbeit mit Stadtwerk Potsdam entwickelt. Stadtwerk Potsdam hat für dieses Projekt die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam.
+Das Projekt bildet einen zentralen Bestandteil meiner Bachelorarbeit und wurde in Zusammenarbeit mit Stadtwerke Potsdam entwickelt. Stadtwerke Potsdam haben für dieses Projekt die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam.
 
 Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu treffen. Die Ergebnisse werden über eine benutzerfreundliche Webschnittstelle visualisiert und können interaktiv genutzt werden. Die technische Umsetzung erfolgt mittels Flask für das Web-Interface und MQTT für die Datenerfassung.
 
@@ -15,6 +15,30 @@ Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu tr
 
 ## Installation
 
+### Option 1: Verwendung des Dockerfiles
+
+1. Wechseln Sie in das Verzeichnis `smart_ventilation`:
+
+    ```
+    cd smart_ventilation
+    ```
+
+2. Erstellen Sie das Docker-Image (mit der Option `--no-cache`):
+
+    ```
+    docker build --no-cache -t smart_ventilation .
+    ```
+
+3. Führen Sie den Docker-Container aus:
+
+    ```
+    docker run -p 8000:8000 smart_ventilation
+    ```
+
+4. Öffnen Sie einen Browser und besuchen Sie die URL `http://127.0.0.1:8000`, um auf die Webschnittstelle zuzugreifen.
+
+### Option 2: Manuelle Installation und Ausführung
+
 1. Repository klonen:
 
     ```
@@ -26,16 +50,16 @@ Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu tr
 
     ```
     python -m venv venv
-    source venv/bin/activate   # Für Windows: `venv\Scripts\activate`
+    source venv/bin/activate   # Für Windows: `venv\Scripts\activate
     ```
 
 3. Erforderliche Pakete installieren:
 
-Dieses Projekt wurde mit Python 3.10.10 entwickelt. Es wird empfohlen, 
-diese Version zu verwenden, um Kompatibilitätsprobleme zu vermeiden.
+    Dieses Projekt wurde mit Python 3.10.10 entwickelt. Es wird empfohlen, 
+    diese Version zu verwenden, um Kompatibilitätsprobleme zu vermeiden.
 
-Die Packages sind in der Datei `requirements.txt` definiert. 
-Um alle erforderlichen Pakete zu installieren, führen Sie den folgenden Befehl aus:
+    Die Packages sind in der Datei `requirements.txt` definiert. 
+    Um alle erforderlichen Pakete zu installieren, führen Sie den folgenden Befehl aus:
 
     ```
     cd smart_ventilation
@@ -66,6 +90,30 @@ Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schne
 - `Random_Forest.pkl` — Ein Modell, das auf dem Random-Forest-Algorithmus basiert.
 
 ## Anwendung starten
+
+### Option 1: Verwendung des Dockerfiles
+
+1. Wechseln Sie in das Verzeichnis `smart_ventilation`:
+
+    ```
+    cd smart_ventilation
+    ```
+
+2. Erstellen Sie das Docker-Image (mit der Option `--no-cache`):
+
+    ```
+    docker build --no-cache -t smart_ventilation .
+    ```
+
+3. Führen Sie den Docker-Container aus:
+
+    ```
+    docker run -p 8000:8000 smart_ventilation
+    ```
+
+4. Öffnen Sie einen Browser und besuchen Sie die URL `http://127.0.0.1:8000`, um auf die Webschnittstelle zuzugreifen.
+
+### Option 2: Manuelle Installation und Ausführung
 
 1. Starten Sie den MQTT-Client und die Flask-Anwendung:
 
