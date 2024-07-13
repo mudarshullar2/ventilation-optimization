@@ -282,34 +282,31 @@ def leaderboard():
 
             if not predictions:
                 logging.error("Keine Vorhersagen verfügbar in latest_predictions und session")
-
                 return render_template('leaderboard.html', error=True)
-            
-            if 'last_prediction' not in session:
 
+            if 'last_prediction' not in session:
                 last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
 
                 if isinstance(last_prediction, np.integer):
                     last_prediction = int(last_prediction)
-                
                 elif not isinstance(last_prediction, int):
                     last_prediction = int(last_prediction)
                 
                 session['last_prediction'] = last_prediction
             
+            logging.info(f"last_prediction nach Sitzung: {session['last_prediction']}")
+
             if 'current_data' not in session:
-                
                 combined_data = mqtt_client.combined_data
                 logging.info(f"combined_data in leaderboard: {combined_data}")
 
                 latest_date = combined_data["time"][-1]
-                logging.info(f"latest_data: innerhalb der Leaderboard-Funktion {latest_date}")
+                logging.info(f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}")
                 
                 latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
 
                 adjusted_date = latest_date - timedelta(minutes=1)
                 adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
-                
                 logging.info(f"Angepasstes Datum: {adjusted_date_str}")
 
                 current_data = get_data(adjusted_date_str)
@@ -323,36 +320,35 @@ def leaderboard():
                 }]
 
                 session['latest_date'] = adjusted_date_str
-                logging.info(f"session['latest_date'] {session['latest_date']}")
+                logging.info(f"session['latest_date']: {session['latest_date']}")
 
                 session['current_data'] = formatted_current_data
-                logging.info(f"session['current_data']  {session['current_data'] }")
+                logging.info(f"session['current_data']: {session['current_data']}")
                 
                 session.permanent = True
-
             else:
-
                 formatted_current_data = session['current_data']
                 adjusted_date_str = session['latest_date']
 
-            if predictions == 1:
+            last_prediction = session.get('last_prediction')
+            logging.info(f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}")
+
+            if last_prediction == 1:
                 return render_template('leaderboard2.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
-            
             else:
                 return render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
 
         elif request.method == "GET":
-
             adjusted_date_str = session.get('latest_date')
-            logging.info(f"session['latest_date'] {session['latest_date']}")
+            logging.info(f"session['latest_date']: {session['latest_date']}")
             
             current_data = session.get('current_data')
-            logging.info(f"session['current_data']  {session['current_data'] }")
+            logging.info(f"session['current_data']: {session['current_data']}")
             
             predictions = session.get('last_prediction')  # Vorhersagen aus der Sitzung abrufen
+            logging.info(f"last_prediction aus der Sitzung: {predictions}")
 
             if not adjusted_date_str or not current_data:
-
                 logging.error("Keine Daten in der Sitzung verfügbar, bitte erst eine Vorhersage machen")
                 return "Keine Daten verfügbar, bitte führen Sie eine Vorhersage durch.", 400
 
@@ -370,17 +366,15 @@ def leaderboard():
                 'humidity': float(future_data.get('humidity')) if future_data.get('humidity') is not None else None,
             }]
 
-            if predictions == 1:
+            if last_prediction == 1:
                 response = render_template('leaderboard2.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
-            
             else:
                 response = render_template('leaderboard.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
             
             return response
 
     except Exception as e:
-
-        logging.error(f"Ein unerwarteter Fehler ist aufgetreten:: {e}")
+        logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
         return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500
 
     
