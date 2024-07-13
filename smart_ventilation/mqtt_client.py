@@ -83,9 +83,17 @@ class MQTTClient:
 
         logging.info("Verbunden mit Ergebniscode" + str(rc))
 
-        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up")
+        # Für Uhrzeit und TVOC
+        self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/24e124707c501858/event/up")
+
+        # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
+        self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd0f5e/event/up")
+        
+        # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
+        self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd09aa/event/up")
+
+        # Für Außentemperaturen
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
-        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
 
         if not self.prediction_thread.is_alive():
             logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
@@ -93,7 +101,7 @@ class MQTTClient:
 
 
     def on_message(self, client, userdata, msg):
-
+        
         """
         Wird aufgerufen, wenn eine Nachricht empfangen wird.
         Verarbeitet die Nachricht und speichert die Sensordaten.
@@ -102,54 +110,67 @@ class MQTTClient:
         :param userdata: Benutzerdaten
         :param msg: empfangene Nachricht
         """
-
+        
         topic = msg.topic
         payload = json.loads(msg.payload.decode())
 
         def adjust_and_format_time(raw_time):
-
             utc_time = dt.datetime.strptime(raw_time, "%Y-%m-%dT%H:%M:%S.%f%z")
             local_time = utc_time + dt.timedelta(hours=2)
             return local_time.strftime("%Y-%m-%d %H:%M")
         
-        if topic.endswith("0004a30b01045883/event/up"):
-
+        if topic.endswith("0004a30b00fd0f5e/event/up"): 
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
 
-            self.combined_data.setdefault("humidity", []).append(round(payload["object"]["humidity"], 2))
-            self.combined_data.setdefault("temperature", []).append(round(payload["object"]["temperature"], 2))
-            self.combined_data.setdefault("co2", []).append(round(payload["object"]["co2"], 2))
+            humidity_values = payload["object"].get("humidity")
+
+            temperature_values = payload["object"].get("temperature")
+
+            co2_values = payload["object"].get("co2")
+
+            if humidity_values is not None:
+                self.combined_data.setdefault("humidity", []).append(round(humidity_values, 2))
+
+            if temperature_values is not None:
+                self.combined_data.setdefault("temperature", []).append(round(temperature_values, 2))
+            
+            if co2_values is not None:
+                self.combined_data.setdefault("co2", []).append(round(co2_values, 2))
 
             data_point = {
                 'time': formatted_time,
-                'humidity': round(payload["object"]["humidity"], 2),
-                'temperature': round(payload["object"]["temperature"], 2),
-                'co2': round(payload["object"]["co2"], 2)
+                'humidity': round(humidity_values, 2) if humidity_values is not None else None,
+                'temperature': round(temperature_values, 2) if temperature_values is not None else None,
+                'co2': round(co2_values, 2) if co2_values is not None else None
             }
-            self.store_first_topic_data(data_point)
 
-        elif topic.endswith("647fda000000aa92/event/up"):
+            if all(value is not None for value in data_point.values()):
+                logging.info(f"data_point is {data_point}")
+                self.store_first_topic_data(data_point)
 
+        elif topic.endswith("24e124707c501858/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
-            self.combined_data.setdefault("ambient_temp", []).append(round(payload["object"]["ambient_temp"], 2))
 
-        elif topic.endswith("24e124707c481005/event/up"):
-
-            formatted_time = adjust_and_format_time(payload["time"])
             tvos_value = payload["object"].get("tvoc")
-            self.combined_data.setdefault("time", []).append(formatted_time)
 
             if tvos_value is not None:
+                self.combined_data.setdefault("tvoc", []).append(round(tvos_value, 2))
 
-                self.combined_data.setdefault("tvoc", []).append(tvos_value)
-        
+        elif topic.endswith("647fda000000aa92/event/up"):
+            formatted_time = adjust_and_format_time(payload["time"])
+            self.combined_data.setdefault("time", []).append(formatted_time)
+
+            ambient_temp_value = payload["object"].get("ambient_temp")
+
+            if ambient_temp_value is not None: 
+                self.combined_data.setdefault("ambient_temp", []).append(round(ambient_temp_value, 2))
+
         # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
 
         if all(key in self.combined_data for key in required_keys):
-
             self.collect_data(self.combined_data)
 
 
@@ -173,67 +194,75 @@ class MQTTClient:
                     logging.debug(f"data_points in der Funktion collect_data!: {data}")
 
         except Exception as e:
-
             logging.error(f"Unerwarteter Fehler bei der Datensammlung: {e}")
             logging.error(f"Inhalt der kombinierten Daten: {combined_data}")
             logging.error(f"Inhalt der Datenpunkte: {self.data_points}")
 
 
     def run_periodic_predictions(self):
+        """
+        Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
+        """
+        while self.thread_alive:
+            # 20 Minuten warten
+            time.sleep(300)
+            if self.data_points:
+                try:
+                    # Deep Kopie der Datenpunkte erstellen
+                    data_points_copy = copy.deepcopy(self.data_points)
+                    df = pd.DataFrame(data_points_copy)
+                    logging.info("DataFrame wurde erfolgreich erstellt.")
 
-            """
-            Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
-            """
-            
-            while self.thread_alive:
-                # 20 Minuten warten
-                time.sleep(1200)
-                if self.data_points:
-                    try:
-                        # Deep Kopie der Datenpunkte erstellen
-                        data_points_copy = copy.deepcopy(self.data_points)
-                        df = pd.DataFrame(data_points_copy)
-                        logging.info("DataFrame wurde erfolgreich erstellt.")
+                    df['parsed_time'] = pd.to_datetime(df['time'])
+                    avg_time = df['parsed_time'].mean()
+                    logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
 
-                        df['parsed_time'] = pd.to_datetime(df['time'])
-                        avg_time = df['parsed_time'].mean()
-                        logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
+                    avg_data = df.mean(numeric_only=True).to_dict()
+                    avg_data['avg_time'] = avg_time.timestamp()
+                    logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
 
-                        avg_data = df.mean(numeric_only=True).to_dict()
-                        avg_data['avg_time'] = avg_time.timestamp()
-                        logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
+                    avg_data['hour'] = avg_time.hour
+                    avg_data['day_of_week'] = avg_time.dayofweek
+                    avg_data['month'] = avg_time.month
 
-                        avg_data['hour'] = avg_time.hour
-                        avg_data['day_of_week'] = avg_time.dayofweek
-                        avg_data['month'] = avg_time.month
+                    # Merkmale für die Vorhersage vorbereiten
+                    features_df = pd.DataFrame([avg_data])
+                    logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
 
-                        # Merkmale für die Vorhersage vorbereiten
-                        features_df = pd.DataFrame([avg_data])
-                        logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
-                        
-                        # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
-                        correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
-                        features_df = features_df[correct_order]
-                        features_array = features_df.to_numpy()
+                    # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
+                    correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
+                    features_df = features_df[correct_order]
+                    features_array = features_df.to_numpy()
 
-                        # Vorhersagen mit jedem Modell erstellen
-                        predictions = {name: model.predict(features_array)[0] for name, model in self.models.items()}
-                        self.combined_data['predictions'] = predictions
-                        self.latest_predictions = predictions
-                        logging.info(f"latest predictions are: {self.latest_predictions}")
+                    # Spaltenreihenfolge für das zweite Modell anpassen
+                    restricted_model_order = ['co2', 'temperature']
+                    restricted_features_df = features_df[restricted_model_order]
+                    restricted_features_array = restricted_features_df.to_numpy()
 
-                        # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
-                        prediction_id = str(uuid.uuid4())
-                        self.latest_predictions['id'] = prediction_id
+                    # Vorhersagen mit jedem Modell erstellen
+                    predictions = {}
+                    for name, model in self.models.items():
+                        if 'Random Forest' in name:
+                            predictions[name] = model.predict(restricted_features_array)[0]
+                        else:
+                            predictions[name] = model.predict(features_array)[0]
 
-                        # features_df zur späteren Verwendung im Feedback speichern
-                        self.latest_features_df = features_df
+                    self.combined_data['predictions'] = predictions
+                    self.latest_predictions = predictions
+                    logging.info(f"latest predictions are: {self.latest_predictions}")
 
-                        data_points_copy.clear()
-                    except Exception as e:
-                        logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
-                else:
-                    logging.info("In den letzten 20 Minuten wurden keine Daten gesammelt.")
+                    # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
+                    prediction_id = str(uuid.uuid4())
+                    self.latest_predictions['id'] = prediction_id
+
+                    # features_df zur späteren Verwendung im Feedback speichern
+                    self.latest_features_df = features_df
+
+                    data_points_copy.clear()
+                except Exception as e:
+                    logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
+            else:
+                logging.info("In den letzten 20 Minuten wurden keine Daten gesammelt.")
 
 
     def restart_thread(self):
@@ -283,40 +312,40 @@ class MQTTClient:
 
     def store_first_topic_data(self, data_point):
 
-        """
-        Speichert die Sensordaten aus dem ersten Thema in der PostgreSQL-Datenbank 
-        und stellt die Vollständigkeit der Daten sicher
-        """
-        
-        with self.data_lock:
-            cursor = self.conn.cursor()
-            try:
-                if all(data_point.get(key) is not None for key in ['time', 'co2', 'temperature', 'humidity']):
-                    query = """
-                        INSERT INTO classroom_environmental_data
-                        (timestamp, co2_values, temperature, 
-                        humidity, classroom_number)
-                        VALUES (%s, %s, %s, %s, %s)
-                    """
-                    cursor.execute(query, (
-                        data_point['time'], 
-                        data_point['co2'], 
-                        data_point['temperature'],
-                        data_point['humidity'], 
-                        '10c' # Feste Klassenzimmernummer
-                    ))
-                self.conn.commit()
+            """
+            Speichert die Sensordaten aus dem ersten Thema in der PostgreSQL-Datenbank 
+            und stellt die Vollständigkeit der Daten sicher
+            """
+            
+            with self.data_lock:
+                cursor = self.conn.cursor()
+                try:
+                    if all(data_point.get(key) is not None for key in ['time', 'co2', 'temperature', 'humidity']):
+                        query = """
+                            INSERT INTO classroom_environmental_data
+                            (timestamp, co2_values, temperature, 
+                            humidity, classroom_number)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """
+                        cursor.execute(query, (
+                            data_point['time'], 
+                            data_point['co2'], 
+                            data_point['temperature'],
+                            data_point['humidity'], 
+                            '2.09' # Feste Besprechungsraum
+                        ))
+                    self.conn.commit()
 
-                # Datenpunkt löschen, um Speicherplatz freizugeben
-                data_point = None
+                    # Datenpunkt löschen, um Speicherplatz freizugeben
+                    data_point = None
 
-            except Exception as e:
+                except Exception as e:
 
-                logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
+                    logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
 
-                self.conn.rollback()
-            finally:
-                cursor.close()
+                    self.conn.rollback()
+                finally:
+                    cursor.close()
 
 
     def fetch_data(self, timestamp):

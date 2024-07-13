@@ -227,7 +227,7 @@ def logistic_regression_model(final_dataset):
 
 def random_forest_model(final_dataset):
     # Sicherstellen, dass die Merkmale in der richtigen Reihenfolge sind
-    feature_order = ['co2', 'humidity', 'temperature', 'ambient_temp', 'tvoc', 'hour', 'day_of_week', 'month']
+    feature_order = ['co2', 'temperature']
     
     final_dataset = final_dataset.dropna()
     final_dataset['timestamp'] = pd.to_datetime(final_dataset['timestamp'])
@@ -237,24 +237,14 @@ def random_forest_model(final_dataset):
 
     co2_limit = 1000
     temp_limit = 21
-    tvoc_limit = 400
-    humidity_lower_limit = 40
-    humidity_upper_limit = 60
 
+    # Dauer auf Grundlage von CO2-Werten und Innentemperatur berechnen
     def calculate_duration(row):
         duration = 0
         if row['co2'] > co2_limit:
-            duration += (row['co2'] - co2_limit) / 100  # Adjusted scaling factor
+            duration += (row['co2'] - co2_limit) / 100
         if row['temperature'] > temp_limit:
-            duration += (row['temperature'] - temp_limit)  # Adjusted scaling factor
-        if row['ambient_temp'] > temp_limit:
-            duration += (row['ambient_temp'] - temp_limit)  # Adjusted scaling factor
-        if row['tvoc'] > tvoc_limit:
-            duration += (row['tvoc'] - tvoc_limit) / 50  # Adjusted scaling factor
-        if row['humidity'] < humidity_lower_limit:
-            duration += (humidity_lower_limit - row['humidity']) / 10  # Adjusted scaling factor
-        if row['humidity'] > humidity_upper_limit:
-            duration += (row['humidity'] - humidity_upper_limit) / 10  # Adjusted scaling factor
+            duration += (row['temperature'] - temp_limit)
         return duration
 
     final_dataset['duration_open'] = final_dataset.apply(calculate_duration, axis=1)
