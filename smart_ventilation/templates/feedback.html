@@ -61,22 +61,6 @@
         <h1>Feedback zur Vorhersagegenauigkeit</h1>
         {% if predictions %}
         <form action="/feedback" method="post">
-            <div>
-                <h3>Temperatur: {{ predictions.temperature }}</h3>
-                <input type="hidden" name="temperature" value="{{ predictions.temperature }}">
-            </div>
-            <div>
-                <h3>Luftfeuchtigkeit: {{ predictions.humidity }}</h3>
-                <input type="hidden" name="humidity" value="{{ predictions.humidity }}">
-            </div>
-            <div>
-                <h3>CO2: {{ predictions.co2 }}</h3>
-                <input type="hidden" name="co2" value="{{ predictions.co2 }}">
-            </div>
-            <div>
-                <h3>Außentemperatur: {{ predictions.outdoor_temperature }}</h3>
-                <input type="hidden" name="outdoor_temperature" value="{{ predictions.outdoor_temperature }}">
-            </div>
             <div class="radio-group">
                 <label>
                     <input type="radio" name="accurate_prediction" value="1" checked> Korrekt
