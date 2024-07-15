@@ -366,6 +366,9 @@ def leaderboard():
                 'humidity': float(future_data.get('humidity')) if future_data.get('humidity') is not None else None,
             }]
 
+            last_prediction = session.get('last_prediction')
+            logging.info(f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}")
+
             if last_prediction == 1:
                 response = render_template('leaderboard2.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
             else:
