@@ -10,15 +10,11 @@ import logging
 import datetime as dt
 from datetime import datetime
 from api_config_loader import load_api_config
-from datetime import datetime
-import pytz
-
 
 # Pfad zu YAML-Konfigurationsdatei
 config_file_path = 'api_config.yaml'
 db_config_path = 'db/db_config.yaml'
 db = load_config(db_config_path)
-berlin_tz = pytz.timezone('Europe/Berlin')
 
 # API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)
@@ -336,12 +332,8 @@ class MQTTClient:
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
-                timestamp = datetime.fromisoformat(timestamp)
-                utc_datetime = pytz.utc.localize(timestamp)  # Assuming the stored timestamps are in UTC
-                berlin_datetime = utc_datetime.astimezone(berlin_tz)
-
                 # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
-                logging.info(f"Abrufen von Daten für Zeitstempel: {berlin_datetime}")
+                logging.info(f"Abrufen von Daten für Zeitstempel: {timestamp}")
 
                 # Abfrage zum Abruf von Daten innerhalb von 30 Minuten vor dem angegebenen Zeitstempel
                 query = """ 
@@ -354,8 +346,8 @@ class MQTTClient:
                     timestamp > CAST(%s AS timestamp); 
                 """
 
-                logging.info(f"Abfrage mit Zeitstempel ausführen:{berlin_datetime}")
-                cursor.execute(query, (berlin_datetime,))
+                logging.info(f"Abfrage mit Zeitstempel ausführen:{timestamp}")
+                cursor.execute(query, (timestamp,))
 
                 result = cursor.fetchone()
                 logging.info(f"Abfrage erfolgreich, Daten abgerufen:{result}")
@@ -363,7 +355,7 @@ class MQTTClient:
                 # Aufbereitung des Ergebnisses in einem Format, das der erwarteten Ausgabe entspricht
                 if result:
                     averaged_data = {
-                        'timestamp': berlin_datetime.strftime("%Y-%m-%d %H:%M"),
+                        'timestamp': timestamp,
                         'co2_values': result[0],
                         'temperature': result[1],
                         'humidity': result[2],
@@ -390,13 +382,7 @@ class MQTTClient:
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
-                timestamp = datetime.fromisoformat(timestamp)
-                utc_datetime = pytz.utc.localize(timestamp)
-                berlin_datetime = utc_datetime.astimezone(berlin_tz)
-                logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {berlin_datetime}")
-
                 # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
-                #adjusted_timestamp = timestamp + timedelta(hours=2)
                 logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {timestamp}")
 
                 # Abfrage zum Abrufen von Daten ab dem angegebenen Zeitstempel
@@ -408,8 +394,8 @@ class MQTTClient:
                     FROM classroom_environmental_data
                     WHERE timestamp > CAST(%s AS timestamp);
                 """
-                logging.info(f"Abfrage mit Zeitstempel ausführen: {berlin_datetime}")
-                cursor.execute(query, (berlin_datetime,))
+                logging.info(f"Abfrage mit Zeitstempel ausführen: {timestamp}")
+                cursor.execute(query, (timestamp,))
 
                 result = cursor.fetchone()
                 logging.info(f"Abfrage erfolgreich, Daten geholt:{result}")
@@ -417,14 +403,14 @@ class MQTTClient:
                 # Aufbereitung des Ergebnisses in einem Format, das der erwarteten Ausgabe entspricht
                 if result:
                     averaged_data = {
-                        'timestamp': berlin_datetime.strftime("%Y-%m-%d %H:%M"),
+                        'timestamp': timestamp,
                         'co2_values': float(result[0]) if result[0] is not None else None,
                         'temperature': float(result[1]) if result[1] is not None else None,
                         'humidity': float(result[2]) if result[2] is not None else None,
                     }
                 else:
                     averaged_data = {
-                        'timestamp': berlin_datetime.strftime("%Y-%m-%d %H:%M"),
+                        'timestamp': timestamp,
                         'co2_values': None,
                         'temperature': None,
                         'humidity': None,
@@ -436,7 +422,7 @@ class MQTTClient:
                 # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
                 logging.error(f"Fehler beim Abrufen von Zukunftsdaten aus der Datenbank: {e}")
                 return {
-                    'timestamp': berlin_datetime.strftime("%Y-%m-%d %H:%M"),
+                    'timestamp': timestamp,
                     'co2_values': None,
                     'temperature': None,
                     'humidity': None,
