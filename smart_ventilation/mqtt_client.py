@@ -10,7 +10,7 @@ import logging
 import datetime as dt
 from datetime import datetime
 from api_config_loader import load_api_config
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 
 # Pfad zu YAML-Konfigurationsdatei
@@ -334,6 +334,9 @@ class MQTTClient:
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
+                if isinstance(timestamp, str):
+                    timestamp = datetime.fromisoformat(timestamp)
+
                 # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
                 adjusted_timestamp = timestamp + timedelta(hours=2)
                 logging.info(f"Abrufen von Daten für Zeitstempel: {adjusted_timestamp}")
@@ -385,6 +388,9 @@ class MQTTClient:
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
+                if isinstance(timestamp, str):
+                    timestamp = datetime.fromisoformat(timestamp)
+                    
                 # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
                 adjusted_timestamp = timestamp + timedelta(hours=2)
                 logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {adjusted_timestamp}")
