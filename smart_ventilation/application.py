@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 import numpy as np
 import redis
 import os
-import pytz
 
 
 logging.basicConfig(level=logging.INFO)
@@ -21,16 +20,6 @@ app = Flask(__name__, static_folder=static_folder)
 app.config['SECRET_KEY'] = os.environ.get('FLASK_SECRET_KEY', 'default_secret_key')
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = redis.from_url(os.environ.get('REDIS_URL', 'redis://localhost:6379'))
-
-# Berlin Timezone
-berlin_tz = pytz.timezone('Europe/Berlin')
-
-
-def convert_to_berlin_time(naive_datetime_str):
-    naive_datetime = datetime.strptime(naive_datetime_str, "%Y-%m-%d %H:%M")
-    utc_datetime = pytz.utc.localize(naive_datetime)
-    berlin_datetime = utc_datetime.astimezone(berlin_tz)
-    return berlin_datetime.strftime("%Y-%m-%d %H:%M")
 
 
 # Pfad zu YAML-Konfigurationsdatei
@@ -317,7 +306,7 @@ def leaderboard():
                 latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
 
                 adjusted_date = latest_date - timedelta(minutes=1)
-                adjusted_date_str = convert_to_berlin_time(latest_date)
+                adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
                 logging.info(f"Angepasstes Datum: {adjusted_date_str}")
 
                 current_data = get_data(adjusted_date_str)
@@ -389,7 +378,7 @@ def leaderboard():
 
     except Exception as e:
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
-        return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e), "Hinweis": "Bitte zur Hauptseite zurueckgehen"}), 500
+        return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e), "Hinweis": "Bitte zur Hauptseite zurckgehen"}), 500
 
     
 @app.route('/future_data/<timestamp>')
@@ -404,10 +393,7 @@ def get_future_data(timestamp):
 
             return jsonify({"Fehler": "Keine Vorhersage-ID in Sitzung gefunden"}), 400
         
-        timestamp = convert_to_berlin_time(timestamp)
-
         logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {timestamp}")
-        
         future_data = mqtt_client.fetch_future_data(timestamp)
         
         if not future_data:
