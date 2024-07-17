@@ -338,8 +338,8 @@ class MQTTClient:
                     timestamp = datetime.fromisoformat(timestamp)
 
                 # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
-                adjusted_timestamp = timestamp + timedelta(hours=2)
-                logging.info(f"Abrufen von Daten für Zeitstempel: {adjusted_timestamp}")
+                #adjusted_timestamp = timestamp + timedelta(hours=2)
+                logging.info(f"Abrufen von Daten für Zeitstempel: {timestamp}")
 
                 # Abfrage zum Abruf von Daten innerhalb von 30 Minuten vor dem angegebenen Zeitstempel
                 query = """ 
@@ -352,8 +352,8 @@ class MQTTClient:
                     timestamp > CAST(%s AS timestamp); 
                 """
 
-                logging.info(f"Abfrage mit Zeitstempel ausführen:{adjusted_timestamp}")
-                cursor.execute(query, (adjusted_timestamp,))
+                logging.info(f"Abfrage mit Zeitstempel ausführen:{timestamp}")
+                cursor.execute(query, (timestamp,))
 
                 result = cursor.fetchone()
                 logging.info(f"Abfrage erfolgreich, Daten abgerufen:{result}")
@@ -361,7 +361,7 @@ class MQTTClient:
                 # Aufbereitung des Ergebnisses in einem Format, das der erwarteten Ausgabe entspricht
                 if result:
                     averaged_data = {
-                        'timestamp': adjusted_timestamp,
+                        'timestamp': timestamp,
                         'co2_values': result[0],
                         'temperature': result[1],
                         'humidity': result[2],
@@ -390,10 +390,10 @@ class MQTTClient:
             try:
                 if isinstance(timestamp, str):
                     timestamp = datetime.fromisoformat(timestamp)
-                    
+
                 # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
-                adjusted_timestamp = timestamp + timedelta(hours=2)
-                logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {adjusted_timestamp}")
+                #adjusted_timestamp = timestamp + timedelta(hours=2)
+                logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {timestamp}")
 
                 # Abfrage zum Abrufen von Daten ab dem angegebenen Zeitstempel
                 query = """
@@ -404,8 +404,8 @@ class MQTTClient:
                     FROM classroom_environmental_data
                     WHERE timestamp > CAST(%s AS timestamp);
                 """
-                logging.info(f"Abfrage mit Zeitstempel ausführen: {adjusted_timestamp}")
-                cursor.execute(query, (adjusted_timestamp,))
+                logging.info(f"Abfrage mit Zeitstempel ausführen: {timestamp}")
+                cursor.execute(query, (timestamp,))
 
                 result = cursor.fetchone()
                 logging.info(f"Abfrage erfolgreich, Daten geholt:{result}")
@@ -413,14 +413,14 @@ class MQTTClient:
                 # Aufbereitung des Ergebnisses in einem Format, das der erwarteten Ausgabe entspricht
                 if result:
                     averaged_data = {
-                        'timestamp': adjusted_timestamp,
+                        'timestamp': timestamp,
                         'co2_values': float(result[0]) if result[0] is not None else None,
                         'temperature': float(result[1]) if result[1] is not None else None,
                         'humidity': float(result[2]) if result[2] is not None else None,
                     }
                 else:
                     averaged_data = {
-                        'timestamp': adjusted_timestamp,
+                        'timestamp': timestamp,
                         'co2_values': None,
                         'temperature': None,
                         'humidity': None,
@@ -432,7 +432,7 @@ class MQTTClient:
                 # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
                 logging.error(f"Fehler beim Abrufen von Zukunftsdaten aus der Datenbank: {e}")
                 return {
-                    'timestamp': adjusted_timestamp,
+                    'timestamp': timestamp,
                     'co2_values': None,
                     'temperature': None,
                     'humidity': None,
