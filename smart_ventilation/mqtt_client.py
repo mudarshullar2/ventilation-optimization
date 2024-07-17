@@ -7,7 +7,6 @@ import copy
 import joblib
 import json
 import logging
-import time
 import datetime as dt
 from datetime import datetime
 from api_config_loader import load_api_config
@@ -26,19 +25,16 @@ USERNAME = api_config["USERNAME"]
 PASSWORD = api_config["PASSWORD"]
 
 class MQTTClient:
-
     """
     Diese Klasse stellt einen MQTT-Client dar, der Sensordaten sammelt,
     periodisch Vorhersagen trifft und die Daten speichert.
     """
 
     def __init__(self):
-
         """
         Initialisiert den MQTT-Client und lädt die Modelle.
         Startet auch Threads zur periodischen Vorhersage und Datenlöschung.
         """
-
         self.client = mqtt.Client()
         self.client.tls_set()
         self.client.username_pw_set(username=USERNAME, password=PASSWORD)
@@ -49,6 +45,8 @@ class MQTTClient:
         self.combined_data = {}
         self.data_points = []
         self.thread_alive = True
+        self.prediction_event = threading.Event()
+        self.clear_event = threading.Event()
         self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
         self.prediction_thread.start()
         self.data_lock = threading.Lock()
@@ -68,9 +66,7 @@ class MQTTClient:
             'Random Forest': random_forest_model
             }
 
-
     def on_connect(self, client, userdata, flags, rc):
-
         """
         Wird aufgerufen, wenn der Client eine Verbindung zum Broker herstellt.
         Abonniert die relevanten Topics und prüft, ob der Vorhersage-Thread läuft.
@@ -99,9 +95,7 @@ class MQTTClient:
             logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
             self.restart_thread()
 
-
     def on_message(self, client, userdata, msg):
-        
         """
         Wird aufgerufen, wenn eine Nachricht empfangen wird.
         Verarbeitet die Nachricht und speichert die Sensordaten.
@@ -110,7 +104,6 @@ class MQTTClient:
         :param userdata: Benutzerdaten
         :param msg: empfangene Nachricht
         """
-        
         topic = msg.topic
         payload = json.loads(msg.payload.decode())
 
@@ -173,15 +166,12 @@ class MQTTClient:
         if all(key in self.combined_data for key in required_keys):
             self.collect_data(self.combined_data)
 
-
     def collect_data(self, combined_data):
-
         """
         Sammeln und speichern der Sensordaten.
 
         :param combined_data: kombinierten Sensordaten
         """
-
         try:
             max_length = max(len(combined_data[key]) for key in combined_data if isinstance(combined_data[key], list))
             for i in range(max_length):
@@ -198,14 +188,16 @@ class MQTTClient:
             logging.error(f"Inhalt der kombinierten Daten: {combined_data}")
             logging.error(f"Inhalt der Datenpunkte: {self.data_points}")
 
-
     def run_periodic_predictions(self):
         """
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
             # 20 Minuten warten
-            time.sleep(1200)
+            self.prediction_event.wait(1200)
+            if not self.thread_alive:
+                break
+            self.prediction_event.clear()
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -264,98 +256,79 @@ class MQTTClient:
             else:
                 logging.info("In den letzten 20 Minuten wurden keine Daten gesammelt.")
 
-
     def restart_thread(self):
-
         """
         Startet den Vorhersage-Thread neu, falls er gestoppt wurde.
         """
-        
         self.thread_alive = True
         self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
         self.prediction_thread.start()
         
         logging.info("Vorhersage-Thread erfolgreich neu gestartet.")
 
-
     def get_latest_sensor_data(self):
-
         """
         Gibt die neuesten gesammelten Sensordaten zurück.
 
         :return: Kopie der Datenpunkte
         """
-        
         return self.data_points.copy()
 
-
     def periodic_clear(self):
-        
         """
-        Löscht periodisch die gesammelten Daten alle 20 Minuten.
+        Löscht periodisch die gesammelten Daten alle 1.5 Stunden.
         """
-        
         while True:
-
             # 1.5 Stunden warten
-            time.sleep(5400)
-
+            self.clear_event.wait(5400)
+            self.clear_event.clear()
             with self.data_lock:
                 self.data_points.clear()
                 self.combined_data.clear()
                 self.latest_predictions.clear()
-
             logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
             logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
             logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
-    
 
     def store_first_topic_data(self, data_point):
+        """
+        Speichert die Sensordaten aus dem ersten Thema in der PostgreSQL-Datenbank 
+        und stellt die Vollständigkeit der Daten sicher
+        """
+        with self.data_lock:
+            cursor = self.conn.cursor()
+            try:
+                if all(data_point.get(key) is not None for key in ['time', 'co2', 'temperature', 'humidity']):
+                    query = """
+                        INSERT INTO classroom_environmental_data
+                        (timestamp, co2_values, temperature, 
+                        humidity, classroom_number)
+                        VALUES (%s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, (
+                        data_point['time'], 
+                        data_point['co2'], 
+                        data_point['temperature'],
+                        data_point['humidity'], 
+                        '2.09' # Feste Besprechungsraum
+                    ))
+                self.conn.commit()
 
-            """
-            Speichert die Sensordaten aus dem ersten Thema in der PostgreSQL-Datenbank 
-            und stellt die Vollständigkeit der Daten sicher
-            """
-            
-            with self.data_lock:
-                cursor = self.conn.cursor()
-                try:
-                    if all(data_point.get(key) is not None for key in ['time', 'co2', 'temperature', 'humidity']):
-                        query = """
-                            INSERT INTO classroom_environmental_data
-                            (timestamp, co2_values, temperature, 
-                            humidity, classroom_number)
-                            VALUES (%s, %s, %s, %s, %s)
-                        """
-                        cursor.execute(query, (
-                            data_point['time'], 
-                            data_point['co2'], 
-                            data_point['temperature'],
-                            data_point['humidity'], 
-                            '2.09' # Feste Besprechungsraum
-                        ))
-                    self.conn.commit()
+                # Datenpunkt löschen, um Speicherplatz freizugeben
+                data_point = None
 
-                    # Datenpunkt löschen, um Speicherplatz freizugeben
-                    data_point = None
-
-                except Exception as e:
-
-                    logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
-
-                    self.conn.rollback()
-                finally:
-                    cursor.close()
-
+            except Exception as e:
+                logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
+                self.conn.rollback()
+            finally:
+                cursor.close()
 
     def fetch_data(self, timestamp):
-        
         """
         Hilfsfunktion zum Abrufen von Daten auf der Grundlage eines Zeitstempels, 
         unter Berücksichtigung der letzten 30 Minuten.
         Ruft Daten aus der PostgreSQL-Datenbank ab und berechnet den Durchschnitt der Werte.
         """
-        
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
@@ -400,19 +373,15 @@ class MQTTClient:
                 # Cursor muss nach dem Vorgang geschlossen werden
                 cursor.close()
 
-
     def fetch_future_data(self, timestamp):
-       
         """
         Hilfsfunktion zum Abrufen von Daten auf der Grundlage eines Zeitstempels, 
         unter Berücksichtigung der nächsten 10 Minuten.
         Ruft Daten aus der PostgreSQL-Datenbank ab und berechnet den Durchschnitt der Werte
         """
-        
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
-
                 # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
                 logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {timestamp}")
 
@@ -462,7 +431,6 @@ class MQTTClient:
                 # Cursor muss nach dem Vorgang geschlossen werden
                 cursor.close()
 
-
     def save_analysis_data(self, current_data, future_data, co2_change, temperature_change, humidity_change, decision):
         """
         Speichert die aktuellen und zukünftigen Umweltdaten sowie die prozentualen Änderungen in der Datenbank.
@@ -474,7 +442,6 @@ class MQTTClient:
         :param humidity_change: Prozentuale Änderung der Luftfeuchtigkeit
         """
         try:
-
             cursor = self.conn.cursor()
 
             query = """
@@ -507,24 +474,18 @@ class MQTTClient:
         except Exception as e:
             logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
 
-    
     def clear_predictions(self):
         """
         Löscht alte Vorhersagen
-
         """
-
         with self.data_lock:
-                logging.info("Alte Vorhersagen werden gelöscht!")
-                self.latest_predictions.clear()
-                logging.info(f"lates_prediction: {self.latest_predictions}")
-        
+            logging.info("Alte Vorhersagen werden gelöscht!")
+            self.latest_predictions.clear()
+            logging.info(f"lates_prediction: {self.latest_predictions}")
 
     def initialize(self):
-
         """
         Initialisiert die Verbindung zum MQTT-Broker und startet den Loop.
         """
-        
         self.client.connect(CLOUD_SERVICE_URL, 8883)
         self.client.loop_start()
