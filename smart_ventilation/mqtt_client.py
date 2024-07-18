@@ -279,11 +279,15 @@ class MQTTClient:
     def check_and_clear_data(self):
             current_time = datetime.now()
             logging.info(f"aktuelle Zeit: {current_time}")
+            logging.info(f"self.last_clear_data: {self.last_clear_date}")
+
             if current_time >= self.last_clear_date + timedelta(hours=1):
-                logging.info(f"self.last_clear_date {self.last_clear_date}")
-                self.clear_data(current_time)
-                self.last_clear_date = current_time.replace(minute=0, second=0, microsecond=0)
-                logging.info(f"self.last_clear_date nach der Anpassung (aktuel + self.clear_data) {self.last_clear_date}")
+                next_clear_date = self.last_clear_date + timedelta(hours=1)
+                logging.info(f"next_clear_date {next_clear_date}")
+
+                self.clear_data(next_clear_date)
+                self.last_clear_date = next_clear_date
+                logging.info(f"self.last_clear_date nach der Anpassung (aktuelle Zeit + self.clear_data) {self.last_clear_date}")
 
 
     def clear_data(self, clear_time):
