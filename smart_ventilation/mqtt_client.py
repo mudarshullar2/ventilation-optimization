@@ -8,7 +8,7 @@ import joblib
 import json
 import logging
 import datetime as dt
-from datetime import datetime
+from datetime import datetime, time
 from api_config_loader import load_api_config
 
 # Pfad zu YAML-Konfigurationsdatei
@@ -52,6 +52,7 @@ class MQTTClient:
         self.data_lock = threading.Lock()
         self.first_time = None
         self.first_topic_data = []
+        self.last_clear_date = None
 
         self.clearing_thread = threading.Thread(target=self.periodic_clear)
         self.clearing_thread.start()
@@ -80,6 +81,7 @@ class MQTTClient:
         logging.info("Verbunden mit Ergebniscode" + str(rc))
 
         # Für Uhrzeit und TVOC
+        #self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/24e124707c501858/event/up")
         self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/24e124707c501858/event/up")
 
         # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
@@ -89,7 +91,10 @@ class MQTTClient:
         self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd09aa/event/up")
 
         # Für Außentemperaturen
-        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
+        #self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
+
+        # Für Außemtemperaturen 
+        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa58/event/up")
 
         if not self.prediction_thread.is_alive():
             logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
@@ -163,8 +168,13 @@ class MQTTClient:
         # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
 
-        if all(key in self.combined_data for key in required_keys):
+        #if all(key in self.combined_data for key in required_keys):
+        #    self.collect_data(self.combined_data)
+        
+        if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
             self.collect_data(self.combined_data)
+
+        self.check_and_clear_data()
 
     def collect_data(self, combined_data):
         """
@@ -193,8 +203,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 5 Minuten warten
-            self.prediction_event.wait(300)
+            # 20 Minuten warten
+            self.prediction_event.wait(1200)
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
@@ -223,6 +233,10 @@ class MQTTClient:
 
                     # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
                     correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
+                    for feature in correct_order:
+                        if feature not in features_df.columns:
+                            features_df[feature] = 0
+
                     features_df = features_df[correct_order]
                     features_array = features_df.to_numpy()
 
@@ -255,6 +269,18 @@ class MQTTClient:
                     logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
                 logging.info("In den letzten 20 Minuten wurden keine Daten gesammelt.")
+    
+    def check_and_clear_data(self):
+        current_time = datetime.now().time()
+        current_date = datetime.now().date()
+        if current_time >= time(17, 0) and self.last_clear_date != current_date:
+            self.clear_data()
+            self.last_clear_date = current_date
+
+    def clear_data(self):
+        with self.data_lock:
+            self.data_points.clear()
+            logging.info("Daten löschen um 17:00 Uhr")
 
     def restart_thread(self):
         """
