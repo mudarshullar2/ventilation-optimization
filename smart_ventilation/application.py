@@ -104,31 +104,28 @@ def index():
 
 @app.route("/plots")
 def plots():
-
     """
-    Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten, beginnend beim ersten nicht-leeren Datenpunkt und dauert eine Stunde.
-    Wenn das einstündige Intervall erreicht ist, wird die Startzeit zurückgesetzt und die Anzeige beginnt erneut mit den neuen Daten.
-    :return: HTML-Seite mit den Echtzeit-Datenplots oder eine Fehlermeldung, falls keine Sensordaten verfügbar sind.
+    Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten.
     """
     
     sensor_data = mqtt_client.get_latest_sensor_data()
 
-    if sensor_data: 
-
+    if sensor_data:
         # Listen vorbereiten, um gefilterte Daten zu sammeln
-        co2_data = [data.get('co2', None) for data in sensor_data]
-        temperature_data = [data.get('temperature', None) for data in sensor_data]
-        humidity_data = [data.get('humidity', None) for data in sensor_data]
-        tvoc_data = [data.get('tvoc', None) for data in sensor_data]
-        time_data = [data.get('time', None) for data in sensor_data]
+        co2_data = []
+        temperature_data = []
+        humidity_data = []
+        tvoc_data = []
+        ambient_temp_data = []
+        time_data = []
 
-        # Datenpunkte ausrichten, um sicherzustellen, dass die Daten jedes Sensors die gleiche Länge haben
-        max_length = max(len(co2_data), len(temperature_data), len(humidity_data), len(time_data) , len(tvoc_data))
-        co2_data += [None] * (max_length - len(co2_data))
-        temperature_data += [None] * (max_length - len(temperature_data))
-        humidity_data += [None] * (max_length - len(humidity_data))
-        tvoc_data += [None] * (max_length - len(tvoc_data))
-        time_data += [None] * (max_length - len(time_data))
+        for data in sensor_data:
+            time_data.append(data.get('time', None))
+            co2_data.append(data.get('co2', None))
+            temperature_data.append(data.get('temperature', None))
+            humidity_data.append(data.get('humidity', None))
+            tvoc_data.append(data.get('tvoc', None))
+            ambient_temp_data.append(data.get('ambient_temp', None))
 
         # HTML-Seite mit Echtzeit-Datenplots rendern
         return render_template(
@@ -137,25 +134,20 @@ def plots():
             temperature_data=temperature_data,
             humidity_data=humidity_data,
             tvoc_data=tvoc_data,
+            ambient_temp_data=ambient_temp_data,
             time_data=time_data
         )
     
     else:
         # Leere Datensätze für die Diagramme vorbereiten
-        co2_data = []
-        temperature_data = []
-        humidity_data = []
-        tvoc_data = []
-        time_data = []
-
-        # Template mit leeren Datensätzen rendern
         return render_template(
             "plots.html",
-            co2_data=co2_data,
-            temperature_data=temperature_data,
-            humidity_data=humidity_data,
-            tvoc_data=tvoc_data,
-            time_data=time_data
+            co2_data=[],
+            temperature_data=[],
+            humidity_data=[],
+            tvoc_data=[],
+            ambient_temp_data=[],
+            time_data=[]
         )
     
 

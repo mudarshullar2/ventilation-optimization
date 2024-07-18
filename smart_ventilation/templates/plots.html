@@ -188,7 +188,7 @@
         Plotly.newPlot('humidity-plot', [humidity_trace, high_humidity_line, low_humidity_line], {
             title: 'Luftfeuchtigkeit Diagramm',
             xaxis: {title: 'Zeit'},
-            yaxis: {title: 'Luftfeuchtigkeit in g/m3'}
+            yaxis: {title: 'Luftfeuchtigkeit in %'}
         });
         
         // TVOC-Daten mit Schwellenwertlinien aufzeichnen 
@@ -218,7 +218,7 @@
         Plotly.newPlot('tvoc-plot', [tvoc_trace, high_tvoc_line, low_tvoc_line], {
             title: 'TVOC Diagramm',
             xaxis: {title: 'Zeit'},
-            yaxis: {title: 'TVOC Werte in mg/m³'}
+            yaxis: {title: 'TVOC Werte in ppb'}
         });
 
     </script>
