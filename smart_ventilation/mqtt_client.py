@@ -51,7 +51,7 @@ class MQTTClient:
         self.data_lock = threading.Lock()
         self.first_time = None
         self.first_topic_data = []
-        self.last_clear_date = datetime.now().replace(minute=0, second=0, microsecond=0)
+        self.last_clear_date = datetime.now()
         self.conn = connect_to_database(db)
 
         logistic_regression_model = joblib.load('models/Logistic_Regression.pkl')
