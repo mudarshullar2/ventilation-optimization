@@ -52,11 +52,7 @@ class MQTTClient:
         self.data_lock = threading.Lock()
         self.first_time = None
         self.first_topic_data = []
-        self.last_clear_date = None
-
-        #self.clearing_thread = threading.Thread(target=self.periodic_clear)
-        #self.clearing_thread.start()
-
+        self.last_clear_date = datetime.now().replace(minute=0, second=0, microsecond=0)
         self.conn = connect_to_database(db)
 
         logistic_regression_model = joblib.load('models/Logistic_Regression.pkl')
@@ -66,6 +62,7 @@ class MQTTClient:
             'Logistic Regression': logistic_regression_model,
             'Random Forest': random_forest_model
             }
+
 
     def on_connect(self, client, userdata, flags, rc):
         """
@@ -81,7 +78,6 @@ class MQTTClient:
         logging.info("Verbunden mit Ergebniscode" + str(rc))
 
         # Für Uhrzeit und TVOC
-        #self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/24e124707c501858/event/up")
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
 
         # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
@@ -99,6 +95,7 @@ class MQTTClient:
         if not self.prediction_thread.is_alive():
             logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
             self.restart_thread()
+
 
     def on_message(self, client, userdata, msg):
         """
@@ -167,14 +164,12 @@ class MQTTClient:
 
         # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
         required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
-
-        #if all(key in self.combined_data for key in required_keys):
-        #    self.collect_data(self.combined_data)
         
         if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
             self.collect_data(self.combined_data)
 
         self.check_and_clear_data()
+
 
     def collect_data(self, combined_data):
         with self.data_lock:
@@ -201,6 +196,7 @@ class MQTTClient:
                 logging.error(f"Unerwarteter Fehler bei der Datensammlung: {e}")
                 logging.error(f"Inhalt der kombinierten Daten: {combined_data}")
                 logging.error(f"Inhalt der Datenpunkte: {self.data_points}")
+
 
     def run_periodic_predictions(self):
         """
@@ -279,14 +275,16 @@ class MQTTClient:
             else:
                 logging.info("In den letzten 20 Minuten wurden keine Daten gesammelt.")
     
+
     def check_and_clear_data(self):
-        current_time = datetime.now()
-        if self.last_clear_date is None:
-            self.last_clear_date = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
-        time_since_last_clear = current_time - self.last_clear_date
-        if time_since_last_clear >= timedelta(hours=1):
-            self.clear_data(current_time)
-            self.last_clear_date = current_time
+            current_time = datetime.now()
+            print(f"aktuelle Zeit: {current_time}")
+            if current_time >= self.last_clear_date + timedelta(hours=1):
+                print(f"self.last_clear_date {self.last_clear_date}")
+                self.clear_data(current_time)
+                self.last_clear_date = current_time.replace(minute=0, second=0, microsecond=0)
+                print(f"self.last_clear_date nach der Anpassung (aktuel + self.clear_data) {self.last_clear_date}")
+
 
     def clear_data(self, clear_time):
         with self.data_lock:
@@ -294,6 +292,7 @@ class MQTTClient:
             self.combined_data.clear()
             self.latest_predictions.clear()
             logging.info(f"Daten um {clear_time.strftime('%H:%M Uhr')} gelöscht")
+
 
     def restart_thread(self):
         """
@@ -305,6 +304,7 @@ class MQTTClient:
         
         logging.info("Vorhersage-Thread erfolgreich neu gestartet.")
 
+
     def get_latest_sensor_data(self):
         """
         Gibt die neuesten gesammelten Sensordaten zurück.
@@ -313,21 +313,6 @@ class MQTTClient:
         """
         return self.data_points.copy()
 
-    #def periodic_clear(self):
-    #    """
-    #    Löscht periodisch die gesammelten Daten alle 1.5 Stunden.
-    #    """
-    #    while True:
-    #        # 24 Stunden warten
-    #        self.clear_event.wait(86400)
-    #        self.clear_event.clear()
-    #        with self.data_lock:
-    #            self.data_points.clear()
-    #            self.combined_data.clear()
-    #            self.latest_predictions.clear()
-    #        logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
-    #        logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
-    #        logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
 
     def store_first_topic_data(self, data_point):
         """
@@ -362,6 +347,7 @@ class MQTTClient:
             finally:
                 cursor.close()
 
+
     def store_feedback_data(self, feedback_data):
         """
         Speichert das Feedback-Daten aus der API-Antwort in der PostgreSQL-Datenbank
@@ -393,6 +379,7 @@ class MQTTClient:
                 self.conn.rollback()
             finally:
                 cursor.close()
+
 
     def fetch_data(self, timestamp):
         """
@@ -443,6 +430,7 @@ class MQTTClient:
             finally:
                 # Cursor muss nach dem Vorgang geschlossen werden
                 cursor.close()
+
 
     def fetch_future_data(self, timestamp):
         """
@@ -502,6 +490,7 @@ class MQTTClient:
                 # Cursor muss nach dem Vorgang geschlossen werden
                 cursor.close()
 
+
     def save_analysis_data(self, current_data, future_data, co2_change, temperature_change, humidity_change, decision):
         """
         Speichert die aktuellen und zukünftigen Umweltdaten sowie die prozentualen Änderungen in der Datenbank.
@@ -545,6 +534,7 @@ class MQTTClient:
         except Exception as e:
             logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
 
+
     def clear_predictions(self):
         """
         Löscht alte Vorhersagen
@@ -553,6 +543,7 @@ class MQTTClient:
             logging.info("Alte Vorhersagen werden gelöscht!")
             self.latest_predictions.clear()
             logging.info(f"lates_prediction: {self.latest_predictions}")
+
 
     def initialize(self):
         """
