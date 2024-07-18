@@ -53,7 +53,7 @@ class MQTTClient:
         self.first_time = None
         self.first_topic_data = []
 
-        self.clearing_thread = threading.Thread(target=self.periodic_clear)
+        #self.clearing_thread = threading.Thread(target=self.periodic_clear)
         self.clearing_thread.start()
 
         self.conn = connect_to_database(db)
