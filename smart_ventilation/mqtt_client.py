@@ -193,8 +193,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 20 Minuten warten
-            self.prediction_event.wait(1200)
+            # 5 Minuten warten
+            self.prediction_event.wait(300)
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
@@ -319,6 +319,38 @@ class MQTTClient:
 
             except Exception as e:
                 logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
+                self.conn.rollback()
+            finally:
+                cursor.close()
+
+    def store_feedback_data(self, feedback_data):
+        """
+        Speichert das Feedback-Daten aus der API-Antwort in der PostgreSQL-Datenbank
+        """
+        with self.data_lock:
+            cursor = self.conn.cursor()
+            try:
+                if all(feedback_data.get(key) is not None for key in ['temperature', 'humidity', 'co2', 'timestamp', 'outdoor_temperature', 'accurate_prediction']):
+                    query = """
+                        INSERT INTO feedback_tabelle
+                        (temperature, humidity, co2, timestamp, outdoor_temperature, accurate_prediction)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """
+                    cursor.execute(query, (
+                        feedback_data['temperature'],
+                        feedback_data['humidity'],
+                        feedback_data['co2'],
+                        feedback_data['timestamp'],
+                        feedback_data['outdoor_temperature'],
+                        feedback_data['accurate_prediction']
+                    ))
+                    self.conn.commit()
+                else:
+                    logging.error("Nicht alle erforderlichen Daten sind vorhanden im feedback_data")
+                    self.conn.rollback()
+
+            except Exception as e:
+                logging.error(f"Fehler beim Speichern von Feedback-Daten in der Datenbank: {e}")
                 self.conn.rollback()
             finally:
                 cursor.close()
