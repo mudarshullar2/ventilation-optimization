@@ -8,7 +8,7 @@ import joblib
 import json
 import logging
 import datetime as dt
-from datetime import datetime, time, timedelta
+from datetime import datetime, timedelta
 from api_config_loader import load_api_config
 
 # Pfad zu YAML-Konfigurationsdatei
@@ -293,7 +293,7 @@ class MQTTClient:
             self.data_points.clear()
             self.combined_data.clear()
             self.latest_predictions.clear()
-            logging.info(f"Daten löschen um {clear_time.strftime('%H:%M Uhr')}")
+            logging.info(f"Daten um {clear_time.strftime('%H:%M Uhr')} gelöscht")
 
     def restart_thread(self):
         """
