@@ -8,7 +8,7 @@ import joblib
 import json
 import logging
 import datetime as dt
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 from api_config_loader import load_api_config
 
 # Pfad zu YAML-Konfigurationsdatei
@@ -177,26 +177,30 @@ class MQTTClient:
         self.check_and_clear_data()
 
     def collect_data(self, combined_data):
-        """
-        Sammeln und speichern der Sensordaten.
-
-        :param combined_data: kombinierten Sensordaten
-        """
-        try:
-            max_length = max(len(combined_data[key]) for key in combined_data if isinstance(combined_data[key], list))
-            for i in range(max_length):
-                data = {}
-                for key in combined_data:
-                    if isinstance(combined_data[key], list) and i < len(combined_data[key]):
-                        data[key] = combined_data[key][i]
-                if data:
+        with self.data_lock:
+            try:
+                # Alle erforderlichen Schlüssel definieren
+                required_keys = ['time', 'humidity', 'temperature', 'co2', 'tvoc', 'ambient_temp']
+                max_length = max(len(combined_data[key]) for key in combined_data if isinstance(combined_data[key], list))
+                
+                for i in range(max_length):
+                    data = {}
+                    for key in combined_data:
+                        if isinstance(combined_data[key], list) and i < len(combined_data[key]):
+                            data[key] = combined_data[key][i]
+                        else:
+                            data[key] = None
+                    # Sicherstellen, dass alle erforderlichen Schlüssel im Datenpunkt vorhanden sind
+                    for key in required_keys:
+                        if key not in data:
+                            data[key] = None
                     self.data_points.append(data)
-                    logging.debug(f"data_points in der Funktion collect_data!: {data}")
+                    logging.debug(f"Gesammelter Datenpunkt: {data}")
 
-        except Exception as e:
-            logging.error(f"Unerwarteter Fehler bei der Datensammlung: {e}")
-            logging.error(f"Inhalt der kombinierten Daten: {combined_data}")
-            logging.error(f"Inhalt der Datenpunkte: {self.data_points}")
+            except Exception as e:
+                logging.error(f"Unerwarteter Fehler bei der Datensammlung: {e}")
+                logging.error(f"Inhalt der kombinierten Daten: {combined_data}")
+                logging.error(f"Inhalt der Datenpunkte: {self.data_points}")
 
     def run_periodic_predictions(self):
         """
@@ -276,16 +280,18 @@ class MQTTClient:
                 logging.info("In den letzten 20 Minuten wurden keine Daten gesammelt.")
     
     def check_and_clear_data(self):
-        current_time = datetime.now().time()
-        current_date = datetime.now().date()
-        if current_time >= time(17, 0) and self.last_clear_date != current_date:
-            self.clear_data()
-            self.last_clear_date = current_date
+        current_time = datetime.now()
+        if self.last_clear_date is None:
+            self.last_clear_date = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        time_since_last_clear = current_time - self.last_clear_date
+        if time_since_last_clear >= timedelta(hours=4):
+            self.clear_data(current_time)
+            self.last_clear_date = current_time
 
-    def clear_data(self):
+    def clear_data(self, clear_time):
         with self.data_lock:
             self.data_points.clear()
-            logging.info("Daten löschen um 17:00 Uhr")
+            logging.info(f"Daten löschen um {clear_time.strftime('%H:%M Uhr')}")
 
     def restart_thread(self):
         """
