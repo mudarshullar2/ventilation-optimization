@@ -274,22 +274,6 @@ class MQTTClient:
         """
         return self.data_points.copy()
 
-    def periodic_clear(self):
-        """
-        Löscht periodisch die gesammelten Daten alle 1.5 Stunden.
-        """
-        while True:
-            # 1.5 Stunden warten
-            self.clear_event.wait(5400)
-            self.clear_event.clear()
-            with self.data_lock:
-                self.data_points.clear()
-                self.combined_data.clear()
-                self.latest_predictions.clear()
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
-            logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
-            logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
-
     def store_first_topic_data(self, data_point):
         """
         Speichert die Sensordaten aus dem ersten Thema in der PostgreSQL-Datenbank 
