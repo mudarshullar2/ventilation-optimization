@@ -284,7 +284,7 @@ class MQTTClient:
         if self.last_clear_date is None:
             self.last_clear_date = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
         time_since_last_clear = current_time - self.last_clear_date
-        if time_since_last_clear >= timedelta(hours=4):
+        if time_since_last_clear >= timedelta(hours=1):
             self.clear_data(current_time)
             self.last_clear_date = current_time
 
