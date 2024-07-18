@@ -147,7 +147,7 @@ class MQTTClient:
                 logging.info(f"data_point is {data_point}")
                 self.store_first_topic_data(data_point)
 
-        elif topic.endswith("24e124707c501858/event/up"):
+        elif topic.endswith("24e124707c481005/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
 
@@ -156,7 +156,7 @@ class MQTTClient:
             if tvos_value is not None:
                 self.combined_data.setdefault("tvoc", []).append(round(tvos_value, 2))
 
-        elif topic.endswith("647fda000000aa92/event/up"):
+        elif topic.endswith("647fda000000aa58/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
 
@@ -235,7 +235,12 @@ class MQTTClient:
                     correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
                     for feature in correct_order:
                         if feature not in features_df.columns:
-                            features_df[feature] = 0
+                            if feature == 'tvoc':
+                                features_df[feature] = 100
+                            elif feature == 'ambient_temp':
+                                features_df[feature] = avg_data.get('temperature', 0)
+                            else:
+                                features_df[feature] = 0
 
                     features_df = features_df[correct_order]
                     features_array = features_df.to_numpy()
