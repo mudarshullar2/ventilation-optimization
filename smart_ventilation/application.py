@@ -167,7 +167,6 @@ def convert_to_serializable(obj):
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
-
     """
     Diese Funktion behandelt das Feedback der Benutzer bezüglich der Vorhersagen.
     
@@ -178,9 +177,7 @@ def feedback():
     
     :return: gerenderte HTML-Seite oder JSON-Antwort mit Fehlermeldung
     """
-
     if request.method == 'POST':
-
         try:
             # Vorhersagen vom MQTT-Client abrufen
             predictions = mqtt_client.latest_predictions
@@ -228,6 +225,9 @@ def feedback():
             logging.info(f"API Antwort: {response.json()}")
 
             if response.status_code == 200:
+                # Store feedback data in the database
+                mqtt_client.store_feedback_data(feedback_data)
+
                 last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
                 logging.info(f"last_prediciton in feedback(): {last_prediction}")
 
