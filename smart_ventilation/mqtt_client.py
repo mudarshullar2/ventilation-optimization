@@ -54,8 +54,8 @@ class MQTTClient:
         self.first_topic_data = []
         self.last_clear_date = None
 
-        self.clearing_thread = threading.Thread(target=self.periodic_clear)
-        self.clearing_thread.start()
+        #self.clearing_thread = threading.Thread(target=self.periodic_clear)
+        #self.clearing_thread.start()
 
         self.conn = connect_to_database(db)
 
@@ -291,6 +291,8 @@ class MQTTClient:
     def clear_data(self, clear_time):
         with self.data_lock:
             self.data_points.clear()
+            self.combined_data.clear()
+            self.latest_predictions.clear()
             logging.info(f"Daten löschen um {clear_time.strftime('%H:%M Uhr')}")
 
     def restart_thread(self):
@@ -311,21 +313,21 @@ class MQTTClient:
         """
         return self.data_points.copy()
 
-    def periodic_clear(self):
-        """
-        Löscht periodisch die gesammelten Daten alle 1.5 Stunden.
-        """
-        while True:
-            # 24 Stunden warten
-            self.clear_event.wait(86400)
-            self.clear_event.clear()
-            with self.data_lock:
-                self.data_points.clear()
-                self.combined_data.clear()
-                self.latest_predictions.clear()
-            logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
-            logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
-            logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
+    #def periodic_clear(self):
+    #    """
+    #    Löscht periodisch die gesammelten Daten alle 1.5 Stunden.
+    #    """
+    #    while True:
+    #        # 24 Stunden warten
+    #        self.clear_event.wait(86400)
+    #        self.clear_event.clear()
+    #        with self.data_lock:
+    #            self.data_points.clear()
+    #            self.combined_data.clear()
+    #            self.latest_predictions.clear()
+    #        logging.info("Datenpunkte und kombinierte Daten wurden nach 1.5 Stunden gelöscht.")
+    #        logging.info(f"Inhalt der Datenpunkte nach dem Löschen: {self.data_points}")
+    #        logging.info(f"Inhalt der kombinierten Daten nach dem Löschen: {self.combined_data}")
 
     def store_first_topic_data(self, data_point):
         """
