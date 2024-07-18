@@ -380,6 +380,7 @@ def leaderboard():
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
         return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e), "Hinweis": "Bitte zur Hauptseite zurückgehen"}), 500
 
+
     
 @app.route('/future_data/<timestamp>')
 def get_future_data(timestamp):
