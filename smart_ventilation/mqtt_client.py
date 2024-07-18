@@ -46,7 +46,6 @@ class MQTTClient:
         self.data_points = []
         self.thread_alive = True
         self.prediction_event = threading.Event()
-        self.clear_event = threading.Event()
         self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
         self.prediction_thread.start()
         self.data_lock = threading.Lock()
@@ -61,7 +60,7 @@ class MQTTClient:
         self.models = {
             'Logistic Regression': logistic_regression_model,
             'Random Forest': random_forest_model
-            }
+            }        
 
 
     def on_connect(self, client, userdata, flags, rc):
@@ -89,9 +88,6 @@ class MQTTClient:
         # Für Außentemperaturen
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
 
-        # Für Außemtemperaturen 
-        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa58/event/up")
-
         if not self.prediction_thread.is_alive():
             logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
             self.restart_thread()
@@ -110,18 +106,19 @@ class MQTTClient:
         payload = json.loads(msg.payload.decode())
 
         def adjust_and_format_time(raw_time):
-            utc_time = dt.datetime.strptime(raw_time, "%Y-%m-%dT%H:%M:%S.%f%z")
-            local_time = utc_time + dt.timedelta(hours=2)
-            return local_time.strftime("%Y-%m-%d %H:%M")
-        
-        if topic.endswith("0004a30b00fd0f5e/event/up"): 
-            formatted_time = adjust_and_format_time(payload["time"])
-            self.combined_data.setdefault("time", []).append(formatted_time)
+            try:
+                utc_time = dt.datetime.strptime(raw_time, "%Y-%m-%dT%H:%M:%S.%f%z")
+                local_time = utc_time + dt.timedelta(hours=2)
+                return local_time.strftime("%Y-%m-%d %H:%M")
+            except Exception as e:
+                logging.error(f"Fehler bei Zeitanpassung: {e}")
+                return None
 
+        formatted_time = adjust_and_format_time(payload["time"])
+
+        if topic.endswith("0004a30b00fd0f5e/event/up"):
             humidity_values = payload["object"].get("humidity")
-
             temperature_values = payload["object"].get("temperature")
-
             co2_values = payload["object"].get("co2")
 
             if humidity_values is not None:
@@ -129,7 +126,7 @@ class MQTTClient:
 
             if temperature_values is not None:
                 self.combined_data.setdefault("temperature", []).append(round(temperature_values, 2))
-            
+
             if co2_values is not None:
                 self.combined_data.setdefault("co2", []).append(round(co2_values, 2))
 
@@ -145,27 +142,22 @@ class MQTTClient:
                 self.store_first_topic_data(data_point)
 
         elif topic.endswith("24e124707c481005/event/up"):
-            formatted_time = adjust_and_format_time(payload["time"])
-            self.combined_data.setdefault("time", []).append(formatted_time)
-
             tvos_value = payload["object"].get("tvoc")
 
             if tvos_value is not None:
                 self.combined_data.setdefault("tvoc", []).append(round(tvos_value, 2))
 
-        elif topic.endswith("647fda000000aa58/event/up") or topic.endswith("647fda000000aa92/event/up"):
-            formatted_time = adjust_and_format_time(payload["time"])
-            self.combined_data.setdefault("time", []).append(formatted_time)
-
+        elif topic.endswith("647fda000000aa92/event/up"):
             ambient_temp_value = payload["object"].get("ambient_temp")
 
-            if ambient_temp_value is not None: 
+            if ambient_temp_value is not None:
                 self.combined_data.setdefault("ambient_temp", []).append(round(ambient_temp_value, 2))
 
         # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
-        required_keys = {"time", "humidity", "temperature", "co2", "tvoc", "ambient_temp"}
-        
+        required_keys = {"humidity", "temperature", "co2", "tvoc", "ambient_temp"}
+
         if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
+            self.combined_data["time"] = [formatted_time]
             self.collect_data(self.combined_data)
 
         self.check_and_clear_data()
