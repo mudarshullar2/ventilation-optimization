@@ -91,7 +91,7 @@ class MQTTClient:
         self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd09aa/event/up")
 
         # Für Außentemperaturen
-        #self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
+        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
 
         # Für Außemtemperaturen 
         self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa58/event/up")
@@ -156,7 +156,7 @@ class MQTTClient:
             if tvos_value is not None:
                 self.combined_data.setdefault("tvoc", []).append(round(tvos_value, 2))
 
-        elif topic.endswith("647fda000000aa58/event/up"):
+        elif topic.endswith("647fda000000aa58/event/up") or topic.endswith("647fda000000aa92/event/up"):
             formatted_time = adjust_and_format_time(payload["time"])
             self.combined_data.setdefault("time", []).append(formatted_time)
 
