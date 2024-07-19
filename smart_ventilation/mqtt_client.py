@@ -1,3 +1,4 @@
+import psycopg2
 from db.database_connection import load_config, connect_to_database
 import paho.mqtt.client as mqtt
 import pandas as pd
@@ -352,6 +353,10 @@ class MQTTClient:
                 # Datenpunkt löschen, um Speicherplatz freizugeben
                 data_point = None
 
+            except psycopg2.OperationalError as e:
+                logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
+                self.reconnect_db()
+
             except Exception as e:
                 logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
                 self.conn.rollback()
@@ -384,6 +389,10 @@ class MQTTClient:
                 else:
                     logging.error("Nicht alle erforderlichen Daten sind vorhanden im feedback_data")
                     self.conn.rollback()
+            
+            except psycopg2.OperationalError as e:
+                logging.error(f"Datenbankverbindungsfehler beim Speichern von Feedback-Daten: {e}")
+                self.reconnect_db()
 
             except Exception as e:
                 logging.error(f"Fehler beim Speichern von Feedback-Daten in der Datenbank: {e}")
@@ -432,7 +441,12 @@ class MQTTClient:
                 else:
                     averaged_data = {}
                 return averaged_data
-
+            
+            except psycopg2.OperationalError as e:
+                logging.error(f"Datenbankverbindungsfehler beim Abrufen von Daten: {e}")
+                self.reconnect_db()
+                return {}
+            
             except Exception as e:
                 # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
                 logging.error(f"Fehler beim Abrufen von Daten aus der Datenbank: {e}")
@@ -487,7 +501,17 @@ class MQTTClient:
                     }
 
                 return averaged_data
-
+            
+            except psycopg2.OperationalError as e:
+                logging.error(f"Datenbankverbindungsfehler beim Abrufen von Zukunftsdaten: {e}")
+                self.reconnect_db()
+                return {
+                    'timestamp': timestamp,
+                    'co2_values': None,
+                    'temperature': None,
+                    'humidity': None,
+                }
+            
             except Exception as e:
                 # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
                 logging.error(f"Fehler beim Abrufen von Zukunftsdaten aus der Datenbank: {e}")
@@ -541,6 +565,10 @@ class MQTTClient:
             cursor.close()
 
             logging.info("Daten in der Tabelle environmental_data_analysis erfolgreich gespeichert")
+            
+        except psycopg2.OperationalError as e:
+            logging.error(f"Datenbankverbindungsfehler beim Speichern von Daten: {e}")
+            self.reconnect_db()
 
         except Exception as e:
             logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
@@ -557,6 +585,30 @@ class MQTTClient:
                 logging.info(f"lates_prediction: {self.latest_predictions}")
             except Exception as e: 
                 logging.error(f"Fehler beim Löschen der Vorhersagen: {e}")
+
+    def stop(self):
+        """
+        Stoppt den MQTT-Client und den Vorhersage-Thread.
+        """
+        try:
+            self.thread_alive = False
+            self.client.loop_stop()
+            self.client.disconnect()
+        except Exception as e:
+            logging.error(f"Fehler beim Stoppen des Clients: {e}")
+
+
+    def reconnect_db(self):
+        """
+        Versucht, die Datenbankverbindung neu herzustellen.
+        """
+        try:
+            logging.info("Versuche, die Datenbankverbindung neu herzustellen...")
+            self.conn.close()
+            self.conn = connect_to_database(db)
+            logging.info("Datenbankverbindung erfolgreich neu hergestellt.")
+        except Exception as e:
+            logging.error(f"Fehler beim Neuherstellen der Datenbankverbindung: {e}")
 
 
     def initialize(self):
