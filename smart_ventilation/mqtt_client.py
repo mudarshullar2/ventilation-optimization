@@ -36,32 +36,35 @@ class MQTTClient:
         Initialisiert den MQTT-Client und lädt die Modelle.
         Startet auch Threads zur periodischen Vorhersage und Datenlöschung.
         """
-        self.client = mqtt.Client()
-        self.client.tls_set()
-        self.client.username_pw_set(username=USERNAME, password=PASSWORD)
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.parameters = {}
-        self.latest_predictions = {}
-        self.combined_data = {}
-        self.data_points = []
-        self.thread_alive = True
-        self.prediction_event = threading.Event()
-        self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
-        self.prediction_thread.start()
-        self.data_lock = threading.Lock()
-        self.first_time = None
-        self.first_topic_data = []
-        self.last_clear_date = datetime.now().replace(minute=0, second=0, microsecond=0)
-        self.conn = connect_to_database(db)
+        try: 
+            self.client = mqtt.Client()
+            self.client.tls_set()
+            self.client.username_pw_set(username=USERNAME, password=PASSWORD)
+            self.client.on_connect = self.on_connect
+            self.client.on_message = self.on_message
+            self.parameters = {}
+            self.latest_predictions = {}
+            self.combined_data = {}
+            self.data_points = []
+            self.thread_alive = True
+            self.prediction_event = threading.Event()
+            self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
+            self.prediction_thread.start()
+            self.data_lock = threading.Lock()
+            self.first_time = None
+            self.first_topic_data = []
+            self.last_clear_date = datetime.now().replace(minute=0, second=0, microsecond=0)
+            self.conn = connect_to_database(db)
 
-        logistic_regression_model = joblib.load('models/Logistic_Regression.pkl')
-        random_forest_model = joblib.load('models/Random_Forest.pkl')
+            logistic_regression_model = joblib.load('models/Logistic_Regression.pkl')
+            random_forest_model = joblib.load('models/Random_Forest.pkl')
 
-        self.models = {
-            'Logistic Regression': logistic_regression_model,
-            'Random Forest': random_forest_model
-            }        
+            self.models = {
+                'Logistic Regression': logistic_regression_model,
+                'Random Forest': random_forest_model
+                }        
+        except Exception as e:
+            logging.error(f"Fehler bei der Initialisierung: {e}")
 
 
     def on_connect(self, client, userdata, flags, rc):
