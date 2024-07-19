@@ -1,30 +1,30 @@
 # Python-Image von Docker Hub für die Version 3.10.10
 FROM python:3.10.10-slim
 
-# Core dependencies für PostgreSQL 16 client
+# Core-Abhängigkeiten für PostgreSQL 16 Client
 RUN apt-get update && \
     apt-get install -y wget gnupg2 && \
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     echo "deb http://apt.postgresql.org/pub/repos/apt/ $(grep 'VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
     apt-get update && \
-    apt-get install -y libpq-dev build-essential postgresql-client-16 postgresql-contrib && \
+    apt-get install -y --fix-missing libpq-dev build-essential postgresql-client-16 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 # Arbeitsverzeichnis für Backend festlegen
 WORKDIR /app
 
-# den Inhalt des aktuellen Verzeichnisses in den Container unter /app kopieren
+# Den Inhalt des aktuellen Verzeichnisses in den Container unter /app kopieren
 COPY . /app
 
-# Packages installieren 
+# Packages installieren
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install redis flask-session
 
-# Port, auf dem die Flask-Anwendung läuft 
+# Port, auf dem die Flask-Anwendung läuft
 EXPOSE 8000
 
-# Umgebungsvariable definieren
+# Umgebungsvariablen definieren
 ENV FLASK_APP=application.py
 ENV PORT=8000
 ENV FLASK_SECRET_KEY='5b8d0ad3179d0b0bf3d8e12a98f5b309'
