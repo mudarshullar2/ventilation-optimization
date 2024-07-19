@@ -108,30 +108,46 @@ def plots():
     Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten.
     """
     try:
-
         sensor_data = mqtt_client.get_latest_sensor_data()
 
+        logging.info(f"current sensor_data in plots function: {sensor_data}")
+
         if sensor_data:
-            # Listen vorbereiten, um gefilterte Daten zu sammeln
-            co2_data = []
-            temperature_data = []
-            humidity_data = []
-            tvoc_data = []
-            ambient_temp_data = []
-            time_data = []
+            
+            unique_data = {}
 
             for data in sensor_data:
-                time = data.get('time', None)
-                if time is not None:
-                    time_data.append(time)
-                time_data.append(data.get('time', None))
-                co2_data.append(data.get('co2', None))
-                temperature_data.append(data.get('temperature', None))
-                humidity_data.append(data.get('humidity', None))
-                tvoc_data.append(data.get('tvoc', None))
-                ambient_temp_data.append(data.get('ambient_temp', None))
+                time = data.get('time')
+                if time and time not in unique_data:
+                    unique_data[time] = {
+                        'co2': data.get('co2'),
+                        'temperature': data.get('temperature'),
+                        'humidity': data.get('humidity'),
+                        'tvoc': data.get('tvoc'),
+                        'ambient_temp': data.get('ambient_temp')
+                    }
+                
+                elif time:
+                    if data.get('co2') is not None:
+                        unique_data[time]['co2'] = data.get('co2')
+                    if data.get('temperature') is not None:
+                        unique_data[time]['temperature'] = data.get('temperature')
+                    if data.get('humidity') is not None:
+                        unique_data[time]['humidity'] = data.get('humidity')
+                    if data.get('tvoc') is not None:
+                        unique_data[time]['tvoc'] = data.get('tvoc')
+                    if data.get('ambient_temp') is not None:
+                        unique_data[time]['ambient_temp'] = data.get('ambient_temp')
 
-            # HTML-Seite mit Echtzeit-Datenplots rendern
+            
+            time_data = list(unique_data.keys())
+            co2_data = [v['co2'] for v in unique_data.values()]
+            temperature_data = [v['temperature'] for v in unique_data.values()]
+            humidity_data = [v['humidity'] for v in unique_data.values()]
+            tvoc_data = [v['tvoc'] for v in unique_data.values()]
+            ambient_temp_data = [v['ambient_temp'] for v in unique_data.values()]
+
+            
             return render_template(
                 "plots.html",
                 co2_data=co2_data,
@@ -141,9 +157,9 @@ def plots():
                 ambient_temp_data=ambient_temp_data,
                 time_data=time_data
             )
-        
+
         else:
-            # Leere Datensätze für die Diagramme vorbereiten
+            
             return render_template(
                 "plots.html",
                 co2_data=[],
@@ -153,8 +169,9 @@ def plots():
                 ambient_temp_data=[],
                 time_data=[]
             )
-    except Exception as e: 
+    except Exception as e:
         logging.error(f"Fehler in plots(): {e}")
+
     
 
 def convert_to_serializable(obj):
