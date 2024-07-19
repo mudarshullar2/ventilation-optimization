@@ -125,7 +125,7 @@ class MQTTClient:
                 temperature_values = payload["object"].get("temperature")
                 co2_values = payload["object"].get("co2")
 
-                if formatted_time is not None:
+                if formatted_time is not None and formatted_time not in self.combined_data.get("time", []):
                     self.combined_data.setdefault("time", []).append(formatted_time)
 
                 if humidity_values is not None:
@@ -162,13 +162,15 @@ class MQTTClient:
                 if ambient_temp_value is not None:
                     self.combined_data.setdefault("ambient_temp", []).append(round(ambient_temp_value, 2))
 
-            if formatted_time is not None:
+            # Ensure time is only added once
+            if formatted_time is not None and formatted_time not in self.combined_data.get("time", []):
                 self.combined_data.setdefault("time", []).append(formatted_time)
 
             # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
             required_keys = {"humidity", "temperature", "co2", "tvoc", "ambient_temp"}
 
             if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
+                logging.info(f"data being added into collect_data function in on_message: {self.combined_data}")
                 self.collect_data(self.combined_data)
 
             self.check_and_clear_data()

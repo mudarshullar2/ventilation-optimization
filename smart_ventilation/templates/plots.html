@@ -95,6 +95,7 @@
 <body>
     <header>
         <h1>Echtzeit-Sensordaten-Diagramme</h1>
+        <h2>Besprechungsraum 2.09</h2>
     </header>
     <div class="container">
         <div id="co2-plot"></div>
@@ -125,9 +126,10 @@
                 var trace = {
                     x: time_data,
                     y: yData,
-                    mode: 'markers', // Only scatter points
+                    mode: 'lines+markers', // Dots connected with lines
                     type: 'scatter',
-                    name: yTitle
+                    name: yTitle,
+                    line: {dash: 'dot', color: 'green'} // Green dash-dotted line
                 };
 
                 var highThresholdLine = {
