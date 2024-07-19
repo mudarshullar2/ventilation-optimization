@@ -356,6 +356,7 @@ class MQTTClient:
             except psycopg2.OperationalError as e:
                 logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
                 self.reconnect_db()
+                self.store_first_topic_data(data_point)
 
             except Exception as e:
                 logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
@@ -565,7 +566,7 @@ class MQTTClient:
             cursor.close()
 
             logging.info("Daten in der Tabelle environmental_data_analysis erfolgreich gespeichert")
-            
+
         except psycopg2.OperationalError as e:
             logging.error(f"Datenbankverbindungsfehler beim Speichern von Daten: {e}")
             self.reconnect_db()
