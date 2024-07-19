@@ -85,9 +85,6 @@ class MQTTClient:
 
             # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
             self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd0f5e/event/up")
-            
-            # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
-            self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd09aa/event/up")
 
             # Für Außentemperaturen
             self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
@@ -108,7 +105,7 @@ class MQTTClient:
         :param userdata: Benutzerdaten
         :param msg: empfangene Nachricht
         """
-        try: 
+        try:
             topic = msg.topic
             payload = json.loads(msg.payload.decode())
 
@@ -121,12 +118,15 @@ class MQTTClient:
                     logging.error(f"Fehler bei Zeitanpassung: {e}")
                     return None
 
-            formatted_time = adjust_and_format_time(payload["time"])
-
             if topic.endswith("0004a30b00fd0f5e/event/up"):
+                formatted_time = adjust_and_format_time(payload["time"])
+                self.latest_time = formatted_time
                 humidity_values = payload["object"].get("humidity")
                 temperature_values = payload["object"].get("temperature")
                 co2_values = payload["object"].get("co2")
+
+                if formatted_time is not None:
+                    self.combined_data.setdefault("time", []).append(formatted_time)
 
                 if humidity_values is not None:
                     self.combined_data.setdefault("humidity", []).append(round(humidity_values, 2))
@@ -148,11 +148,13 @@ class MQTTClient:
                     logging.info(f"data_point is {data_point}")
                     self.store_first_topic_data(data_point)
 
-            elif topic.endswith("24e124707c481005/event/up"):
-                tvos_value = payload["object"].get("tvoc")
+            formatted_time = self.latest_time
 
-                if tvos_value is not None:
-                    self.combined_data.setdefault("tvoc", []).append(round(tvos_value, 2))
+            if topic.endswith("24e124707c481005/event/up"):
+                tvoc_value = payload["object"].get("tvoc")
+
+                if tvoc_value is not None:
+                    self.combined_data.setdefault("tvoc", []).append(round(tvoc_value, 2))
 
             elif topic.endswith("647fda000000aa92/event/up"):
                 ambient_temp_value = payload["object"].get("ambient_temp")
@@ -160,11 +162,13 @@ class MQTTClient:
                 if ambient_temp_value is not None:
                     self.combined_data.setdefault("ambient_temp", []).append(round(ambient_temp_value, 2))
 
+            if formatted_time is not None:
+                self.combined_data.setdefault("time", []).append(formatted_time)
+
             # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
             required_keys = {"humidity", "temperature", "co2", "tvoc", "ambient_temp"}
 
             if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
-                self.combined_data["time"] = [formatted_time]
                 self.collect_data(self.combined_data)
 
             self.check_and_clear_data()

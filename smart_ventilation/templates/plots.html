@@ -1,11 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Echtzeit-Sensordaten-Diagramme</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-
     <style>
         body, html {
             margin: 0;
@@ -92,7 +91,6 @@
             location.reload();
         }, 60000);
     </script>
-    
 </head>
 <body>
     <header>
@@ -103,58 +101,65 @@
         <div id="temperature-plot"></div>
         <div id="humidity-plot"></div>
         <div id="tvoc-plot"></div>
+        <div id="ambient-temp-plot"></div>
         <form action="{{ url_for('index') }}" method="GET">
             <button class="button" type="submit">Zurück zur Hauptseite</button>
         </form>
     </div>
 
     <script>
-        var time_data = JSON.parse('{{ time_data | tojson | safe }}');
-        var co2_data = JSON.parse('{{ co2_data | tojson | safe }}');
-        var temperature_data = JSON.parse('{{ temperature_data | tojson | safe }}');
-        var humidity_data = JSON.parse('{{ humidity_data | tojson | safe }}');
-        var tvoc_data = JSON.parse('{{ tvoc_data | tojson | safe }}');
+        document.addEventListener("DOMContentLoaded", function() {
+            var time_data = {{ time_data | tojson | safe }};
+            var co2_data = {{ co2_data | tojson | safe }};
+            var temperature_data = {{ temperature_data | tojson | safe }};
+            var humidity_data = {{ humidity_data | tojson | safe }};
+            var tvoc_data = {{ tvoc_data | tojson | safe }};
+            var ambient_temp_data = {{ ambient_temp_data | tojson | safe }};
 
-        function plotGraph(plotId, yData, yTitle, highThreshold, lowThreshold, highThresholdLabel, lowThresholdLabel) {
-            var trace = {
-                x: time_data,
-                y: yData,
-                mode: 'lines',
-                type: 'scatter',
-                name: yTitle,
-                fill: 'tozeroy', // Adds shading under the line
-                fillcolor: 'rgba(0,100,250,0.2)' // Adjust color and transparency as needed
-            };
+            function plotGraph(plotId, yData, yTitle, highThreshold, lowThreshold, highThresholdLabel, lowThresholdLabel) {
+                if (yData.length === 0 || time_data.length === 0) {
+                    document.getElementById(plotId).innerHTML = `<p>Keine Daten verfügbar für ${yTitle}</p>`;
+                    return;
+                }
 
-            // Create the high and low threshold lines with same x values as the time data
-            var highThresholdLine = {
-                x: time_data,
-                y: Array(time_data.length).fill(highThreshold),
-                mode: 'lines',
-                type: 'scatter',
-                name: highThresholdLabel,
-                line: {color: 'red', dash: 'dash'}
-            };
-            var lowThresholdLine = {
-                x: time_data,
-                y: Array(time_data.length).fill(lowThreshold),
-                mode: 'lines',
-                type: 'scatter',
-                name: lowThresholdLabel,
-                line: {color: 'blue', dash: 'dash'}
-            };
+                var trace = {
+                    x: time_data,
+                    y: yData,
+                    mode: 'markers', // Only scatter points
+                    type: 'scatter',
+                    name: yTitle
+                };
 
-            Plotly.newPlot(plotId, [trace, highThresholdLine, lowThresholdLine], {
-                title: yTitle + ' Diagramm',
-                xaxis: {title: 'Zeit'},
-                yaxis: {title: yTitle + ' Werte'}
-            });
-        }
+                var highThresholdLine = {
+                    x: time_data,
+                    y: Array(time_data.length).fill(highThreshold),
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: highThresholdLabel,
+                    line: {color: 'red', dash: 'dash'}
+                };
+                var lowThresholdLine = {
+                    x: time_data,
+                    y: Array(time_data.length).fill(lowThreshold),
+                    mode: 'lines',
+                    type: 'scatter',
+                    name: lowThresholdLabel,
+                    line: {color: 'blue', dash: 'dash'}
+                };
 
-        plotGraph('co2-plot', co2_data, 'CO2', 1000, 500, 'Hoher CO2-Schwellenwert', 'Niedriger CO2-Schwellenwert');
-        plotGraph('temperature-plot', temperature_data, 'Temperature', 21, 19, 'Hoher Temperaturschwellenwert', 'Niedriger Temperaturschwellenwert');
-        plotGraph('humidity-plot', humidity_data, 'Luftfeuchtigkeit', 60, 30, 'Schwellenwert für hohe Luftfeuchtigkeit', 'Schwelle für niedrige Luftfeuchtigkeit');
-        plotGraph('tvoc-plot', tvoc_data, 'TVOC', 500, 200, 'Hoher TVOC-Schwellenwert', 'Niedriger TVOC-Schwellenwert');
+                Plotly.newPlot(plotId, [trace, highThresholdLine, lowThresholdLine], {
+                    title: yTitle + ' Diagramm',
+                    xaxis: {title: 'Zeit'},
+                    yaxis: {title: yTitle + ' Werte'}
+                });
+            }
+
+            plotGraph('co2-plot', co2_data, 'CO2', 1000, 500, 'Hoher CO2-Schwellenwert', 'Niedriger CO2-Schwellenwert');
+            plotGraph('temperature-plot', temperature_data, 'Temperatur', 21, 19, 'Hoher Temperaturschwellenwert', 'Niedriger Temperaturschwellenwert');
+            plotGraph('humidity-plot', humidity_data, 'Luftfeuchtigkeit', 60, 30, 'Schwellenwert für hohe Luftfeuchtigkeit', 'Schwelle für niedrige Luftfeuchtigkeit');
+            plotGraph('tvoc-plot', tvoc_data, 'TVOC', 500, 200, 'Hoher TVOC-Schwellenwert', 'Niedriger TVOC-Schwellenwert');
+            plotGraph('ambient-temp-plot', ambient_temp_data, 'Außentemperatur', 25, 15, 'Hoher Außentemperaturschwellenwert', 'Niedriger Außentemperaturschwellenwert');
+        });
     </script>
 </body>
 </html>
