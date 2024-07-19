@@ -121,6 +121,9 @@ def plots():
             time_data = []
 
             for data in sensor_data:
+                time = data.get('time', None)
+                if time is not None:
+                    time_data.append(time)
                 time_data.append(data.get('time', None))
                 co2_data.append(data.get('co2', None))
                 temperature_data.append(data.get('temperature', None))
@@ -278,16 +281,17 @@ def leaderboard():
             if not predictions:
                 logging.error("Keine Vorhersagen verfügbar in latest_predictions und session")
                 return render_template('leaderboard.html', error=True)
+            
+            last_prediction = predictions.get("Logistic Regression")
+            logging.debug(f"Initial last_prediction: {last_prediction}, type: {type(last_prediction)}")
 
-            if 'last_prediction' not in session:
-                last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
+            if isinstance(last_prediction, np.integer):
+                last_prediction = int(last_prediction)
+            elif not isinstance(last_prediction, int):
+                last_prediction = int(last_prediction)
 
-                if isinstance(last_prediction, np.integer):
-                    last_prediction = int(last_prediction)
-                elif not isinstance(last_prediction, int):
-                    last_prediction = int(last_prediction)
-                
-                session['last_prediction'] = last_prediction
+            session['last_prediction'] = last_prediction
+            logging.debug(f"Session last_prediction set to: {session['last_prediction']}")
             
             logging.info(f"last_prediction nach Sitzung: {session['last_prediction']}")
 
@@ -374,7 +378,6 @@ def leaderboard():
     except Exception as e:
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
         return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e), "Hinweis": "Bitte zur Hauptseite zurückgehen"}), 500
-
 
     
 @app.route('/future_data/<timestamp>')

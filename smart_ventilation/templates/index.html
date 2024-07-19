@@ -206,9 +206,9 @@
                         <div class="sensor-data" id="logistic-regression-result">
                             {% set lr_prediction = predictions.get('Logistic Regression', None) %}
                             {% if lr_prediction == 0 %}
-                                {{ "Fenster soll geschlossen bleiben" }}
+                                {{ "Die Fenster sollen geschlossen bleiben" }}
                             {% elif lr_prediction == 1 %}
-                                {{ "Fenster soll geöffnet werden" }}
+                                {{ "Die Fenster sollen geöffnet werden" }}
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
                             {% endif %}
