@@ -107,48 +107,51 @@ def plots():
     """
     Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten.
     """
-    
-    sensor_data = mqtt_client.get_latest_sensor_data()
+    try:
 
-    if sensor_data:
-        # Listen vorbereiten, um gefilterte Daten zu sammeln
-        co2_data = []
-        temperature_data = []
-        humidity_data = []
-        tvoc_data = []
-        ambient_temp_data = []
-        time_data = []
+        sensor_data = mqtt_client.get_latest_sensor_data()
 
-        for data in sensor_data:
-            time_data.append(data.get('time', None))
-            co2_data.append(data.get('co2', None))
-            temperature_data.append(data.get('temperature', None))
-            humidity_data.append(data.get('humidity', None))
-            tvoc_data.append(data.get('tvoc', None))
-            ambient_temp_data.append(data.get('ambient_temp', None))
+        if sensor_data:
+            # Listen vorbereiten, um gefilterte Daten zu sammeln
+            co2_data = []
+            temperature_data = []
+            humidity_data = []
+            tvoc_data = []
+            ambient_temp_data = []
+            time_data = []
 
-        # HTML-Seite mit Echtzeit-Datenplots rendern
-        return render_template(
-            "plots.html",
-            co2_data=co2_data,
-            temperature_data=temperature_data,
-            humidity_data=humidity_data,
-            tvoc_data=tvoc_data,
-            ambient_temp_data=ambient_temp_data,
-            time_data=time_data
-        )
-    
-    else:
-        # Leere Datensätze für die Diagramme vorbereiten
-        return render_template(
-            "plots.html",
-            co2_data=[],
-            temperature_data=[],
-            humidity_data=[],
-            tvoc_data=[],
-            ambient_temp_data=[],
-            time_data=[]
-        )
+            for data in sensor_data:
+                time_data.append(data.get('time', None))
+                co2_data.append(data.get('co2', None))
+                temperature_data.append(data.get('temperature', None))
+                humidity_data.append(data.get('humidity', None))
+                tvoc_data.append(data.get('tvoc', None))
+                ambient_temp_data.append(data.get('ambient_temp', None))
+
+            # HTML-Seite mit Echtzeit-Datenplots rendern
+            return render_template(
+                "plots.html",
+                co2_data=co2_data,
+                temperature_data=temperature_data,
+                humidity_data=humidity_data,
+                tvoc_data=tvoc_data,
+                ambient_temp_data=ambient_temp_data,
+                time_data=time_data
+            )
+        
+        else:
+            # Leere Datensätze für die Diagramme vorbereiten
+            return render_template(
+                "plots.html",
+                co2_data=[],
+                temperature_data=[],
+                humidity_data=[],
+                tvoc_data=[],
+                ambient_temp_data=[],
+                time_data=[]
+            )
+    except Exception as e: 
+        logging.error(f"Fehler in plots(): {e}")
     
 
 def convert_to_serializable(obj):

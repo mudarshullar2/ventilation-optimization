@@ -51,7 +51,7 @@ class MQTTClient:
         self.data_lock = threading.Lock()
         self.first_time = None
         self.first_topic_data = []
-        self.last_clear_date = datetime.now()
+        self.last_clear_date = datetime.now().replace(minute=0, second=0, microsecond=0)
         self.conn = connect_to_database(db)
 
         logistic_regression_model = joblib.load('models/Logistic_Regression.pkl')
@@ -73,24 +73,26 @@ class MQTTClient:
         :param flags: Antwortflaggen vom Broker
         :param rc: Verbindungs-Result-Code
         """
+        try: 
+            logging.info("Verbunden mit Ergebniscode" + str(rc))
 
-        logging.info("Verbunden mit Ergebniscode" + str(rc))
+            # Für Uhrzeit und TVOC
+            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
 
-        # Für Uhrzeit und TVOC
-        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
+            # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
+            self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd0f5e/event/up")
+            
+            # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
+            self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd09aa/event/up")
 
-        # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
-        self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd0f5e/event/up")
-        
-        # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
-        self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd09aa/event/up")
+            # Für Außentemperaturen
+            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
 
-        # Für Außentemperaturen
-        self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
-
-        if not self.prediction_thread.is_alive():
-            logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
-            self.restart_thread()
+            if not self.prediction_thread.is_alive():
+                logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
+                self.restart_thread()
+        except Exception as e:
+            logging.error(f"Fehler beim Verbindungsaufbau: {e}")
 
 
     def on_message(self, client, userdata, msg):
@@ -102,65 +104,69 @@ class MQTTClient:
         :param userdata: Benutzerdaten
         :param msg: empfangene Nachricht
         """
-        topic = msg.topic
-        payload = json.loads(msg.payload.decode())
+        try: 
+            topic = msg.topic
+            payload = json.loads(msg.payload.decode())
 
-        def adjust_and_format_time(raw_time):
-            try:
-                utc_time = dt.datetime.strptime(raw_time, "%Y-%m-%dT%H:%M:%S.%f%z")
-                local_time = utc_time + dt.timedelta(hours=2)
-                return local_time.strftime("%Y-%m-%d %H:%M")
-            except Exception as e:
-                logging.error(f"Fehler bei Zeitanpassung: {e}")
-                return None
+            def adjust_and_format_time(raw_time):
+                try:
+                    utc_time = dt.datetime.strptime(raw_time, "%Y-%m-%dT%H:%M:%S.%f%z")
+                    local_time = utc_time + dt.timedelta(hours=2)
+                    return local_time.strftime("%Y-%m-%d %H:%M")
+                except Exception as e:
+                    logging.error(f"Fehler bei Zeitanpassung: {e}")
+                    return None
 
-        formatted_time = adjust_and_format_time(payload["time"])
+            formatted_time = adjust_and_format_time(payload["time"])
 
-        if topic.endswith("0004a30b00fd0f5e/event/up"):
-            humidity_values = payload["object"].get("humidity")
-            temperature_values = payload["object"].get("temperature")
-            co2_values = payload["object"].get("co2")
+            if topic.endswith("0004a30b00fd0f5e/event/up"):
+                humidity_values = payload["object"].get("humidity")
+                temperature_values = payload["object"].get("temperature")
+                co2_values = payload["object"].get("co2")
 
-            if humidity_values is not None:
-                self.combined_data.setdefault("humidity", []).append(round(humidity_values, 2))
+                if humidity_values is not None:
+                    self.combined_data.setdefault("humidity", []).append(round(humidity_values, 2))
 
-            if temperature_values is not None:
-                self.combined_data.setdefault("temperature", []).append(round(temperature_values, 2))
+                if temperature_values is not None:
+                    self.combined_data.setdefault("temperature", []).append(round(temperature_values, 2))
 
-            if co2_values is not None:
-                self.combined_data.setdefault("co2", []).append(round(co2_values, 2))
+                if co2_values is not None:
+                    self.combined_data.setdefault("co2", []).append(round(co2_values, 2))
 
-            data_point = {
-                'time': formatted_time,
-                'humidity': round(humidity_values, 2) if humidity_values is not None else None,
-                'temperature': round(temperature_values, 2) if temperature_values is not None else None,
-                'co2': round(co2_values, 2) if co2_values is not None else None
-            }
+                data_point = {
+                    'time': formatted_time,
+                    'humidity': round(humidity_values, 2) if humidity_values is not None else None,
+                    'temperature': round(temperature_values, 2) if temperature_values is not None else None,
+                    'co2': round(co2_values, 2) if co2_values is not None else None
+                }
 
-            if all(value is not None for value in data_point.values()):
-                logging.info(f"data_point is {data_point}")
-                self.store_first_topic_data(data_point)
+                if all(value is not None for value in data_point.values()):
+                    logging.info(f"data_point is {data_point}")
+                    self.store_first_topic_data(data_point)
 
-        elif topic.endswith("24e124707c481005/event/up"):
-            tvos_value = payload["object"].get("tvoc")
+            elif topic.endswith("24e124707c481005/event/up"):
+                tvos_value = payload["object"].get("tvoc")
 
-            if tvos_value is not None:
-                self.combined_data.setdefault("tvoc", []).append(round(tvos_value, 2))
+                if tvos_value is not None:
+                    self.combined_data.setdefault("tvoc", []).append(round(tvos_value, 2))
 
-        elif topic.endswith("647fda000000aa92/event/up"):
-            ambient_temp_value = payload["object"].get("ambient_temp")
+            elif topic.endswith("647fda000000aa92/event/up"):
+                ambient_temp_value = payload["object"].get("ambient_temp")
 
-            if ambient_temp_value is not None:
-                self.combined_data.setdefault("ambient_temp", []).append(round(ambient_temp_value, 2))
+                if ambient_temp_value is not None:
+                    self.combined_data.setdefault("ambient_temp", []).append(round(ambient_temp_value, 2))
 
-        # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
-        required_keys = {"humidity", "temperature", "co2", "tvoc", "ambient_temp"}
+            # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
+            required_keys = {"humidity", "temperature", "co2", "tvoc", "ambient_temp"}
 
-        if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
-            self.combined_data["time"] = [formatted_time]
-            self.collect_data(self.combined_data)
+            if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
+                self.combined_data["time"] = [formatted_time]
+                self.collect_data(self.combined_data)
 
-        self.check_and_clear_data()
+            self.check_and_clear_data()
+
+        except Exception as e:
+            logging.error(f"Fehler beim Empfangen der Nachricht: {e}")
 
 
     def collect_data(self, combined_data):
@@ -269,36 +275,45 @@ class MQTTClient:
     
 
     def check_and_clear_data(self):
-            current_time = datetime.now()
-            logging.info(f"aktuelle Zeit: {current_time}")
-            logging.info(f"self.last_clear_data: {self.last_clear_date}")
+            try:
+                current_time = datetime.now()
+                logging.info(f"aktuelle Zeit: {current_time}")
+                logging.info(f"self.last_clear_data: {self.last_clear_date}")
 
-            if current_time >= self.last_clear_date + timedelta(hours=1):
-                next_clear_date = self.last_clear_date + timedelta(hours=1)
-                logging.info(f"next_clear_date {next_clear_date}")
+                if current_time >= self.last_clear_date + timedelta(hours=1):
+                    next_clear_date = self.last_clear_date + timedelta(hours=1)
+                    logging.info(f"next_clear_date {next_clear_date}")
 
-                self.clear_data(next_clear_date)
-                self.last_clear_date = next_clear_date
-                logging.info(f"self.last_clear_date nach der Anpassung (aktuelle Zeit + self.clear_data) {self.last_clear_date}")
+                    self.clear_data(next_clear_date)
+                    self.last_clear_date = next_clear_date
+                    logging.info(f"self.last_clear_date nach der Anpassung (aktuelle Zeit + self.clear_data) {self.last_clear_date}")
+            except Exception as e:
+                logging.error(f"Fehler bei der Datenprüfung und -löschung: {e}")
 
 
     def clear_data(self, clear_time):
-        with self.data_lock:
-            self.data_points.clear()
-            self.combined_data.clear()
-            self.latest_predictions.clear()
-            logging.info(f"Daten um {clear_time.strftime('%H:%M Uhr')} gelöscht")
+        try:
+            with self.data_lock:
+                self.data_points.clear()
+                self.combined_data.clear()
+                self.latest_predictions.clear()
+                logging.info(f"Daten um {clear_time.strftime('%H:%M Uhr')} gelöscht")
+        except Exception as e: 
+            logging.error(f"Fehler beim Löschen der Daten: {e}")
 
 
     def restart_thread(self):
         """
         Startet den Vorhersage-Thread neu, falls er gestoppt wurde.
         """
-        self.thread_alive = True
-        self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
-        self.prediction_thread.start()
-        
-        logging.info("Vorhersage-Thread erfolgreich neu gestartet.")
+        try: 
+            self.thread_alive = True
+            self.prediction_thread = threading.Thread(target=self.run_periodic_predictions)
+            self.prediction_thread.start()
+            
+            logging.info("Vorhersage-Thread erfolgreich neu gestartet.")
+        except Exception as e:
+            logging.error(f"Fehler beim Neustart des Threads: {e}")
 
 
     def get_latest_sensor_data(self):
@@ -536,14 +551,21 @@ class MQTTClient:
         Löscht alte Vorhersagen
         """
         with self.data_lock:
-            logging.info("Alte Vorhersagen werden gelöscht!")
-            self.latest_predictions.clear()
-            logging.info(f"lates_prediction: {self.latest_predictions}")
+            try:
+                logging.info("Alte Vorhersagen werden gelöscht!")
+                self.latest_predictions.clear()
+                logging.info(f"lates_prediction: {self.latest_predictions}")
+            except Exception as e: 
+                logging.error(f"Fehler beim Löschen der Vorhersagen: {e}")
 
 
     def initialize(self):
         """
         Initialisiert die Verbindung zum MQTT-Broker und startet den Loop.
         """
-        self.client.connect(CLOUD_SERVICE_URL, 8883)
-        self.client.loop_start()
+        try: 
+            self.client.connect(CLOUD_SERVICE_URL, 8883)
+            self.client.loop_start()
+        except Exception as e: 
+            logging.error(f"Fehler bei der Initialisierung: {e}")
+
