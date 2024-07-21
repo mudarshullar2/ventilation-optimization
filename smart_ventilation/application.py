@@ -241,7 +241,7 @@ def feedback():
 
             if response.status_code == 200:
                 # Store feedback data in the database
-                mqtt_client.store_feedback_data(feedback_data)
+                #mqtt_client.store_feedback_data(feedback_data)
 
                 last_prediction = mqtt_client.latest_predictions.get("Logistic Regression")
                 logging.info(f"last_prediciton in feedback(): {last_prediction}")
