@@ -170,7 +170,6 @@ class MQTTClient:
             required_keys = {"humidity", "temperature", "co2", "tvoc", "ambient_temp"}
 
             if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
-                logging.info(f"data being added into collect_data function in on_message: {self.combined_data}")
                 self.collect_data(self.combined_data)
 
             self.check_and_clear_data()
