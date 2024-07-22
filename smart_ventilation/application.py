@@ -110,10 +110,8 @@ def plots():
     try:
         sensor_data = mqtt_client.get_latest_sensor_data()
 
-        logging.info(f"current sensor_data in plots function: {sensor_data}")
-
         if sensor_data:
-            
+
             unique_data = {}
 
             for data in sensor_data:
@@ -173,11 +171,10 @@ def plots():
         logging.error(f"Fehler in plots(): {e}")
 
     
-
 def convert_to_serializable(obj):
     if isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
         return obj.item()
-    raise TypeError("Unserializable object {} of type {}".format(obj, type(obj)))
+    raise TypeError("Nicht serialisierbares Objekt {} vom Typ {}".format(obj, type(obj)))
 
 
 @app.route('/feedback', methods=['GET', 'POST'])
@@ -256,7 +253,7 @@ def feedback():
                 return jsonify({"Meldung": "Keine Rückmeldung übermittelt", "status": response.status_code, "response": response.text}), 400
 
         except Exception as e:
-            logging.error(f"Ein unerwarteter Fehler ist aufgetreten:: {e}")
+            logging.error(f"feedback: Ein unerwarteter Fehler ist aufgetreten:: {e}")
             return jsonify({"Meldung": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e)}), 500
         
     else:
@@ -271,7 +268,7 @@ def feedback():
             return render_template('feedback.html', predictions=predictions, features=features_df.to_dict(orient='records')[0])
 
         except Exception as e:
-            logging.error(f"Beim Abrufen von Vorhersagen ist ein unerwarteter Fehler aufgetreten: {e}")
+            logging.error(f"feedback: Beim Abrufen von Vorhersagen ist ein unerwarteter Fehler aufgetreten: {e}")
             return str(e), 500
 
 
@@ -284,7 +281,7 @@ def get_data(timestamp):
     try:
         return mqtt_client.fetch_data(timestamp)
     except Exception as e:
-        logging.error(f"Failed to fetch data: {e}")
+        logging.error(f"get_data: Die Daten konnten nicht abgerufen werden: {e}")
         return {}
 
 
@@ -296,7 +293,7 @@ def leaderboard():
             logging.info(f"Vorhersage im Leaderboard: {predictions}")
 
             if not predictions:
-                logging.error("Keine Vorhersagen verfügbar in latest_predictions und session")
+                logging.error("Keine Vorhersagen verfügbar in latest_predictions")
                 return render_template('leaderboard.html', error=True)
             
             last_prediction = predictions.get("Logistic Regression")
@@ -307,66 +304,66 @@ def leaderboard():
             elif not isinstance(last_prediction, int):
                 last_prediction = int(last_prediction)
 
-            session['last_prediction'] = last_prediction
-            logging.debug(f"Session last_prediction set to: {session['last_prediction']}")
+            combined_data = mqtt_client.combined_data
+
+            latest_date = combined_data["time"][-1]
+            logging.info(f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}")
             
-            logging.info(f"last_prediction nach Sitzung: {session['last_prediction']}")
+            latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
 
-            if 'current_data' not in session:
-                combined_data = mqtt_client.combined_data
-                logging.info(f"combined_data in leaderboard: {combined_data}")
+            adjusted_date = latest_date - timedelta(minutes=1)
+            adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
+            logging.info(f"Angepasstes Datum: {adjusted_date_str}")
 
-                latest_date = combined_data["time"][-1]
-                logging.info(f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}")
-                
-                latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
+            current_data = get_data(adjusted_date_str)
+            logging.info(f"letzte current_data in der Leaderboard-Funktion: {current_data}")
+            
+            formatted_current_data = [{
+                'timestamp': current_data.get('timestamp'),
+                'co2_values': float(current_data.get('co2_values')) if current_data.get('co2_values') is not None else None,
+                'temperature': float(current_data.get('temperature')) if current_data.get('temperature') is not None else None,
+                'humidity': float(current_data.get('humidity')) if current_data.get('humidity') is not None else None,
+            }]
 
-                adjusted_date = latest_date - timedelta(minutes=1)
-                adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
-                logging.info(f"Angepasstes Datum: {adjusted_date_str}")
-
-                current_data = get_data(adjusted_date_str)
-                logging.info(f"letzte current_data in der Leaderboard-Funktion: {current_data}")
-                
-                formatted_current_data = [{
-                    'timestamp': current_data.get('timestamp'),
-                    'co2_values': float(current_data.get('co2_values')) if current_data.get('co2_values') is not None else None,
-                    'temperature': float(current_data.get('temperature')) if current_data.get('temperature') is not None else None,
-                    'humidity': float(current_data.get('humidity')) if current_data.get('humidity') is not None else None,
-                }]
-
-                session['latest_date'] = adjusted_date_str
-                logging.info(f"session['latest_date']: {session['latest_date']}")
-
-                session['current_data'] = formatted_current_data
-                logging.info(f"session['current_data']: {session['current_data']}")
-                
-                session.permanent = True
-            else:
-                formatted_current_data = session['current_data']
-                adjusted_date_str = session['latest_date']
-
-            last_prediction = session.get('last_prediction')
             logging.info(f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}")
 
             if last_prediction == 1:
-                return render_template('leaderboard2.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
+                response = render_template('leaderboard2.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
             else:
-                return render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
+                response = render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
+
+            predictions.clear()
+            return response
 
         elif request.method == "GET":
-            adjusted_date_str = session.get('latest_date')
-            logging.info(f"session['latest_date']: {session['latest_date']}")
-            
-            current_data = session.get('current_data')
-            logging.info(f"session['current_data']: {session['current_data']}")
-            
-            predictions = session.get('last_prediction')  # Vorhersagen aus der Sitzung abrufen
+            predictions = mqtt_client.latest_predictions
             logging.info(f"last_prediction aus der Sitzung: {predictions}")
 
-            if not adjusted_date_str or not current_data:
+            if not predictions:
                 logging.error("Keine Daten in der Sitzung verfügbar, bitte erst eine Vorhersage machen")
                 return "Keine Daten verfügbar, bitte führen Sie eine Vorhersage durch.", 400
+
+            combined_data = mqtt_client.combined_data
+            logging.info(f"combined_data in leaderboard: {combined_data}")
+
+            latest_date = combined_data["time"][-1]
+            logging.info(f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}")
+            
+            latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
+
+            adjusted_date = latest_date - timedelta(minutes=1)
+            adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
+            logging.info(f"Angepasstes Datum: {adjusted_date_str}")
+
+            current_data = get_data(adjusted_date_str)
+            logging.info(f"letzte current_data in der Leaderboard-Funktion: {current_data}")
+            
+            formatted_current_data = [{
+                'timestamp': current_data.get('timestamp'),
+                'co2_values': float(current_data.get('co2_values')) if current_data.get('co2_values') is not None else None,
+                'temperature': float(current_data.get('temperature')) if current_data.get('temperature') is not None else None,
+                'humidity': float(current_data.get('humidity')) if current_data.get('humidity') is not None else None,
+            }]
 
             future_data_response = get_future_data(adjusted_date_str)
             if future_data_response.status_code != 200:
@@ -382,21 +379,22 @@ def leaderboard():
                 'humidity': float(future_data.get('humidity')) if future_data.get('humidity') is not None else None,
             }]
 
-            last_prediction = session.get('last_prediction')
+            last_prediction = predictions.get("Logistic Regression")
             logging.info(f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}")
 
             if last_prediction == 1:
-                response = render_template('leaderboard2.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
+                response = render_template('leaderboard2.html', current_data=formatted_current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
             else:
-                response = render_template('leaderboard.html', current_data=current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
-            
+                response = render_template('leaderboard.html', current_data=formatted_current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
+
+            predictions.clear()
             return response
 
     except Exception as e:
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
         return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e), "Hinweis": "Bitte zur Hauptseite zurückgehen"}), 500
 
-    
+
 @app.route('/future_data/<timestamp>')
 def get_future_data(timestamp):
 
@@ -405,7 +403,7 @@ def get_future_data(timestamp):
         last_prediction = session.get('last_prediction')
 
         if last_prediction is None:
-            logging.error("Keine Vorhersage-ID in Sitzung gefunden")
+            logging.error("get_future_data: Keine Vorhersage-ID in Sitzung gefunden")
 
             return jsonify({"Fehler": "Keine Vorhersage-ID in Sitzung gefunden"}), 400
         
@@ -427,7 +425,7 @@ def get_future_data(timestamp):
         return jsonify(formatted_future_data)
     
     except Exception as e:
-        logging.error(f"Fehler beim Abrufen von Zukunftsdaten: {e}")
+        logging.error(f"get_future_data: Fehler beim Abrufen von Zukunftsdaten: {e}")
         return jsonify({"Fehler": str(e)}), 500
 
 
@@ -454,21 +452,17 @@ def save_analysis_data():
 
         return jsonify({"message": "Daten erfolgreich gespeichert"}), 200
     except Exception as e:
-        logging.error(f"Fehler beim Speichern von Analysedaten: {e}")
+        logging.error(f"save_analysis_data: Fehler beim Speichern von Analysedaten: {e}")
         return jsonify({"Fehler": str(e)}), 500
 
 
 @app.route('/clear_session')
 def clear_session():
-
     try:
-
         session.clear()
         return "Die Sitzungsdaten wurden erfolgreich gelöscht", 200
-    
     except Exception as e:
-
-        logging.error(f"Fehler beim Löschen von Sitzungsdaten: {e}")
+        logging.error(f"clear_session: Fehler beim Löschen von Sitzungsdaten: {e}")
         return jsonify({"error": str(e)}), 500
 
 
