@@ -332,7 +332,6 @@ def leaderboard():
             else:
                 response = render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
 
-            mqtt_client.clear_predictions()
             return response
 
         elif request.method == "GET":
@@ -387,7 +386,6 @@ def leaderboard():
             else:
                 response = render_template('leaderboard.html', current_data=formatted_current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
 
-            mqtt_client.clear_predictions()
             return response
 
     except Exception as e:
