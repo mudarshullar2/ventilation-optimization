@@ -1,7 +1,6 @@
 from flask_apscheduler import APScheduler
 from flask import Flask, jsonify, render_template, request, session
 import logging
-import pytz
 import requests
 from datetime import datetime, timedelta
 from mqtt_client import MQTTClient
@@ -397,13 +396,21 @@ def leaderboard():
 
 @app.route('/future_data/<timestamp>')
 def get_future_data(timestamp):
-
     try:
-        logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {timestamp}")
-        future_data = mqtt_client.fetch_future_data(timestamp)
+        # Parse the incoming timestamp
+        timestamp_dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M")
+        
+        # Add 5 minutes to the timestamp
+        future_timestamp_dt = timestamp_dt + timedelta(minutes=5)
+        future_timestamp_str = future_timestamp_dt.strftime("%Y-%m-%d %H:%M")
+        
+        logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {future_timestamp_str}")
+        
+        # Fetch future data immediately
+        future_data = mqtt_client.fetch_future_data(future_timestamp_str)
         
         if not future_data:
-            logging.info(f"Keine zukünftigen Daten für Zeitstempel verfügbar: {timestamp}")
+            logging.info(f"Keine zukünftigen Daten für Zeitstempel verfügbar: {future_timestamp_str}")
             return jsonify({"Fehler": "Keine zukünftigen Daten verfügbar"}), 404
         
         formatted_future_data = {

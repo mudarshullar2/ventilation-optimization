@@ -269,7 +269,7 @@
                         return;
                     }
 
-                    if (data.co2_values === null && data.temperature === null && data.humidity === null && data.outdoor_temperature === null && data.tvoc_values === null) {
+                    if (data.co2_values === null && data.temperature === null && data.humidity === null) {
                         console.info('Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.');
                         const futureDataBody = document.getElementById('future-data-body');
                         futureDataBody.innerHTML = `
@@ -411,8 +411,8 @@
 
         function startTimer(duration, display) {
             if (!isErrorMessagePresent()) {
-                let timer = 0, minutes, seconds;
-                setInterval(function () {
+                let timer = duration, minutes, seconds;
+                const interval = setInterval(function () {
                     minutes = parseInt(timer / 60, 10);
                     seconds = parseInt(timer % 60, 10);
 
@@ -421,8 +421,9 @@
 
                     display.textContent = minutes + ":" + seconds;
 
-                    if (++timer > duration) {
-                        clearInterval(this);
+                    if (--timer < 0) {
+                        clearInterval(interval);
+                        fetchFutureData(); // Abrufen der zukünftigen Daten nach Ablauf des Timers
                     }
                 }, 1000);
             }
@@ -434,12 +435,6 @@
                 display = document.querySelector('#timer');
             startTimer(fiveMinutes, display);
         };
-
-        setTimeout(() => {
-            fetchFutureData(); // Einmaliges Abrufen nach der initialen Verzögerung
-            setInterval(fetchFutureData, pollingInterval); // Dann alle Minute erneut abrufen
-        }, delayInterval);
-
     </script>
 </body>
 </html>
