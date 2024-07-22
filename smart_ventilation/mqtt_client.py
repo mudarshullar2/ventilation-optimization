@@ -595,13 +595,12 @@ class MQTTClient:
         """
         Löscht alte Vorhersagen
         """
-        with self.data_lock:
-            try:
-                logging.info("Alte Vorhersagen werden gelöscht!")
-                self.latest_predictions.clear()
-                logging.info(f"lates_prediction: {self.latest_predictions}")
-            except Exception as e: 
-                logging.error(f"clear_predictions: Fehler beim Löschen der Vorhersagen: {e}")
+        try:
+            logging.info("Alte Vorhersagen werden gelöscht!")
+            self.latest_predictions.clear()
+            logging.info(f"lates_prediction: {self.latest_predictions}")
+        except Exception as e: 
+            logging.error(f"clear_predictions: Fehler beim Löschen der Vorhersagen: {e}")
 
 
     def stop(self):
