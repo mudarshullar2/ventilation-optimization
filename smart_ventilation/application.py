@@ -1,6 +1,7 @@
 from flask_apscheduler import APScheduler
 from flask import Flask, jsonify, render_template, request, session
 import logging
+import pytz
 import requests
 from datetime import datetime, timedelta
 from mqtt_client import MQTTClient
@@ -111,7 +112,7 @@ def plots():
         sensor_data = mqtt_client.get_latest_sensor_data()
 
         if sensor_data:
-
+            
             unique_data = {}
 
             for data in sensor_data:
@@ -171,6 +172,7 @@ def plots():
         logging.error(f"Fehler in plots(): {e}")
 
     
+
 def convert_to_serializable(obj):
     if isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
         return obj.item()
@@ -291,7 +293,6 @@ def leaderboard():
         if request.method == "POST":
             predictions = mqtt_client.latest_predictions
             logging.info(f"Vorhersage im Leaderboard: {predictions}")
-
             if not predictions:
                 logging.error("Keine Vorhersagen verfügbar in latest_predictions")
                 return render_template('leaderboard.html', error=True)
@@ -305,13 +306,13 @@ def leaderboard():
                 last_prediction = int(last_prediction)
 
             combined_data = mqtt_client.combined_data
-
             latest_date = combined_data["time"][-1]
+
             logging.info(f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}")
             
             latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
-
             adjusted_date = latest_date - timedelta(minutes=1)
+
             adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
             logging.info(f"Angepasstes Datum: {adjusted_date_str}")
 
@@ -331,17 +332,17 @@ def leaderboard():
                 response = render_template('leaderboard2.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
             else:
                 response = render_template('leaderboard.html', current_data=formatted_current_data, future_data=None, adjusted_date_str=adjusted_date_str, error=False)
-
+                
             return response
-
+            
         elif request.method == "GET":
             predictions = mqtt_client.latest_predictions
             logging.info(f"last_prediction aus der Sitzung: {predictions}")
-
+            
             if not predictions:
                 logging.error("Keine Daten in der Sitzung verfügbar, bitte erst eine Vorhersage machen")
                 return "Keine Daten verfügbar, bitte führen Sie eine Vorhersage durch.", 400
-
+            
             combined_data = mqtt_client.combined_data
             logging.info(f"combined_data in leaderboard: {combined_data}")
 
@@ -349,8 +350,8 @@ def leaderboard():
             logging.info(f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}")
             
             latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
-
             adjusted_date = latest_date - timedelta(minutes=1)
+
             adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
             logging.info(f"Angepasstes Datum: {adjusted_date_str}")
 
@@ -365,6 +366,7 @@ def leaderboard():
             }]
 
             future_data_response = get_future_data(adjusted_date_str)
+
             if future_data_response.status_code != 200:
                 return future_data_response
             
@@ -379,32 +381,24 @@ def leaderboard():
             }]
 
             last_prediction = predictions.get("Logistic Regression")
-            logging.info(f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}")
 
+            logging.info(f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}")
+            
             if last_prediction == 1:
                 response = render_template('leaderboard2.html', current_data=formatted_current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
             else:
                 response = render_template('leaderboard.html', current_data=formatted_current_data, future_data=formatted_future_data, adjusted_date_str=adjusted_date_str, error=False)
-
             return response
 
     except Exception as e:
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
         return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e), "Hinweis": "Bitte zur Hauptseite zurückgehen"}), 500
-
+ 
 
 @app.route('/future_data/<timestamp>')
 def get_future_data(timestamp):
 
     try:
-
-        last_prediction = session.get('last_prediction')
-
-        if last_prediction is None:
-            logging.error("get_future_data: Keine Vorhersage-ID in Sitzung gefunden")
-
-            return jsonify({"Fehler": "Keine Vorhersage-ID in Sitzung gefunden"}), 400
-        
         logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {timestamp}")
         future_data = mqtt_client.fetch_future_data(timestamp)
         
@@ -425,7 +419,7 @@ def get_future_data(timestamp):
     except Exception as e:
         logging.error(f"get_future_data: Fehler beim Abrufen von Zukunftsdaten: {e}")
         return jsonify({"Fehler": str(e)}), 500
-
+    
 
 @app.route('/save_analysis_data', methods=['POST'])
 def save_analysis_data():

@@ -243,9 +243,7 @@ class MQTTClient:
                         logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
 
                         # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
-                        correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 
-                                         'hour', 'day_of_week', 'month']
-                        
+                        correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
                         for feature in correct_order:
                             if feature not in features_df.columns:
                                 if feature == 'tvoc':
@@ -273,7 +271,11 @@ class MQTTClient:
 
                         self.combined_data['predictions'] = predictions
                         self.latest_predictions = predictions
-                        logging.info(f"latest predictions sind: {self.latest_predictions}")
+                        logging.info(f"latest predictions are: {self.latest_predictions}")
+
+                        # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
+                        prediction_id = str(uuid.uuid4())
+                        self.latest_predictions['id'] = prediction_id
 
                         # features_df zur späteren Verwendung im Feedback speichern
                         self.latest_features_df = features_df
@@ -282,7 +284,7 @@ class MQTTClient:
                     except Exception as e:
                         logging.error(f"run_periodic_predictions: Fehler während der Verarbeitung der Vorhersagen: {e}")
                 else:
-                    logging.info("run_periodic_predictions: In den letzten 10 Minuten wurden keine Daten gesammelt.")
+                    logging.info("run_periodic_predictions: In den letzten 20 Minuten wurden keine Daten gesammelt.")
         
 
     def check_and_clear_data(self):
@@ -591,18 +593,15 @@ class MQTTClient:
 
     def clear_predictions(self):
         """
-        Löscht alte Vorhersagen und entfernt die Vorhersagen aus combined_data
+        Clears the latest predictions.
         """
-        with self.data_lock:
-            try:
-                logging.info("Alte Vorhersagen werden gelöscht!")
+        try:
+            logging.info("Alte Vorhersagen werden gelöscht!")
+            with self.data_lock:
                 self.latest_predictions.clear()
-                if 'predictions' in self.combined_data:
-                    del self.combined_data['predictions']
-                logging.info(f"latest_predictions nach dem Löschen: {self.latest_predictions}")
-                logging.info(f"combined_data nach dem Löschen der Vorhersagen: {self.combined_data}")
-            except Exception as e:
-                logging.error(f"clear_predictions: Fehler beim Löschen der Vorhersagen: {e}")
+            logging.info(f"latest_predictions after clearing: {self.latest_predictions}")
+        except Exception as e:
+            logging.error(f"clear_predictions: Fehler beim Löschen {e}")
 
 
     def stop(self):
