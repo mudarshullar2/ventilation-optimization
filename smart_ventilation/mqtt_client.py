@@ -1,4 +1,5 @@
 import psycopg2
+import pytz
 from db.database_connection import load_config, connect_to_database
 import paho.mqtt.client as mqtt
 import pandas as pd
@@ -53,6 +54,7 @@ class MQTTClient:
             self.data_lock = threading.Lock()
             self.first_time = None
             self.first_topic_data = []
+            self.latest_time = None
             self.last_clear_date = datetime.now().replace(minute=0, second=0, microsecond=0)
             self.conn = connect_to_database(db)
 
@@ -93,7 +95,7 @@ class MQTTClient:
                 logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
                 self.restart_thread()
         except Exception as e:
-            logging.error(f"Fehler beim Verbindungsaufbau: {e}")
+            logging.error(f"on_connect: Fehler beim Verbindungsaufbau: {e}")
 
 
     def on_message(self, client, userdata, msg):
@@ -112,8 +114,9 @@ class MQTTClient:
             def adjust_and_format_time(raw_time):
                 try:
                     utc_time = dt.datetime.strptime(raw_time, "%Y-%m-%dT%H:%M:%S.%f%z")
-                    local_time = utc_time + dt.timedelta(hours=2)
-                    return local_time.strftime("%Y-%m-%d %H:%M")
+                    berlin_tz = pytz.timezone("Europe/Berlin")
+                    berlin_time = utc_time.astimezone(berlin_tz)
+                    return berlin_time.strftime("%Y-%m-%d %H:%M")
                 except Exception as e:
                     logging.error(f"Fehler bei Zeitanpassung: {e}")
                     return None
@@ -121,6 +124,7 @@ class MQTTClient:
             if topic.endswith("0004a30b00fd0f5e/event/up"):
                 formatted_time = adjust_and_format_time(payload["time"])
                 self.latest_time = formatted_time
+                logging.info(f"self.latest_time: {self.latest_time}")
                 humidity_values = payload["object"].get("humidity")
                 temperature_values = payload["object"].get("temperature")
                 co2_values = payload["object"].get("co2")
@@ -147,8 +151,8 @@ class MQTTClient:
                 if all(value is not None for value in data_point.values()):
                     logging.info(f"data_point is {data_point}")
                     self.store_first_topic_data(data_point)
-
-            formatted_time = self.latest_time
+            else:
+                formatted_time = self.latest_time
 
             if topic.endswith("24e124707c481005/event/up"):
                 tvoc_value = payload["object"].get("tvoc")
@@ -175,7 +179,7 @@ class MQTTClient:
             self.check_and_clear_data()
 
         except Exception as e:
-            logging.error(f"Fehler beim Empfangen der Nachricht: {e}")
+            logging.error(f"on_message: Fehler beim Empfangen der Nachricht: {e}")
 
 
     def collect_data(self, combined_data):
@@ -200,9 +204,9 @@ class MQTTClient:
                     logging.debug(f"Gesammelter Datenpunkt: {data}")
 
             except Exception as e:
-                logging.error(f"Unerwarteter Fehler bei der Datensammlung: {e}")
-                logging.error(f"Inhalt der kombinierten Daten: {combined_data}")
-                logging.error(f"Inhalt der Datenpunkte: {self.data_points}")
+                logging.error(f"collect_data: Unerwarteter Fehler bei der Datensammlung: {e}")
+                logging.error(f"collect_data: Inhalt der kombinierten Daten: {combined_data}")
+                logging.error(f"collect_data: Inhalt der Datenpunkte: {self.data_points}")
 
 
     def run_periodic_predictions(self):
@@ -278,9 +282,9 @@ class MQTTClient:
 
                     data_points_copy.clear()
                 except Exception as e:
-                    logging.error(f"Fehler während der Verarbeitung der Vorhersagen: {e}")
+                    logging.error(f"run_periodic_predictions: Fehler während der Verarbeitung der Vorhersagen: {e}")
             else:
-                logging.info("In den letzten 20 Minuten wurden keine Daten gesammelt.")
+                logging.info("run_periodic_predictions: In den letzten 20 Minuten wurden keine Daten gesammelt.")
     
 
     def check_and_clear_data(self):
@@ -297,7 +301,7 @@ class MQTTClient:
                     self.last_clear_date = next_clear_date
                     logging.info(f"self.last_clear_date nach der Anpassung (aktuelle Zeit + self.clear_data) {self.last_clear_date}")
             except Exception as e:
-                logging.error(f"Fehler bei der Datenprüfung und -löschung: {e}")
+                logging.error(f"check_and_clear_data: Fehler bei der Datenprüfung und -löschung: {e}")
 
 
     def clear_data(self, clear_time):
@@ -308,7 +312,7 @@ class MQTTClient:
                 self.latest_predictions.clear()
                 logging.info(f"Daten um {clear_time.strftime('%H:%M Uhr')} gelöscht")
         except Exception as e: 
-            logging.error(f"Fehler beim Löschen der Daten: {e}")
+            logging.error(f"clear_data: Fehler beim Löschen der Daten: {e}")
 
 
     def restart_thread(self):
@@ -322,7 +326,7 @@ class MQTTClient:
             
             logging.info("Vorhersage-Thread erfolgreich neu gestartet.")
         except Exception as e:
-            logging.error(f"Fehler beim Neustart des Threads: {e}")
+            logging.error(f"restart_thread: Fehler beim Neustart des Threads: {e}")
 
 
     def get_latest_sensor_data(self):
@@ -331,8 +335,12 @@ class MQTTClient:
 
         :return: Kopie der Datenpunkte
         """
-        return self.data_points.copy()
-
+        try:
+            return self.data_points.copy()
+        except Exception as e:
+            logging.error(f"get_latest_sensor_data: Fehler beim Abrufen der neuesten Sensordaten: {e}")
+            return []
+        
 
     def store_first_topic_data(self, data_point):
         """
@@ -362,12 +370,12 @@ class MQTTClient:
                 data_point = None
 
             except psycopg2.OperationalError as e:
-                logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
+                logging.error(f"store_first_topic_data: Fehler beim Speichern von Daten in der Datenbank: {e}")
                 self.reconnect_db()
                 self.store_first_topic_data(data_point)
 
             except Exception as e:
-                logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
+                logging.error(f"store_first_topic_data: Fehler beim Speichern von Daten in der Datenbank: {e}")
                 self.conn.rollback()
             finally:
                 cursor.close()
@@ -400,11 +408,11 @@ class MQTTClient:
                     self.conn.rollback()
             
             except psycopg2.OperationalError as e:
-                logging.error(f"Datenbankverbindungsfehler beim Speichern von Feedback-Daten: {e}")
+                logging.error(f"store_feedback_data: Datenbankverbindungsfehler beim Speichern von Feedback-Daten: {e}")
                 self.reconnect_db()
 
             except Exception as e:
-                logging.error(f"Fehler beim Speichern von Feedback-Daten in der Datenbank: {e}")
+                logging.error(f"store_feedback_data: Fehler beim Speichern von Feedback-Daten in der Datenbank: {e}")
                 self.conn.rollback()
             finally:
                 cursor.close()
@@ -452,13 +460,13 @@ class MQTTClient:
                 return averaged_data
             
             except psycopg2.OperationalError as e:
-                logging.error(f"Datenbankverbindungsfehler beim Abrufen von Daten: {e}")
+                logging.error(f"fetch_data: Datenbankverbindungsfehler beim Abrufen von Daten: {e}")
                 self.reconnect_db()
                 return {}
             
             except Exception as e:
                 # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
-                logging.error(f"Fehler beim Abrufen von Daten aus der Datenbank: {e}")
+                logging.error(f"fetch_data: Fehler beim Abrufen von Daten aus der Datenbank: {e}")
 
                 return {}
             finally:
@@ -512,7 +520,7 @@ class MQTTClient:
                 return averaged_data
             
             except psycopg2.OperationalError as e:
-                logging.error(f"Datenbankverbindungsfehler beim Abrufen von Zukunftsdaten: {e}")
+                logging.error(f"fetch_future_data: Datenbankverbindungsfehler beim Abrufen von Zukunftsdaten: {e}")
                 self.reconnect_db()
                 return {
                     'timestamp': timestamp,
@@ -523,7 +531,7 @@ class MQTTClient:
             
             except Exception as e:
                 # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
-                logging.error(f"Fehler beim Abrufen von Zukunftsdaten aus der Datenbank: {e}")
+                logging.error(f"fetch_future_data: Fehler beim Abrufen von Zukunftsdaten aus der Datenbank: {e}")
                 return {
                     'timestamp': timestamp,
                     'co2_values': None,
@@ -576,11 +584,11 @@ class MQTTClient:
             logging.info("Daten in der Tabelle environmental_data_analysis erfolgreich gespeichert")
 
         except psycopg2.OperationalError as e:
-            logging.error(f"Datenbankverbindungsfehler beim Speichern von Daten: {e}")
+            logging.error(f"save_analysis_data: Datenbankverbindungsfehler beim Speichern von Daten: {e}")
             self.reconnect_db()
 
         except Exception as e:
-            logging.error(f"Fehler beim Speichern von Daten in der Datenbank: {e}")
+            logging.error(f"save_analysis_data: Fehler beim Speichern von Daten in der Datenbank: {e}")
 
 
     def clear_predictions(self):
@@ -593,7 +601,8 @@ class MQTTClient:
                 self.latest_predictions.clear()
                 logging.info(f"lates_prediction: {self.latest_predictions}")
             except Exception as e: 
-                logging.error(f"Fehler beim Löschen der Vorhersagen: {e}")
+                logging.error(f"clear_predictions: Fehler beim Löschen der Vorhersagen: {e}")
+
 
     def stop(self):
         """
@@ -604,7 +613,7 @@ class MQTTClient:
             self.client.loop_stop()
             self.client.disconnect()
         except Exception as e:
-            logging.error(f"Fehler beim Stoppen des Clients: {e}")
+            logging.error(f"stop: Fehler beim Stoppen des Clients: {e}")
 
 
     def reconnect_db(self):
@@ -617,7 +626,7 @@ class MQTTClient:
             self.conn = connect_to_database(db)
             logging.info("Datenbankverbindung erfolgreich neu hergestellt.")
         except Exception as e:
-            logging.error(f"Fehler beim Neuherstellen der Datenbankverbindung: {e}")
+            logging.error(f"reconnect_db: Fehler beim Neuherstellen der Datenbankverbindung: {e}")
 
 
     def initialize(self):
@@ -628,5 +637,4 @@ class MQTTClient:
             self.client.connect(CLOUD_SERVICE_URL, 8883)
             self.client.loop_start()
         except Exception as e: 
-            logging.error(f"Fehler bei der Initialisierung: {e}")
-
+            logging.error(f"initialize: Fehler bei der Initialisierung: {e}")
