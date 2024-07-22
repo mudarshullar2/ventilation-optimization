@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Umweltdaten-Leaderboard</title>
+    <title>Umweltdaten-Leaderboard 2</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body, html {
@@ -150,7 +150,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">Umweltdaten Leaderboard</h1>
+        <h1 class="text-center mb-4">Umweltdaten Leaderboard 2</h1>
         
         <!-- Zurück-Button -->
         <button onclick="window.location.href='/'" class="button mb-4">Zurück zur Hauptseite</button>
@@ -269,7 +269,7 @@
                         return;
                     }
 
-                    if (data.co2_values === null && data.temperature === null && data.humidity === null && data.outdoor_temperature === null && data.tvoc_values === null) {
+                    if (data.co2_values === null && data.temperature === null && data.humidity === null) {
                         console.info('Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.');
                         const futureDataBody = document.getElementById('future-data-body');
                         futureDataBody.innerHTML = `
@@ -315,18 +315,17 @@
             updateComparisonRow('comparison-humidity', humidityChange);
 
             saveAnalysisData({
-            current_co2: currentCO2,
-            future_co2: futureCO2,
-            co2_change: co2Change,
-            current_temperature: currentTemperature,
-            future_temperature: futureTemperature,
-            temperature_change: temperatureChange,
-            current_humidity: currentHumidity,
-            future_humidity: futureHumidity,
-            humidity_change: humidityChange,
-            decision: "Fenster öffnen"
+                current_co2: currentCO2,
+                future_co2: futureCO2,
+                co2_change: co2Change,
+                current_temperature: currentTemperature,
+                future_temperature: futureTemperature,
+                temperature_change: temperatureChange,
+                current_humidity: currentHumidity,
+                future_humidity: futureHumidity,
+                humidity_change: humidityChange,
+                decision: "Fenster öffnen"
             });
-
         }
 
         function calculatePercentageChange(current, future) {
@@ -339,18 +338,18 @@
         function updateComparisonRow(elementId, change) {
             const element = document.getElementById(elementId);
             element.innerText = `${change.toFixed(2)}%`;
-            
+
             element.classList.remove('positive-feedback', 'negative-feedback', 'neutral-feedback');
 
             if (change < 0) {
                 element.classList.add('negative-feedback');
-                element.innerHTML += ' <span>👍 Sehr Gut!</span>';
+                element.innerHTML += ' <span>👍 Sehr gut!</span>';
             } else if (change > 0) {
                 element.classList.add('positive-feedback');
                 element.innerHTML += ' <span>⚠️ Die Luftqualität wird schlechter. Bitte überprüfen Sie, ob alle Fenster geöffnet sind.</span>';
             } else {
                 element.classList.add('neutral-feedback');
-                element.innerHTML += ' <span>🔄 Keine Änderung. Bitte weiterhin aufmerksam bleiben.</span>';
+                element.innerHTML += ' <span>🔄 Keine Veränderung. Bitte weiterhin aufmerksam bleiben.</span>';
             }
         }
 
@@ -399,8 +398,8 @@
 
         function startTimer(duration, display) {
             if (!isErrorMessagePresent()) {
-                let timer = 0, minutes, seconds;
-                setInterval(function () {
+                let timer = duration, minutes, seconds;
+                const interval = setInterval(function () {
                     minutes = parseInt(timer / 60, 10);
                     seconds = parseInt(timer % 60, 10);
 
@@ -409,8 +408,9 @@
 
                     display.textContent = minutes + ":" + seconds;
 
-                    if (++timer > duration) {
-                        clearInterval(this);
+                    if (--timer < 0) {
+                        clearInterval(interval);
+                        fetchFutureData(); // Abrufen der zukünftigen Daten nach Ablauf des Timers
                     }
                 }, 1000);
             }
@@ -422,12 +422,6 @@
                 display = document.querySelector('#timer');
             startTimer(fiveMinutes, display);
         };
-
-        setTimeout(() => {
-            fetchFutureData(); // Einmaliges Abrufen nach der initialen Verzögerung
-            setInterval(fetchFutureData, pollingInterval); // Dann alle Minute erneut abrufen
-        }, delayInterval);
-        
     </script>
 </body>
 </html>

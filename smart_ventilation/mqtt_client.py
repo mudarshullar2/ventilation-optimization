@@ -1,3 +1,4 @@
+import time
 import psycopg2
 import pytz
 from db.database_connection import load_config, connect_to_database
@@ -528,9 +529,72 @@ class MQTTClient:
                     'temperature': None,
                     'humidity': None,
                 }
+
+
+    def fetch_future_data(self, timestamp):
+        """
+        Hilfsfunktion zum Abrufen von Daten auf der Grundlage eines Zeitstempels, 
+        unter Berücksichtigung der nächsten 10 Minuten.
+        Ruft Daten aus der PostgreSQL-Datenbank ab und berechnet den Durchschnitt der Werte
+        """
+        with self.data_lock:
+            cursor = self.conn.cursor()
+            try:
+                logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {timestamp}")
+
+                query = """
+                    SELECT 
+                        AVG(co2_values) as co2_values,
+                        AVG(temperature) as temperature,
+                        AVG(humidity) as humidity
+                    FROM classroom_environmental_data
+                    WHERE timestamp > CAST(%s AS timestamp);
+                """
+
+                max_attempts = 30  # Maximum number of polling attempts (30 attempts every 10 seconds equals 5 minutes)
+                wait_time = 10  # Wait time between attempts in seconds
+                result = None
+
+                for attempt in range(max_attempts):
+                    logging.info(f"Abfrageversuch {attempt + 1} mit Zeitstempel: {timestamp}")
+                    cursor.execute(query, (timestamp,))
+                    result = cursor.fetchone()
+                    logging.info(f"Abfrageergebnis: {result}")
+
+                    if result and any(val is not None for val in result):
+                        break
+
+                    logging.info(f"Keine Daten verfügbar, warte {wait_time} Sekunden.")
+                    time.sleep(wait_time)
+
+                if result:
+                    averaged_data = {
+                        'timestamp': timestamp,
+                        'co2_values': float(result[0]) if result[0] is not None else None,
+                        'temperature': float(result[1]) if result[1] is not None else None,
+                        'humidity': float(result[2]) if result[2] is not None else None,
+                    }
+                else:
+                    averaged_data = {
+                        'timestamp': timestamp,
+                        'co2_values': None,
+                        'temperature': None,
+                        'humidity': None,
+                    }
+
+                return averaged_data
+            
+            except psycopg2.OperationalError as e:
+                logging.error(f"fetch_future_data: Datenbankverbindungsfehler beim Abrufen von Zukunftsdaten: {e}")
+                self.reconnect_db()
+                return {
+                    'timestamp': timestamp,
+                    'co2_values': None,
+                    'temperature': None,
+                    'humidity': None,
+                }
             
             except Exception as e:
-                # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
                 logging.error(f"fetch_future_data: Fehler beim Abrufen von Zukunftsdaten aus der Datenbank: {e}")
                 return {
                     'timestamp': timestamp,
@@ -539,7 +603,6 @@ class MQTTClient:
                     'humidity': None,
                 }
             finally:
-                # Cursor muss nach dem Vorgang geschlossen werden
                 cursor.close()
 
 
