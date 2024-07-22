@@ -1,15 +1,19 @@
 # Python-Image von Docker Hub für die Version 3.10.10
 FROM python:3.10.10-slim
 
-# Core-Abhängigkeiten für PostgreSQL 16 Client
+# Core-Abhängigkeiten für PostgreSQL 16 Client und Zeitzonendaten
 RUN apt-get update && \
-    apt-get install -y wget gnupg2 && \
+    apt-get install -y wget gnupg2 tzdata && \
     wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - && \
     echo "deb http://apt.postgresql.org/pub/repos/apt/ $(grep 'VERSION_CODENAME=' /etc/os-release | cut -d'=' -f2)-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
     apt-get update && \
     apt-get install -y --fix-missing libpq-dev build-essential postgresql-client-16 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Zeitzone setzen
+ENV TZ=Europe/Berlin
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Arbeitsverzeichnis für Backend festlegen
 WORKDIR /app
