@@ -210,82 +210,80 @@ class MQTTClient:
 
 
     def run_periodic_predictions(self):
-        """
-        Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
-        """
-        while self.thread_alive:
-            # 10 Minuten warten
-            self.prediction_event.wait(600)
-            if not self.thread_alive:
-                break
-            self.prediction_event.clear()
-            if self.data_points:
-                try:
-                    # Deep Kopie der Datenpunkte erstellen
-                    data_points_copy = copy.deepcopy(self.data_points)
-                    df = pd.DataFrame(data_points_copy)
-                    logging.info("DataFrame wurde erfolgreich erstellt.")
+            """
+            Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
+            """
+            while self.thread_alive:
+                # 10 Minuten warten
+                self.prediction_event.wait(600)
+                if not self.thread_alive:
+                    break
+                self.prediction_event.clear()
+                if self.data_points:
+                    try:
+                        # Deep Kopie der Datenpunkte erstellen
+                        data_points_copy = copy.deepcopy(self.data_points)
+                        df = pd.DataFrame(data_points_copy)
+                        logging.info("DataFrame wurde erfolgreich erstellt.")
 
-                    df['parsed_time'] = pd.to_datetime(df['time'])
-                    avg_time = df['parsed_time'].mean()
-                    logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
+                        df['parsed_time'] = pd.to_datetime(df['time'])
+                        avg_time = df['parsed_time'].mean()
+                        logging.info("Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich.")
 
-                    avg_data = df.mean(numeric_only=True).to_dict()
-                    avg_data['avg_time'] = avg_time.timestamp()
-                    logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
+                        avg_data = df.mean(numeric_only=True).to_dict()
+                        avg_data['avg_time'] = avg_time.timestamp()
+                        logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
 
-                    avg_data['hour'] = avg_time.hour
-                    avg_data['day_of_week'] = avg_time.dayofweek
-                    avg_data['month'] = avg_time.month
+                        avg_data['hour'] = avg_time.hour
+                        avg_data['day_of_week'] = avg_time.dayofweek
+                        avg_data['month'] = avg_time.month
 
-                    # Merkmale für die Vorhersage vorbereiten
-                    features_df = pd.DataFrame([avg_data])
-                    logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
+                        # Merkmale für die Vorhersage vorbereiten
+                        features_df = pd.DataFrame([avg_data])
+                        logging.info("Merkmale für die Vorhersage vorbereitet: %s", features_df)
 
-                    # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
-                    correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 'hour', 'day_of_week', 'month']
-                    for feature in correct_order:
-                        if feature not in features_df.columns:
-                            if feature == 'tvoc':
-                                features_df[feature] = 100
-                            elif feature == 'ambient_temp':
-                                features_df[feature] = avg_data.get('temperature', 0)
+                        # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
+                        correct_order = ['co2', 'temperature', 'humidity', 'tvoc', 'ambient_temp', 
+                                         'hour', 'day_of_week', 'month']
+                        
+                        for feature in correct_order:
+                            if feature not in features_df.columns:
+                                if feature == 'tvoc':
+                                    features_df[feature] = 100
+                                elif feature == 'ambient_temp':
+                                    features_df[feature] = avg_data.get('temperature', 0)
+                                else:
+                                    features_df[feature] = 0
+
+                        features_df = features_df[correct_order]
+                        features_array = features_df.to_numpy()
+
+                        # Spaltenreihenfolge für das zweite Modell anpassen
+                        restricted_model_order = ['co2', 'temperature']
+                        restricted_features_df = features_df[restricted_model_order]
+                        restricted_features_array = restricted_features_df.to_numpy()
+
+                        # Vorhersagen mit jedem Modell erstellen
+                        predictions = {}
+                        for name, model in self.models.items():
+                            if 'Random Forest' in name:
+                                predictions[name] = model.predict(restricted_features_array)[0]
                             else:
-                                features_df[feature] = 0
+                                predictions[name] = model.predict(features_array)[0]
 
-                    features_df = features_df[correct_order]
-                    features_array = features_df.to_numpy()
+                        self.combined_data['predictions'] = predictions
+                        self.latest_predictions = predictions
+                        logging.info(f"latest predictions sind: {self.latest_predictions}")
 
-                    # Spaltenreihenfolge für das zweite Modell anpassen
-                    restricted_model_order = ['co2', 'temperature']
-                    restricted_features_df = features_df[restricted_model_order]
-                    restricted_features_array = restricted_features_df.to_numpy()
+                        # features_df zur späteren Verwendung im Feedback speichern
+                        self.latest_features_df = features_df
 
-                    # Vorhersagen mit jedem Modell erstellen
-                    predictions = {}
-                    for name, model in self.models.items():
-                        if 'Random Forest' in name:
-                            predictions[name] = model.predict(restricted_features_array)[0]
-                        else:
-                            predictions[name] = model.predict(features_array)[0]
-
-                    self.combined_data['predictions'] = predictions
-                    self.latest_predictions = predictions
-                    logging.info(f"latest predictions are: {self.latest_predictions}")
-
-                    # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
-                    prediction_id = str(uuid.uuid4())
-                    self.latest_predictions['id'] = prediction_id
-
-                    # features_df zur späteren Verwendung im Feedback speichern
-                    self.latest_features_df = features_df
-
-                    data_points_copy.clear()
-                except Exception as e:
-                    logging.error(f"run_periodic_predictions: Fehler während der Verarbeitung der Vorhersagen: {e}")
-            else:
-                logging.info("run_periodic_predictions: In den letzten 20 Minuten wurden keine Daten gesammelt.")
-    
+                        data_points_copy.clear()
+                    except Exception as e:
+                        logging.error(f"run_periodic_predictions: Fehler während der Verarbeitung der Vorhersagen: {e}")
+                else:
+                    logging.info("run_periodic_predictions: In den letzten 10 Minuten wurden keine Daten gesammelt.")
+        
 
     def check_and_clear_data(self):
             try:
@@ -293,8 +291,8 @@ class MQTTClient:
                 logging.info(f"aktuelle Zeit: {current_time}")
                 logging.info(f"self.last_clear_data: {self.last_clear_date}")
 
-                if current_time >= self.last_clear_date + timedelta(hours=1):
-                    next_clear_date = self.last_clear_date + timedelta(hours=1)
+                if current_time >= self.last_clear_date + timedelta(hours=2):
+                    next_clear_date = self.last_clear_date + timedelta(hours=2)
                     logging.info(f"next_clear_date {next_clear_date}")
 
                     self.clear_data(next_clear_date)
@@ -593,14 +591,15 @@ class MQTTClient:
 
     def clear_predictions(self):
         """
-        Löscht alte Vorhersagen
+        Clears the latest predictions.
         """
         try:
             logging.info("Alte Vorhersagen werden gelöscht!")
-            self.latest_predictions = {}
-            logging.info(f"lates_prediction: {self.latest_predictions}")
-        except Exception as e: 
-            logging.error(f"clear_predictions: Fehler beim Löschen der Vorhersagen: {e}")
+            with self.data_lock:
+                self.latest_predictions.clear()
+            logging.info(f"latest_predictions after clearing: {self.latest_predictions}")
+        except Exception as e:
+            logging.error(f"clear_predictions: Fehler beim Löschen {e}")
 
 
     def stop(self):
