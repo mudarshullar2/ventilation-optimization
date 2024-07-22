@@ -214,8 +214,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 20 Minuten warten
-            self.prediction_event.wait(1200)
+            # 10 Minuten warten
+            self.prediction_event.wait(600)
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
@@ -597,7 +597,7 @@ class MQTTClient:
         """
         try:
             logging.info("Alte Vorhersagen werden gelöscht!")
-            self.latest_predictions.clear()
+            self.latest_predictions = {}
             logging.info(f"lates_prediction: {self.latest_predictions}")
         except Exception as e: 
             logging.error(f"clear_predictions: Fehler beim Löschen der Vorhersagen: {e}")
