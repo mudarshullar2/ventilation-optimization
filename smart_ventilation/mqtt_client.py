@@ -215,7 +215,7 @@ class MQTTClient:
         """
         while self.thread_alive:
             # 20 Minuten warten
-            self.prediction_event.wait(60)
+            self.prediction_event.wait(1200)
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
