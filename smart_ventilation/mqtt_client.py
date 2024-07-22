@@ -591,15 +591,18 @@ class MQTTClient:
 
     def clear_predictions(self):
         """
-        Clears the latest predictions.
+        Löscht alte Vorhersagen und entfernt die Vorhersagen aus combined_data
         """
-        try:
-            logging.info("Alte Vorhersagen werden gelöscht!")
-            with self.data_lock:
+        with self.data_lock:
+            try:
+                logging.info("Alte Vorhersagen werden gelöscht!")
                 self.latest_predictions.clear()
-            logging.info(f"latest_predictions after clearing: {self.latest_predictions}")
-        except Exception as e:
-            logging.error(f"clear_predictions: Fehler beim Löschen {e}")
+                if 'predictions' in self.combined_data:
+                    del self.combined_data['predictions']
+                logging.info(f"latest_predictions nach dem Löschen: {self.latest_predictions}")
+                logging.info(f"combined_data nach dem Löschen der Vorhersagen: {self.combined_data}")
+            except Exception as e:
+                logging.error(f"clear_predictions: Fehler beim Löschen der Vorhersagen: {e}")
 
 
     def stop(self):
