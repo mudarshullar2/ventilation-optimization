@@ -261,41 +261,49 @@
         const clearSessionDelay = 60 * 1000; // Verzögerung vor dem Löschen der Sitzung (1 Minute)
 
         function fetchFutureData() {
-            fetch(`/future_data/${adjustedDateStr}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.error) {
-                        console.error('Fehler beim Abrufen der Daten:', data.error);
-                        return;
-                    }
+            fetch(`/future_data/${adjustedDateStr}`, {
+                credentials: 'include'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    console.error('Fehler beim Abrufen der Daten:', data.error);
+                    return;
+                }
 
-                    if (data.co2_values === null && data.temperature === null && data.humidity === null) {
-                        console.info('Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.');
-                        const futureDataBody = document.getElementById('future-data-body');
-                        futureDataBody.innerHTML = `
-                            <tr>
-                                <td colspan="6">Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.</td>
-                            </tr>
-                        `;
-                        return;
-                    }
-
+                if (data.co2_values === null && data.temperature === null && data.humidity === null) {
+                    console.info('Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.');
                     const futureDataBody = document.getElementById('future-data-body');
                     futureDataBody.innerHTML = `
                         <tr>
-                            <td id="future-co2">${data.co2_values}</td>
-                            <td id="future-temperature">${data.temperature}</td>
-                            <td id="future-humidity">${data.humidity}</td>
+                            <td colspan="6">Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.</td>
                         </tr>
                     `;
+                    return;
+                }
 
-                    updateComparisonData();
+                const futureDataBody = document.getElementById('future-data-body');
+                futureDataBody.innerHTML = `
+                    <tr>
+                        <td id="future-co2">${data.co2_values}</td>
+                        <td id="future-temperature">${data.temperature}</td>
+                        <td id="future-humidity">${data.humidity}</td>
+                    </tr>
+                `;
 
-                    // Sitzung nach Anzeige der zukünftigen Daten löschen
-                    setTimeout(clearSession, clearSessionDelay);
-                })
-                .catch(error => console.error('Fehler beim Abrufen der Daten:', error));
+                updateComparisonData();
+
+                // Sitzung nach Anzeige der zukünftigen Daten löschen
+                setTimeout(clearSession, clearSessionDelay);
+            })
+            .catch(error => console.error('Fehler beim Abrufen der Daten:', error));
         }
+
 
         function updateComparisonData() {
             const currentCO2 = parseFloat(document.getElementById('current-co2').innerText);
