@@ -1,5 +1,6 @@
+import base64
 from flask_apscheduler import APScheduler
-from flask import Flask, jsonify, redirect, render_template, request, session
+from flask import Flask, jsonify, make_response, redirect, render_template, request, session
 import logging
 import requests
 from datetime import datetime, timedelta
@@ -393,21 +394,34 @@ def leaderboard():
     except Exception as e:
         logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
         return jsonify({"message": "Ein unerwarteter Fehler ist aufgetreten:", "Fehler:": str(e), "Hinweis": "Bitte zur Hauptseite zurückgehen"}), 500
- 
-
+    
+    
 @app.route('/future_data/<timestamp>')
 def get_future_data(timestamp):
     try:
-        # Parse the incoming timestamp
+        # Überprüfen, ob die Anfrage Anmeldedaten enthält
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            auth_type, auth_credentials = auth_header.split(' ', 1)
+            if auth_type.lower() == 'basic':
+                benutzername, passwort = base64.b64decode(auth_credentials).decode('utf-8').split(':', 1)
+                if benutzername != 'admin' or passwort != 'HJ|*fS1i':
+                    return make_response('Verifizierung fehlgeschlagen', 401, {'WWW-Authenticate': 'Basic realm="Login erforderlich!"'})
+            else:
+                return make_response('Verifizierung fehlgeschlagen', 401, {'WWW-Authenticate': 'Basic realm="Login erforderlich!"'})
+        else:
+            return make_response('Verifizierung fehlgeschlagen', 401, {'WWW-Authenticate': 'Basic realm="Login erforderlich!"'})
+
+        # Den eingehenden Zeitstempel analysieren
         timestamp_dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M")
         
-        # Add 5 minutes to the timestamp
+        # 5 Minuten zum Zeitstempel hinzufügen
         future_timestamp_dt = timestamp_dt + timedelta(minutes=5)
         future_timestamp_str = future_timestamp_dt.strftime("%Y-%m-%d %H:%M")
         
         logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {future_timestamp_str}")
         
-        # Fetch future data immediately
+        # Zukünftige Daten sofort abrufen
         future_data = mqtt_client.fetch_future_data(future_timestamp_str)
         
         if not future_data:
@@ -427,7 +441,7 @@ def get_future_data(timestamp):
     except Exception as e:
         logging.error(f"get_future_data: Fehler beim Abrufen von Zukunftsdaten: {e}")
         return jsonify({"Fehler": str(e)}), 500
-    
+
 
 @app.route('/save_analysis_data', methods=['POST'])
 def save_analysis_data():

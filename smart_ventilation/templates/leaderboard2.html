@@ -261,12 +261,19 @@
         const clearSessionDelay = 60 * 1000; // Verzögerung vor dem Löschen der Sitzung (1 Minute)
 
         function fetchFutureData() {
+            const benutzername = 'admin';
+            const passwort = 'HJ|*fS1i';
+            const headers = new Headers();
+            headers.set('Authorization', 'Basic ' + btoa(benutzername + ":" + passwort));
+
             fetch(`/future_data/${adjustedDateStr}`, {
-                credentials: 'include'
+                method: 'GET',
+                headers: headers,
+                credentials: 'include',  // Cookies in der Anfrage
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
+                    throw new Error('Netzwerkantwort war nicht ok ' + response.statusText);
                 }
                 return response.json();
             })
