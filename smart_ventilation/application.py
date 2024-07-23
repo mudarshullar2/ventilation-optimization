@@ -64,8 +64,6 @@ def index():
     :return: Ein gerendertes Template mit Sensordaten oder eine Fehlermeldung bei Problemen.
     """
     try:
-        if 'admin' in request.url:
-            return redirect('https://ventilation.germanywestcentral.cloudapp.azure.com/', code=302)
  
         # Sicherstellen, dass combined_data initialisiert ist und alle erwarteten Schlüssel enthält
         if not hasattr(mqtt_client, 'combined_data') or not mqtt_client.combined_data:
@@ -107,9 +105,6 @@ def index():
 
 @app.route("/plots")
 def plots():
-
-    if 'admin' in request.url:
-            return redirect('https://ventilation.germanywestcentral.cloudapp.azure.com/plots', code=302)
     """
     Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten.
     """
@@ -186,10 +181,6 @@ def convert_to_serializable(obj):
 
 @app.route('/feedback', methods=['GET', 'POST'])
 def feedback():
-
-    if 'admin' in request.url:
-            return redirect('https://ventilation.germanywestcentral.cloudapp.azure.com/feedback', code=302)
-    
     """
     Diese Funktion behandelt das Feedback der Benutzer bezüglich der Vorhersagen.
     
@@ -298,10 +289,6 @@ def get_data(timestamp):
 
 @app.route('/leaderboard', methods=['GET', 'POST'])
 def leaderboard():
-
-    if 'admin' in request.url:
-            return redirect('https://ventilation.germanywestcentral.cloudapp.azure.com/leaderboard', code=302)
-    
     try:
         if request.method == "POST":
             predictions = mqtt_client.latest_predictions
