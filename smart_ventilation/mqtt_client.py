@@ -167,7 +167,7 @@ class MQTTClient:
                 if tvoc_value is not None:
                     self.combined_data.setdefault("tvoc", []).append(round(tvoc_value, 2))
 
-            elif topic.endswith("647fda000000aa92/event/up"):
+            elif topic.endswith("647fda000000aa58/event/up"):
                 ambient_temp_value = payload["object"].get("ambient_temp")
 
                 if ambient_temp_value is not None:
