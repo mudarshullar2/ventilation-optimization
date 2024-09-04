@@ -129,7 +129,7 @@ class MQTTClient:
                     logging.error(f"Fehler bei Zeitanpassung: {e}")
                     return None
 
-            if topic.endswith("24e124707c481005/event/up"):
+            if topic.endswith("0004a30b010404f3/event/up"):
                 formatted_time = adjust_and_format_time(payload["time"])
                 self.latest_time = formatted_time
                 logging.info(f"self.latest_time: {self.latest_time}")
@@ -162,7 +162,7 @@ class MQTTClient:
             else:
                 formatted_time = self.latest_time
 
-            if topic.endswith("24e124707c481005/event/up"):
+            if topic.endswith("24e124707c489656/event/up"):
                 tvoc_value = payload["object"].get("tvoc")
 
                 if tvoc_value is not None:
