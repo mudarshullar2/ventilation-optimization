@@ -84,10 +84,11 @@ class MQTTClient:
             logging.info("Verbunden mit Ergebniscode" + str(rc))
 
             # Für Uhrzeit und TVOC
-            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c489656/event/up")
+            #self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c489656/event/up")
+            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
 
             # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen 
-            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b010404f3/event/up")
+            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up")
 
             # Für Außentemperaturen 
             self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
@@ -122,7 +123,7 @@ class MQTTClient:
                     logging.error(f"Fehler bei Zeitanpassung: {e}")
                     return None
 
-            if topic.endswith("0004a30b010404f3/event/up"):
+            if topic.endswith("0004a30b01045883/event/up"):
                 formatted_time = adjust_and_format_time(payload["time"])
                 self.latest_time = formatted_time
                 logging.info(f"self.latest_time: {self.latest_time}")
@@ -155,13 +156,13 @@ class MQTTClient:
             else:
                 formatted_time = self.latest_time
 
-            if topic.endswith("24e124707c489656/event/up"):
+            if topic.endswith("24e124707c481005/event/up"):
                 tvoc_value = payload["object"].get("tvoc")
 
                 if tvoc_value is not None:
                     self.combined_data.setdefault("tvoc", []).append(round(tvoc_value, 2))
 
-            elif topic.endswith("647fda000000aa8c/event/up"): #or topic.endswith("647fda000000aa92/event/up"): 
+            elif topic.endswith("647fda000000aa92/event/up"):
                 ambient_temp_value = payload["object"].get("ambient_temp")
 
                 if ambient_temp_value is not None:
