@@ -95,9 +95,8 @@ class MQTTClient:
 
             # Für Außentemperaturen 
             # (auskommentiert kommt vom Besprechungsraum)
-            # self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
-            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa8c/event/up")
-            #self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
+            self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
+            # self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa8c/event/up")
 
             if not self.prediction_thread.is_alive():
                 logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
