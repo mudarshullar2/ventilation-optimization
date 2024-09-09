@@ -88,15 +88,11 @@ class MQTTClient:
 
             # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen 
             # (auskommentiert kommt vom Besprechungsraum)
-            # self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd0f5e/event/up")
-            # self.client.subscribe("application/cefebad2-a2a8-49dd-a736-747453fedc6c/device/0004a30b00fd09aa/event/up")
-            # self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up")
             self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b010404f3/event/up")
 
             # Für Außentemperaturen 
             # (auskommentiert kommt vom Besprechungsraum)
             self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up")
-            # self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa8c/event/up")
 
             if not self.prediction_thread.is_alive():
                 logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
