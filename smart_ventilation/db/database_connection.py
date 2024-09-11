@@ -3,7 +3,9 @@ import logging
 import yaml
 
 # Konfigurieren des Loggings
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 
 
 def load_config(config_file_path):
@@ -14,9 +16,9 @@ def load_config(config_file_path):
     :return: Ein Dictionary mit den Datenbankverbindungseinstellungen.
     """
     try:
-        with open(config_file_path, 'r') as file:
+        with open(config_file_path, "r") as file:
             config = yaml.safe_load(file)
-            return config['DATABASES']['default']
+            return config["DATABASES"]["default"]
     except Exception as e:
         logging.error(f"Fehler beim Laden der Konfigurationsdatei: {e}")
         return None
@@ -32,11 +34,11 @@ def connect_to_database(config):
     try:
         # Verbindungsdaten
         connection = psycopg2.connect(
-            dbname=config['NAME'],     # Name der Datenbank
-            user=config['USER'],       # Benutzername
-            password=config['PASSWORD'], # Passwort
-            host=config['HOST'],       # Hostname
-            port=config['PORT']        # Portnummer
+            dbname=config["NAME"],  # Name der Datenbank
+            user=config["USER"],  # Benutzername
+            password=config["PASSWORD"],  # Passwort
+            host=config["HOST"],  # Hostname
+            port=config["PORT"],  # Portnummer
         )
 
         # Erfolgreiche Verbindung loggen
@@ -47,4 +49,3 @@ def connect_to_database(config):
         # Fehler loggen
         logging.error(f"Fehler beim Verbinden zur Datenbank: {e}")
         return None
-
