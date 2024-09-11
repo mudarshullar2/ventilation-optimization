@@ -197,7 +197,6 @@ class MQTTClient:
                         round(ambient_temp_value, 2)
                     )
 
-            # Ensure time is only added once
             if (
                 formatted_time is not None
                 and formatted_time not in self.combined_data.get("time", [])
@@ -440,7 +439,7 @@ class MQTTClient:
                             data_point["co2"],
                             data_point["temperature"],
                             data_point["humidity"],
-                            "10c",  # Fester Klassenraum
+                            "2.09",  # Feste Besprechungsraum
                         ),
                     )
                 self.conn.commit()
