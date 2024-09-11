@@ -88,7 +88,6 @@ class MQTTClient:
             logging.info("Verbunden mit Ergebniscode" + str(rc))
 
             # Für Uhrzeit und TVOC
-            # self.client.subscribe("application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c489656/event/up")
             self.client.subscribe(
                 "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up"
             )
@@ -441,7 +440,7 @@ class MQTTClient:
                             data_point["co2"],
                             data_point["temperature"],
                             data_point["humidity"],
-                            "2.09",  # Feste Besprechungsraum
+                            "10c",  # Fester Klassenraum
                         ),
                     )
                 self.conn.commit()
