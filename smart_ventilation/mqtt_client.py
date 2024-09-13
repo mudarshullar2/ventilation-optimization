@@ -264,8 +264,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 30 Minuten warten
-            self.prediction_event.wait(1800)
+            # 10 Minuten warten
+            self.prediction_event.wait(600)
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
