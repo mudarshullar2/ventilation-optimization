@@ -1,8 +1,8 @@
-# Projekt zur Optimierung des Lüftungsverhaltens in Schulen 
+# Optimierung des Lüftungsverhaltens in Bildungseinrichtungen
 
 ## Übersicht
 
-Das Projekt bildet einen zentralen Bestandteil meiner Bachelorarbeit und wurde in Zusammenarbeit mit Stadtwerke Potsdam entwickelt. Stadtwerke Potsdam haben für dieses Projekt die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam.
+Das Steuerungssystem bildet einen zentralen Bestandteil meiner Abschlussarbeit und wurde in Zusammenarbeit mit Stadtwerke Potsdam entwickelt. Stadtwerke Potsdam haben für dieses Steuerungssystem die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam.
 
 Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu treffen. Die Ergebnisse werden über eine benutzerfreundliche Webschnittstelle visualisiert und können interaktiv genutzt werden. Die technische Umsetzung erfolgt mittels Flask für das Web-Interface und MQTT für die Datenerfassung.
 
