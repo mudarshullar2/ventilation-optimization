@@ -201,6 +201,7 @@
                             {{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C
                         </div>
                     </div>
+
                     <div class="sensor-box">
                         <strong>Systems Empfehlung</strong>
                         <div class="sensor-data" id="logistic-regression-result">
@@ -221,24 +222,45 @@
                             {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
                             {% set lr_prediction_forest = predictions.get('Random Forest', None) %}
                             {% if lr_prediction_logistic == 1 %}
-                                {% set truncated_forest_prediction = ('%.0f' | format(lr_prediction_forest))[:2] %}
-                                {{ truncated_forest_prediction }} Minuten!
+                                {% set forest_prediction = lr_prediction_forest|float %}
+                                {% set truncated_forest_prediction = ('%.0f' | format(forest_prediction))|int %}
+                                {% if truncated_forest_prediction == 0 %}
+                                    {{ 1 }} Minute!
+                                {% else %}
+                                    {{ truncated_forest_prediction }}
+                                    {% if truncated_forest_prediction == 1 %}
+                                        Minute!
+                                    {% else %}
+                                        Minuten!
+                                    {% endif %}
+                                {% endif %}
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
                             {% endif %}
                         </div>
-                    </div>                                                      
+                    </div>                    
                 {% else %}
                     <div class="sensor-box">Keine Sensordaten verfügbar</div>
                 {% endif %}
                 <div class="sensor-box">
                     <strong>Die Empfehlungen des Systems</strong>
                     <div class="sensor-data">
-                        Die Empfehlungen des Systems werden jede 30 Minuten aktualisiert
+                        Die Empfehlungen des Systems werden jede 10 Minuten aktualisiert
                     </div>
                 </div>
             </div>
             <p><a href="/feedback" class="button">Feedback Senden</a></p>
+
+            <button class="button" onclick="showConfirmationModal()">Entscheidung gefolgt</button>
+
+            <div id="confirmModal" class="modal">
+                <div class="modal-content">
+                    <p>Haben Sie die Entscheidung des Steuerungssystems gefolgt?</p>
+                    <button class="button" onclick="confirmYes()">Ja</button>
+                    <button class="button" onclick="confirmNo()">Nein</button>
+                </div>
+            </div>
+
         </section>
         
         <section>
@@ -349,6 +371,7 @@
                 setTheme('theme-light');
             }
         })();
+        
         function showModal(modalId) {
             document.getElementById(modalId).style.display = 'block';
         }
@@ -359,6 +382,38 @@
             document.body.className = themeName;
             closeModal('designModal');
         }
+
+        function showConfirmationModal() {
+            var modal = document.getElementById('confirmModal');
+            modal.style.display = 'block';
+        }
+
+        function confirmYes() {
+            console.log("Benutzer hat Ja gewählt!");
+
+            var logisticBox = document.getElementById('logistic-regression-div');
+            var randomForestBox = document.getElementById('random-forest-div');
+
+            if (logisticBox) {
+                logisticBox.style.display = 'none';
+            }
+
+            if (randomForestBox) {
+                randomForestBox.style.display = 'none';
+            }
+            closeModal();
+        }
+
+        function confirmNo() {
+            console.log("Benutzer hat Nein gewählt.");
+            closeModal();
+        }
+
+        function closeModal() {
+            var modal = document.getElementById('confirmModal');
+            modal.style.display = 'none';
+        }
+
     </script>
     <script src="{{ url_for('static', filename='js/theme-handler.js') }}"></script>
 </body>
