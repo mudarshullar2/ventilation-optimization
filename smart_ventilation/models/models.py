@@ -433,12 +433,12 @@ def main(
 if __name__ == "__main__":
 
     main(
-        co2_last_30_days_path="dataset/10c_co2_last_30_days.csv",
-        co2_older_30_days_path="dataset/10c_co2_older_30_days.csv",
-        temp_last_30_days_path="dataset/10c_temp_last_30_days.csv",
-        temp_older_30_days_path="dataset/10c_temp_older_30_days.csv",
-        outdoor_temp_path="dataset/outdoor_temperature.txt",
-        main_dataset_path="dataset/dataset.xlsx",
-        final_dataset_path="dataset/final_dataset.xlsx",
+        co2_last_30_days_path="datasets/10c_co2_last_30_days.csv",
+        co2_older_30_days_path="datasets/10c_co2_older_30_days.csv",
+        temp_last_30_days_path="datasets/10c_temp_last_30_days.csv",
+        temp_older_30_days_path="datasets/10c_temp_older_30_days.csv",
+        outdoor_temp_path="datasets/outdoor_temperature.txt",
+        main_dataset_path="datasets/dataset.xlsx",
+        final_dataset_path="datasets/final_dataset.xlsx",
         models_directory="models",
     )

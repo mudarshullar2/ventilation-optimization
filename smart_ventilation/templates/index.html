@@ -259,7 +259,7 @@
                     <button class="button" onclick="confirmYes()">Ja</button>
                     <button class="button" onclick="confirmNo()">Nein</button>
                 </div>
-            </div>
+            </div>            
 
         </section>
         
@@ -389,30 +389,60 @@
         }
 
         function confirmYes() {
-            console.log("Benutzer hat Ja gewählt!");
+            console.log("Der Nutzer bestätigt, dass er die Entscheidung gefolgt hat.");
 
-            var logisticBox = document.getElementById('logistic-regression-div');
-            var randomForestBox = document.getElementById('random-forest-div');
+            fetch('/clear-predictions', {
+                method: 'POST',
+            })
+            .then(response => {
+                if (response.ok) {
+                    console.log("Die Vorhersagen wurden erfolgreich abgeschlossen.");
 
-            if (logisticBox) {
-                logisticBox.style.display = 'none';
-            }
+                    document.getElementById('logistic-regression-div').style.display = 'none';
+                    document.getElementById('random-forest-div').style.display = 'none';
 
-            if (randomForestBox) {
-                randomForestBox.style.display = 'none';
-            }
-            closeModal();
-        }
-
-        function confirmNo() {
-            console.log("Benutzer hat Nein gewählt.");
-            closeModal();
+                    localStorage.setItem('userConfirmed', 'true');
+                } else {
+                    console.error("Die Vorhersagen wurden nicht gelöscht.");
+                }
+            })
+            .catch(error => {
+                console.error("Fehler in confirmYes():", error);
+            })
+            .finally(() => {
+                closeModal();
+                location.reload();
+            });
         }
 
         function closeModal() {
             var modal = document.getElementById('confirmModal');
-            modal.style.display = 'none';
+            console.log("Das Fenster schließt...");
+            if (modal) {
+                modal.style.display = 'none';
+                console.log("Fenster ist jetzt zu");
+            } else {
+                console.error("Fenster nicht gefunden");
+            }
         }
+
+        function confirmNo() {
+            console.log("Der Benutzer hat die Entscheidung nicht gefolgt");
+            closeModal();
+        }
+
+        function checkConfirmation() {
+            const hasConfirmed = localStorage.getItem('userConfirmed');
+            if (hasConfirmed === 'true') {
+                document.getElementById('logistic-regression-div').style.display = 'none';
+                document.getElementById('random-forest-div').style.display = 'none';
+            } else {
+                document.getElementById('logistic-regression-div').style.display = 'block';
+                document.getElementById('random-forest-div').style.display = 'block';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', checkConfirmation);
 
     </script>
     <script src="{{ url_for('static', filename='js/theme-handler.js') }}"></script>

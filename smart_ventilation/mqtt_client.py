@@ -828,6 +828,18 @@ class MQTTClient:
                 f"reconnect_db: Fehler beim Neuherstellen der Datenbankverbindung: {e}"
             )
 
+    def clear_predictions(self):
+        """
+        Löscht die letzten Vorhersagen.
+        """
+        try:
+            logging.info("Die alten Vorhersagen werden gelöscht!")
+            with self.data_lock:
+                self.latest_predictions.clear()
+            logging.info("Die Vorhersagen wurden gelöscht.")
+        except Exception as e:
+            logging.error(f"Fehler in clear_predictions() {e}")
+
     def initialize(self):
         """
         Initialisiert die Verbindung zum MQTT-Broker und startet den Loop.
