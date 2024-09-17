@@ -389,25 +389,29 @@
         }
 
         function confirmYes() {
-            console.log("Der Nutzer bestätigt, dass er die Entscheidung gefolgt hat.");
+            console.log("Benutzer hat bestätigt, dass die Empfehlung befolgt wurde.");
 
-            fetch('/clear-predictions', {
+            fetch(`/clear-predictions?timestamp=${new Date().getTime()}`, {
                 method: 'POST',
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                }
             })
             .then(response => {
                 if (response.ok) {
-                    console.log("Die Vorhersagen wurden erfolgreich abgeschlossen.");
-
+                    console.log("Vorhersagen erfolgreich gelöscht.");
                     document.getElementById('logistic-regression-div').style.display = 'none';
                     document.getElementById('random-forest-div').style.display = 'none';
 
                     localStorage.setItem('userConfirmed', 'true');
                 } else {
-                    console.error("Die Vorhersagen wurden nicht gelöscht.");
+                    console.error("Löschen der Vorhersagen fehlgeschlagen.");
                 }
             })
             .catch(error => {
-                console.error("Fehler in confirmYes():", error);
+                console.error("Fehler beim Löschen der Vorhersagen:", error);
             })
             .finally(() => {
                 closeModal();
