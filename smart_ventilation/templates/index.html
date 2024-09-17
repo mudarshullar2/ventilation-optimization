@@ -169,47 +169,68 @@
                 {% if sensor_data %}
                     <div class="sensor-box">
                         <strong>Datum und Uhrzeit</strong>
+                        <br>
                         <div class="sensor-data">{{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] }}</div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('temperature', [22])[-1], 20, 21) }}">
                         <strong>Innenraumtemperatur</strong>
+                        <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('humidity', [61])[-1], 50, 60) }}">
                         <strong>Luftfeuchtigkeit</strong>
+                        <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('humidity', ['Zurzeit nicht verfügbar'])[-1] }} %
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('co2', [1001])[-1], 800, 1000) }}">
-                        <strong>CO2-Niveau</strong>
+                        <strong>CO2 Konzentration</strong>
+                        <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('co2', ['Zurzeit nicht verfügbar'])[-1] }} ppm
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('tvoc', [501])[-1], 400, 500) }}">
-                        <strong>TVOC-Niveau</strong>
+                        <strong>TVOC (Flüchtige Organische Verbindungen) Konzentration</strong>
+                        <br>
                         <div class="sensor-data">
-                            {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }}
+                            {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }} µg/m³
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}">
                         <strong>Außentemperatur</strong>
+                        <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C
                         </div>
                     </div>
 
+                    <audio id="suggestion-sound" src="{{ url_for('static', filename='sounds/suggestion.mp3') }}" preload="auto"></audio>
+
                     <div class="sensor-box">
                         <strong>Systems Empfehlung</strong>
+                        <br><br>
                         <div class="sensor-data" id="logistic-regression-result">
                             {% set lr_prediction = predictions.get('Logistic Regression', None) %}
                             {% if lr_prediction == 0 %}
-                                {{ "Die Fenster sollen geschlossen bleiben" }}
+                                <span style="color: darkblue; font-weight: bold;">Die Fenster sollen geschlossen bleiben 🥶</span>
+                                <br><br>
+                                {% if sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] != 'Zurzeit nicht verfügbar' %}
+                                    <div class="suggestion-time">
+                                        Diese Empfehlung wurde um {{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1].split()[1] }} Uhr erstellt
+                                    </div>
+                                {% endif %}
                             {% elif lr_prediction == 1 %}
-                                {{ "Die Fenster sollen geöffnet werden" }}
+                                <span style="color: red; font-weight: bold;">Die Fenster sollen geöffnet werden 🥵</span>
+                                <br><br>
+                                {% if sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] != 'Zurzeit nicht verfügbar' %}
+                                    <div class="suggestion-time">
+                                        Diese Empfehlung wurde um {{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1].split()[1] }} Uhr erstellt
+                                    </div>
+                                {% endif %}
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
                             {% endif %}
@@ -218,6 +239,7 @@
                     
                     <div class="sensor-box" id="random-forest-div">
                         <strong>Notwendige Zeit zur Lüftung beträgt</strong>
+                        <br><br>
                         <div class="sensor-data" id="random-forest-value">
                             {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
                             {% set lr_prediction_forest = predictions.get('Random Forest', None) %}
@@ -227,12 +249,13 @@
                                 {% if truncated_forest_prediction == 0 %}
                                     {{ 1 }} Minute!
                                 {% else %}
-                                    {{ truncated_forest_prediction }}
-                                    {% if truncated_forest_prediction == 1 %}
-                                        Minute!
-                                    {% else %}
-                                        Minuten!
-                                    {% endif %}
+                                    {{ truncated_forest_prediction }} Minuten!
+                                {% endif %}
+                                <br><br>
+                                {% if sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] != 'Zurzeit nicht verfügbar' %}
+                                    <div class="suggestion-time">
+                                        Diese Empfehlung wurde um {{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1].split()[1] }} Uhr erstellt
+                                    </div>
                                 {% endif %}
                             {% else %}
                                 {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
@@ -244,22 +267,17 @@
                 {% endif %}
                 <div class="sensor-box">
                     <strong>Die Empfehlungen des Systems</strong>
+                    <br>
                     <div class="sensor-data">
-                        Die Empfehlungen des Systems werden jede 30 Minuten aktualisiert !!
-                    </div>
-                </div>
+                        Die Empfehlungen des Systems werden jede 20 Minuten aktualisiert
+                        <br><br>
+                        Die angezeigten Daten im Dashboard werden jede Stunde gelöscht
+                    </div>                    
+                </div>                
             </div>
             <p><a href="/feedback" class="button">Feedback Senden</a></p>
-
-            <button class="button" onclick="showConfirmationModal()">Entscheidung gefolgt</button>
-
-            <div id="confirmModal" class="modal">
-                <div class="modal-content">
-                    <p>Haben Sie die Entscheidung des Steuerungssystems gefolgt?</p>
-                    <button class="button" onclick="confirmYes()">Ja</button>
-                    <button class="button" onclick="confirmNo()">Nein</button>
-                </div>
-            </div>            
+            
+            <button id="play-audio-button" class="button" style="display:none;" onclick="playSuggestionSound()">Play Sound</button>
 
         </section>
         
@@ -304,7 +322,8 @@
             <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Sensor Werte als Dashboard anzeigen</button>
         </section>                   
     </div>
-    
+
+
     <script>
 
         function updateTextColor() {
@@ -388,65 +407,38 @@
             modal.style.display = 'block';
         }
 
-        function confirmYes() {
-            console.log("Benutzer hat bestätigt, dass die Empfehlung befolgt wurde.");
-
-            fetch(`/clear-predictions?timestamp=${new Date().getTime()}`, {
-                method: 'POST',
-                headers: {
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0',
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    console.log("Vorhersagen erfolgreich gelöscht.");
-                    document.getElementById('logistic-regression-div').style.display = 'none';
-                    document.getElementById('random-forest-div').style.display = 'none';
-
-                    localStorage.setItem('userConfirmed', 'true');
-                } else {
-                    console.error("Löschen der Vorhersagen fehlgeschlagen.");
-                }
-            })
-            .catch(error => {
-                console.error("Fehler beim Löschen der Vorhersagen:", error);
-            })
-            .finally(() => {
-                closeModal();
-                location.reload();
+        function playSuggestionSound() {
+            var audio = new Audio('{{ url_for("static", filename="sounds/suggestion.mp3") }}');
+            
+            audio.addEventListener('canplaythrough', function() {
+                audio.play().catch(function(error) {
+                    console.error('Error playing audio:', error);
+                });
             });
+
+            audio.addEventListener('error', function() {
+                console.error('Error loading audio file.');
+            });
+
+            audio.load();
         }
 
-        function closeModal() {
-            var modal = document.getElementById('confirmModal');
-            console.log("Das Fenster schließt...");
-            if (modal) {
-                modal.style.display = 'none';
-                console.log("Fenster ist jetzt zu");
-            } else {
-                console.error("Fenster nicht gefunden");
+        document.addEventListener('DOMContentLoaded', function() {
+            var lrPrediction = {{ lr_prediction }};
+            
+            if (lrPrediction !== null && lrPrediction !== undefined && lrPrediction != "Zurzeit sind keine Empfehlungen verfügbar") {
+                function handleUserInteraction() {
+                    document.getElementById('play-audio-button').click();
+                    document.removeEventListener('click', handleUserInteraction);
+                    document.removeEventListener('scroll', handleUserInteraction);
+                    document.removeEventListener('keydown', handleUserInteraction);
+                }
+
+                document.addEventListener('click', handleUserInteraction);
+                document.addEventListener('scroll', handleUserInteraction);
+                document.addEventListener('keydown', handleUserInteraction);
             }
-        }
-
-        function confirmNo() {
-            console.log("Der Benutzer hat die Entscheidung nicht gefolgt");
-            closeModal();
-        }
-
-        function checkConfirmation() {
-            const hasConfirmed = localStorage.getItem('userConfirmed');
-            if (hasConfirmed === 'true') {
-                document.getElementById('logistic-regression-div').style.display = 'none';
-                document.getElementById('random-forest-div').style.display = 'none';
-            } else {
-                document.getElementById('logistic-regression-div').style.display = 'block';
-                document.getElementById('random-forest-div').style.display = 'block';
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', checkConfirmation);
+        });
 
     </script>
     <script src="{{ url_for('static', filename='js/theme-handler.js') }}"></script>

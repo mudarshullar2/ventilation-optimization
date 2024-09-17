@@ -314,7 +314,7 @@ def random_forest_model(final_dataset):
     def calculate_duration(row):
         duration = 0
         if row["co2"] > co2_limit:
-            duration += (row["co2"] - co2_limit) / 100
+            duration += (row["co2"] - co2_limit) / 50
         if row["temperature"] > temp_limit:
             duration += row["temperature"] - temp_limit
         return duration
@@ -328,13 +328,13 @@ def random_forest_model(final_dataset):
     model = Pipeline(
         steps=[
             ("scaler", StandardScaler()),
-            ("regressor", RandomForestRegressor(n_estimators=100, random_state=42)),
+            ("regressor", RandomForestRegressor(n_estimators=20, random_state=20)),
         ]
     )
 
     # Daten aufteilen
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
+        X, y, test_size=0.3, random_state=20
     )
 
     # Modell fitten
