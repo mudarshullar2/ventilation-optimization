@@ -50,6 +50,8 @@ class MQTTClient:
             self.combined_data = {}
             self.data_points = []
             self.thread_alive = True
+            self.predictions_cleared = False
+
             self.prediction_event = threading.Event()
             self.prediction_thread = threading.Thread(
                 target=self.run_periodic_predictions
@@ -269,6 +271,11 @@ class MQTTClient:
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
+
+            if self.predictions_cleared:
+                logging.info("Vorhersagen wurden gelöscht, keine neuen Vorhersagen generieren.")
+                continue
+
             if self.data_points:
                 try:
                     # Deep Kopie der Datenpunkte erstellen
@@ -337,6 +344,7 @@ class MQTTClient:
                     self.combined_data["predictions"] = predictions
                     self.latest_predictions = predictions
                     logging.info(f"latest predictions are: {self.latest_predictions}")
+                    self.predictions_cleared = False
 
                     # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
                     prediction_id = str(uuid.uuid4())
@@ -789,20 +797,6 @@ class MQTTClient:
                 f"save_analysis_data: Fehler beim Speichern von Daten in der Datenbank: {e}"
             )
 
-    def clear_predictions(self):
-        """
-        Clears the latest predictions.
-        """
-        try:
-            logging.info("Alte Vorhersagen werden gelöscht!")
-            with self.data_lock:
-                self.latest_predictions.clear()
-            logging.info(
-                f"latest_predictions after clearing: {self.latest_predictions}"
-            )
-        except Exception as e:
-            logging.error(f"clear_predictions: Fehler beim Löschen {e}")
-
     def stop(self):
         """
         Stoppt den MQTT-Client und den Vorhersage-Thread.
@@ -835,9 +829,13 @@ class MQTTClient:
                 self.latest_predictions.clear()
                 if "predictions" in self.combined_data:
                     del self.combined_data["predictions"]
-            logging.info("Die Vorhersagen wurden gelöscht.")
+                
+                self.predictions_cleared = True
+
+            logging.info("Vorhersagen wurden erfolgreich gelöscht.")
         except Exception as e:
             logging.error(f"Fehler in clear_predictions() {e}")
+
 
     def initialize(self):
         """
