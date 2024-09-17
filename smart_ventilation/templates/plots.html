@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Echtzeit-Sensordaten-Diagramme</title>
+    <title>Echtzeit-Sensordiagramme</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body, html {
@@ -126,10 +126,10 @@
                 var trace = {
                     x: time_data,
                     y: yData,
-                    mode: 'lines+markers', // Dots connected with lines
+                    mode: 'lines+markers',
                     type: 'scatter',
                     name: yTitle,
-                    line: {dash: 'dot', color: 'green'} // Green dash-dotted line
+                    line: {dash: 'dot', color: 'green'}
                 };
 
                 var highThresholdLine = {
