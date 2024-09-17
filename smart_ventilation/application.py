@@ -652,6 +652,7 @@ def clear_session():
 def clear_predictions_route():
     try:
         mqtt_client.clear_predictions()
+        session.clear()
         return jsonify({"message": "Vorhersagen wurden gelöscht"}), 200
     except Exception as e:
         return jsonify({"Fehler in clear_predictions_route()": str(e)}), 500
