@@ -343,6 +343,7 @@ class MQTTClient:
 
                     self.combined_data["predictions"] = predictions
                     self.latest_predictions = predictions
+                    self.latest_predictions["prediction_time"] = datetime.now().strftime("%H:%M")
                     logging.info(f"latest predictions are: {self.latest_predictions}")
                     self.predictions_cleared = False
 

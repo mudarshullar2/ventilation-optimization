@@ -209,7 +209,6 @@
                     </div>
 
                     <audio id="suggestion-sound" src="{{ url_for('static', filename='sounds/suggestion.mp3') }}" preload="auto"></audio>
-
                     <div class="sensor-box">
                         <strong>Systems Empfehlung</strong>
                         <br><br>
@@ -218,17 +217,17 @@
                             {% if lr_prediction == 0 %}
                                 <span style="color: darkblue; font-weight: bold;">Die Fenster sollen geschlossen bleiben 🥶</span>
                                 <br><br>
-                                {% if sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] != 'Zurzeit nicht verfügbar' %}
+                                {% if predictions.get('prediction_time', None) %}
                                     <div class="suggestion-time">
-                                        Diese Empfehlung wurde um {{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1].split()[1] }} Uhr erstellt
+                                        Diese Empfehlung wurde um {{ predictions.get('prediction_time') }} Uhr erstellt
                                     </div>
                                 {% endif %}
                             {% elif lr_prediction == 1 %}
                                 <span style="color: red; font-weight: bold;">Die Fenster sollen geöffnet werden 🥵</span>
                                 <br><br>
-                                {% if sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] != 'Zurzeit nicht verfügbar' %}
+                                {% if predictions.get('prediction_time', None) %}
                                     <div class="suggestion-time">
-                                        Diese Empfehlung wurde um {{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1].split()[1] }} Uhr erstellt
+                                        Diese Empfehlung wurde um {{ predictions.get('prediction_time') }} Uhr erstellt
                                     </div>
                                 {% endif %}
                             {% else %}
@@ -252,9 +251,9 @@
                                     {{ truncated_forest_prediction }} Minuten!
                                 {% endif %}
                                 <br><br>
-                                {% if sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] != 'Zurzeit nicht verfügbar' %}
+                                {% if predictions.get('prediction_time', None) %}
                                     <div class="suggestion-time">
-                                        Diese Empfehlung wurde um {{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1].split()[1] }} Uhr erstellt
+                                        Diese Empfehlung wurde um {{ predictions.get('prediction_time') }} Uhr erstellt
                                     </div>
                                 {% endif %}
                             {% else %}
