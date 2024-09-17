@@ -645,7 +645,16 @@ def clear_session():
         return "Die Sitzungsdaten wurden erfolgreich gelöscht", 200
     except Exception as e:
         logging.error(f"clear_session: Fehler beim Löschen von Sitzungsdaten: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"Fehler in clear_session()": str(e)}), 500
+    
+
+@app.route('/clear-predictions', methods=['POST'])
+def clear_predictions_route():
+    try:
+        mqtt_client.clear_predictions()
+        return jsonify({"message": "Vorhersagen wurden gelöscht"}), 200
+    except Exception as e:
+        return jsonify({"Fehler in clear_predictions_route()": str(e)}), 500
 
 
 @app.route("/thank_you")
