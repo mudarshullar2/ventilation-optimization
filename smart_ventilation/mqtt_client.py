@@ -266,8 +266,8 @@ class MQTTClient:
         Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
         """
         while self.thread_alive:
-            # 20 Minuten warten
-            self.prediction_event.wait(1200)
+            # 10 Minuten warten
+            self.prediction_event.wait(600)
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
@@ -360,7 +360,7 @@ class MQTTClient:
                     )
             else:
                 logging.info(
-                    "run_periodic_predictions: In den letzten 20 Minuten wurden keine Daten gesammelt."
+                    "run_periodic_predictions: In den letzten 10 Minuten wurden keine Daten gesammelt."
                 )
 
     def check_and_clear_data(self):
