@@ -481,10 +481,10 @@
             }, interval);
         }
 
-        window.onload = function() {
+        document.addEventListener("DOMContentLoaded", function() {
             const fiveMinutes = 60 * 5 * 1000;
             startProgress(fiveMinutes);
-        };
+        });
 
     </script>
 </body>
