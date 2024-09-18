@@ -370,8 +370,8 @@ class MQTTClient:
             logging.info(f"aktuelle Zeit: {current_time}")
             logging.info(f"self.last_clear_data: {self.last_clear_date}")
 
-            if current_time >= self.last_clear_date + timedelta(hours=2):
-                next_clear_date = self.last_clear_date + timedelta(hours=2)
+            if current_time >= self.last_clear_date + timedelta(hours=1):
+                next_clear_date = self.last_clear_date + timedelta(hours=1)
                 logging.info(f"next_clear_date {next_clear_date}")
 
                 self.clear_data(next_clear_date)
