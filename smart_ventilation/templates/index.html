@@ -128,6 +128,25 @@
             max-width: 100%;
             height: auto;
         }
+        .logo {
+            max-width: 100%;
+            height: auto;
+        }
+        @media (min-width: 768px) {
+            .logo {
+                max-width: 800px;
+            }
+        }
+        @media (max-width: 768px) {
+            .logo {
+                max-width: 70%;
+            }
+        }
+        @media (max-width: 480px) {
+            .logo {
+                max-width: 50%;
+            }
+        }
     </style>
 
 </head>
@@ -141,8 +160,7 @@
 <body>
     <header>
         <div class="header-content">
-            <img src="{{ url_for('static', filename='img/schule_logo.png', v=version) }}" alt="Logo" style="max-width: 800px;">
-
+            <img src="{{ url_for('static', filename='img/schule_logo.png', v=version) }}" alt="Logo" class="logo">
         </div>
     </header>
     <div class="container">
