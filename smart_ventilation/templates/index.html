@@ -208,7 +208,6 @@
                         </div>
                     </div>
 
-                    <audio id="suggestion-sound" src="{{ url_for('static', filename='sounds/suggestion.mp3') }}" preload="auto"></audio>
                     <div class="sensor-box">
                         <strong>Systems Empfehlung</strong>
                         <br><br>
@@ -345,17 +344,16 @@
         });
 
         function updatePredictions() {
-            fetch("/predictions")
+            // Fetch-Anfrage mit Timestamp, um das Caching zu umgehen
+            fetch("/predictions?" + new Date().getTime())
                 .then(response => response.json())
                 .then(predictions => {
-                    console.log("Received predictions:", predictions);
+                    // Hier die erhaltenen Vorhersagen verarbeiten
                     document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
                     if (predictions["Logistic Regression"] == 1) {
-                        console.log("Logistic Regression returned 1. Displaying Random Forest value.");
                         document.getElementById("random-forest-div").style.display = 'block';
                         document.getElementById("random-forest-value").innerText = predictions["Random Forest"];
                     } else {
-                        console.log("Logistic Regression returned 0. Hiding Random Forest value.");
                         document.getElementById("random-forest-div").style.display = 'none';
                     }
                 })
