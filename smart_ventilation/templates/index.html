@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensordaten</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <meta http-equiv="refresh" content="20">
     
     <style>
         body, html {
@@ -136,13 +135,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sensordaten</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css', v=version) }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css', v=version) }}">
 </head>
 <body>
     <header>
         <div class="header-content">
-            <img src="{{ url_for('static', filename='img/schule_logo.png') }}" alt="Logo" style="max-width: 800px;">
+            <img src="{{ url_for('static', filename='img/schule_logo.png', v=version) }}" alt="Logo" style="max-width: 800px;">
+
         </div>
     </header>
     <div class="container">
@@ -165,7 +165,18 @@
                         red
                     {% endif %}
                 {% endmacro %}
-        
+                
+                {% macro add_emoji(value, low_threshold, high_threshold) %}
+                    {% set numeric_value = value|float %}
+                    {% if numeric_value < low_threshold %}
+                        📉
+                    {% elif numeric_value > high_threshold %}
+                        📈
+                    {% else %}
+                        ➖
+                    {% endif %}
+                {% endmacro %}
+            
                 {% if sensor_data %}
                     <div class="sensor-box">
                         <strong>Datum und Uhrzeit</strong>
@@ -177,6 +188,7 @@
                         <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C
+                            {{ add_emoji(sensor_data.get('temperature', [22])[-1], 20, 21) }}
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('humidity', [61])[-1], 50, 60) }}">
@@ -184,6 +196,7 @@
                         <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('humidity', ['Zurzeit nicht verfügbar'])[-1] }} %
+                            {{ add_emoji(sensor_data.get('humidity', [61])[-1], 50, 60) }}
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('co2', [1001])[-1], 800, 1000) }}">
@@ -191,6 +204,7 @@
                         <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('co2', ['Zurzeit nicht verfügbar'])[-1] }} ppm
+                            {{ add_emoji(sensor_data.get('co2', [1001])[-1], 800, 1000) }}
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('tvoc', [501])[-1], 400, 500) }}">
@@ -198,6 +212,7 @@
                         <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }} µg/m³
+                            {{ add_emoji(sensor_data.get('tvoc', [501])[-1], 400, 500) }}
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}">
@@ -205,6 +220,7 @@
                         <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C
+                            {{ add_emoji(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}
                         </div>
                     </div>
 
@@ -344,11 +360,10 @@
         });
 
         function updatePredictions() {
-            // Fetch-Anfrage mit Timestamp, um das Caching zu umgehen
-            fetch("/predictions?" + new Date().getTime())
+            fetch("/predictions?nocache=" + new Date().getTime())  // Cache-busting
                 .then(response => response.json())
                 .then(predictions => {
-                    // Hier die erhaltenen Vorhersagen verarbeiten
+                    // Process the predictions
                     document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
                     if (predictions["Logistic Regression"] == 1) {
                         document.getElementById("random-forest-div").style.display = 'block';
@@ -402,7 +417,35 @@
             modal.style.display = 'block';
         }
 
+        function pollNewData() {
+            const benutzername = 'admin';
+            const passwort = 'HJ|*fS1i';
+            const headers = new Headers();
+            headers.set('Authorization', 'Basic ' + btoa(benutzername + ":" + passwort));
+
+            fetch('/latest_data', {
+                method: 'GET',
+                headers: headers,
+                credentials: 'include',
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Data fetched:', data);
+            })
+            .catch(error => {
+                console.error('Error fetching latest data:', error);
+            });
+
+            setTimeout(function() {
+                location.reload();
+            }, 30000);
+        }
+
+        window.onload = function() {
+            pollNewData();
+        };
+
     </script>
-    <script src="{{ url_for('static', filename='js/theme-handler.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/theme-handler.js', v=version) }}"></script>
 </body>
 </html>
