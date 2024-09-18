@@ -146,17 +146,36 @@
                 width: 90%;
             }
         }
+        #progress-row {
+            position: relative;
+            top: -600px;
+            width: 100%;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .progress {
+            width: 80%;
+            margin: 0 auto;
+            height: 30px;
+            background-color: #f3f4f6;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #4caf50;
+            width: 0;
+            transition: width 1s linear;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1 class="text-center mb-4">Umweltdaten Leaderboard</h1>
-        
+    
         <!-- Zurück-Button -->
         <button onclick="window.location.href='/'" class="button mb-4">Zurück zur Hauptseite</button>
-
-        <div id="timer" class="timer">05:00</div>
-        
+    
         {% if not error %}
         <h2>Umweltdaten vor der Empfehlung des Systems</h2>
         <table class="table table-striped">
@@ -178,12 +197,12 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6">Keine Daten verfügbar.</td>
+                        <td colspan="3">Keine Daten verfügbar.</td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
-
+    
         <h2>Umweltdaten nach der Empfehlung des Systems</h2>
         <table class="table table-striped">
             <thead class="table-dark">
@@ -205,12 +224,26 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6">Zukünftige Daten werden hier angezeigt, sobald sie verfügbar sind.</td>
-                    {% endif %}
+                        <td colspan="4">Zukünftige Daten werden hier angezeigt, sobald sie verfügbar sind.</td>
                     </tr>
+    
+                    <tr id="progress-row">
+                        <td colspan="4">
+                            <p class="text-center" style="color: red; font-weight: bold;">
+                                Dieser Vorgang dauert ungefähr fünf Minuten
+                            </p>
+                            <p class="text-center" style="color: red; font-weight: bold;">
+                                Bitte schließen Sie diese Seite nicht
+                            </p>                            
+                            <div class="progress">
+                                <div id="progress-bar" class="progress-bar"></div>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
-
+    
         <h2>Vergleichsdaten</h2>
         <table class="table table-striped">
             <thead class="table-dark">
@@ -240,7 +273,7 @@
         </div>
         {% endif %}
     </div>
-
+    
     <div id="popup" class="modal">
         <div class="modal-content">
             <h2>Hallo!</h2>
@@ -444,12 +477,29 @@
             }
         }
 
+        function startProgress(duration) {
+            const progressBar = document.getElementById('progress-bar');
+            const totalWidth = 100;
+            let width = 0;
+            const interval = 1000;
+            const increment = totalWidth / (duration / interval);
+
+            const progressInterval = setInterval(function() {
+                width += increment;
+                if (width >= totalWidth) {
+                    width = totalWidth;
+                    clearInterval(progressInterval);
+                    fetchFutureData();
+                }
+                progressBar.style.width = width + '%';
+            }, interval);
+        }
+
         window.onload = function() {
-            showPopup();
-            const fiveMinutes = 60 * 5,
-                display = document.querySelector('#timer');
-            startTimer(fiveMinutes, display);
+            const fiveMinutes = 60 * 5 * 1000;
+            startProgress(fiveMinutes);
         };
+
     </script>
 </body>
 </html>

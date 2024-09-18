@@ -13,10 +13,10 @@ import requests
 from datetime import datetime, timedelta
 from mqtt_client import MQTTClient
 from api_config_loader import load_api_config
-from datetime import datetime, timedelta
 import numpy as np
 import redis
 import os
+import time
 
 
 logging.basicConfig(level=logging.INFO)
@@ -83,7 +83,7 @@ def index():
             ambient_temp = sensor_data.get("ambient_temp", 0)
             predictions = sensor_data.get("predictions", {})
 
-        # Rendern des index.html Templates mit Sensordaten
+        # index.html Templates mit Sensordaten und Cache-Busting rendern
         response = make_response(
             render_template(
                 "index.html",
@@ -94,13 +94,16 @@ def index():
                 tvoc=tvoc,
                 ambient_temp=ambient_temp,
                 predictions=predictions,
+                version=time.time(),
             )
         )
 
         # Caching deaktivieren, um stets aktuelle Daten anzuzeigen
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
         return response
 
     except Exception as e:
@@ -109,50 +112,41 @@ def index():
             str(e),
             str(mqtt_client.combined_data),
         )
-        return "Es gab ein Problem bei der Verarbeitung Ihrer Anfrage. Bitte aktualisieren Sie die Seite.", 500
+        return (
+            "Es gab ein Problem bei der Verarbeitung Ihrer Anfrage. Bitte aktualisieren Sie die Seite.",
+            500,
+        )
 
 
 @app.route("/plots")
 def plots():
     """
-    Generiert und rendert Echtzeit-Datenplots basierend auf den neuesten Sensordaten.
+    Generiert und rendert Echtzeit-Sensordatenplots basierend auf den neuesten Sensordaten.
+    Wenn Daten wie TVOC oder Außentemperatur später ankommen, wird der letzte bekannte Wert
+    oder None als Platzhalter verwendet, bis neue Daten eintreffen.
     """
     try:
         sensor_data = mqtt_client.get_latest_sensor_data()
 
         if sensor_data:
+            time_data = [data.get("time", None) for data in sensor_data]
+            co2_data = [data.get("co2", None) for data in sensor_data]
+            temperature_data = [data.get("temperature", None) for data in sensor_data]
+            humidity_data = [data.get("humidity", None) for data in sensor_data]
+            tvoc_data = [data.get("tvoc", None) for data in sensor_data]
+            ambient_temp_data = [data.get("ambient_temp", None) for data in sensor_data]
 
-            unique_data = {}
+            def fill_missing_with_last_known(data):
+                last_known = None
+                for i in range(len(data)):
+                    if data[i] is not None:
+                        last_known = data[i]
+                    elif last_known is not None:
+                        data[i] = last_known
+                return data
 
-            for data in sensor_data:
-                time = data.get("time")
-                if time and time not in unique_data:
-                    unique_data[time] = {
-                        "co2": data.get("co2"),
-                        "temperature": data.get("temperature"),
-                        "humidity": data.get("humidity"),
-                        "tvoc": data.get("tvoc"),
-                        "ambient_temp": data.get("ambient_temp"),
-                    }
-
-                elif time:
-                    if data.get("co2") is not None:
-                        unique_data[time]["co2"] = data.get("co2")
-                    if data.get("temperature") is not None:
-                        unique_data[time]["temperature"] = data.get("temperature")
-                    if data.get("humidity") is not None:
-                        unique_data[time]["humidity"] = data.get("humidity")
-                    if data.get("tvoc") is not None:
-                        unique_data[time]["tvoc"] = data.get("tvoc")
-                    if data.get("ambient_temp") is not None:
-                        unique_data[time]["ambient_temp"] = data.get("ambient_temp")
-
-            time_data = list(unique_data.keys())
-            co2_data = [v["co2"] for v in unique_data.values()]
-            temperature_data = [v["temperature"] for v in unique_data.values()]
-            humidity_data = [v["humidity"] for v in unique_data.values()]
-            tvoc_data = [v["tvoc"] for v in unique_data.values()]
-            ambient_temp_data = [v["ambient_temp"] for v in unique_data.values()]
+            tvoc_data = fill_missing_with_last_known(tvoc_data)
+            ambient_temp_data = fill_missing_with_last_known(ambient_temp_data)
 
             return render_template(
                 "plots.html",
@@ -163,9 +157,8 @@ def plots():
                 ambient_temp_data=ambient_temp_data,
                 time_data=time_data,
             )
-
         else:
-
+            # Falls keine Sensordaten verfügbar sind, leere Plots rendern
             return render_template(
                 "plots.html",
                 co2_data=[],
@@ -175,8 +168,10 @@ def plots():
                 ambient_temp_data=[],
                 time_data=[],
             )
+
     except Exception as e:
         logging.error(f"Fehler in plots(): {e}")
+        return "Ein Fehler ist aufgetreten", 500
 
 
 def convert_to_serializable(obj):
@@ -201,16 +196,12 @@ def feedback():
     """
     if request.method == "POST":
         try:
-            # Vorhersagen vom MQTT-Client abrufen
             predictions = mqtt_client.latest_predictions
             if not predictions:
                 return "Keine Vorhersagen verfügbar, um Feedback zu geben", 400
 
             combined_data = mqtt_client.combined_data
-            logging.info(f"current combined_data: {combined_data}")
-
             features_df = mqtt_client.latest_features_df
-            logging.info(f"current features_df: {features_df}")
 
             logistic_prediction = predictions.get("Logistic Regression")
             user_feedback = int(request.form["accurate_prediction"])
@@ -220,7 +211,6 @@ def feedback():
             else:  # "Nicht Korrekt"
                 accurate_prediction = 1 - int(logistic_prediction)
 
-            # Feedback-Daten erstellen
             feedback_data = {
                 "temperature": float(features_df["temperature"].iloc[0]),
                 "humidity": float(features_df["humidity"].iloc[0]),
@@ -230,29 +220,10 @@ def feedback():
                 "accurate_prediction": accurate_prediction,
             }
 
-            # Header für die API-Anfrage
             headers = {"X-Api-Key": POST_API_KEY, "Content-Type": CONTENT_TYPE}
-
-            # Feedback-Daten an die API senden
             response = requests.post(API_BASE_URL, headers=headers, json=feedback_data)
 
-            logging.info(f"Payload gesendet: {feedback_data}")
-            logging.info(f"API Antwort: {response.json()}")
-
             if response.status_code == 200:
-                # Store feedback data in the database
-                # mqtt_client.store_feedback_data(feedback_data)
-
-                last_prediction = mqtt_client.latest_predictions.get(
-                    "Logistic Regression"
-                )
-                logging.info(f"last_prediciton in feedback(): {last_prediction}")
-
-                if isinstance(last_prediction, np.integer):
-                    last_prediction = int(last_prediction)
-                elif not isinstance(last_prediction, int):
-                    last_prediction = int(last_prediction)
-
                 return render_template("thank_you.html")
             else:
                 return (
@@ -267,7 +238,7 @@ def feedback():
                 )
 
         except Exception as e:
-            logging.error(f"feedback: Ein unerwarteter Fehler ist aufgetreten:: {e}")
+            logging.error(f"feedback: Ein unerwarteter Fehler ist aufgetreten: {e}")
             return (
                 jsonify(
                     {
@@ -284,19 +255,27 @@ def feedback():
             if not predictions:
                 return render_template("feedback.html", error=True)
 
-            predictions = mqtt_client.latest_predictions
             features_df = mqtt_client.latest_features_df
 
-            return render_template(
-                "feedback.html",
-                predictions=predictions,
-                features=features_df.to_dict(orient="records")[0],
+            response = make_response(
+                render_template(
+                    "feedback.html",
+                    predictions=predictions,
+                    features=features_df.to_dict(orient="records")[0],
+                    version=str(time.time()),
+                )
             )
 
-        except Exception as e:
-            logging.error(
-                f"feedback: Beim Abrufen von Vorhersagen ist ein unerwarteter Fehler aufgetreten: {e}"
+            # Caching deaktivieren, um stets aktuelle Daten anzuzeigen
+            response.headers["Cache-Control"] = (
+                "no-store, no-cache, must-revalidate, max-age=0"
             )
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+            return response
+
+        except Exception as e:
+            logging.error(f"feedback: Fehler beim Abrufen von Vorhersagen: {e}")
             return str(e), 500
 
 
@@ -637,9 +616,9 @@ def clear_session():
     except Exception as e:
         logging.error(f"clear_session: Fehler beim Löschen von Sitzungsdaten: {e}")
         return jsonify({"Fehler in clear_session()": str(e)}), 500
-    
 
-@app.route('/clear-predictions', methods=['POST'])
+
+@app.route("/clear-predictions", methods=["POST"])
 def clear_predictions_route():
     try:
         mqtt_client.clear_predictions()
@@ -647,6 +626,17 @@ def clear_predictions_route():
         return jsonify({"message": "Vorhersagen wurden gelöscht"}), 200
     except Exception as e:
         return jsonify({"Fehler in clear_predictions_route()": str(e)}), 500
+    
+
+@app.route('/latest_data', methods=['GET'])
+def get_latest_data():
+    latest_data = {
+        "time": mqtt_client.latest_time,
+        "humidity": mqtt_client.combined_data.get("humidity")[-1] if mqtt_client.combined_data.get("humidity") else None,
+        "temperature": mqtt_client.combined_data.get("temperature")[-1] if mqtt_client.combined_data.get("temperature") else None,
+        "co2": mqtt_client.combined_data.get("co2")[-1] if mqtt_client.combined_data.get("co2") else None
+    }
+    return jsonify(latest_data)
 
 
 @app.route("/thank_you")
