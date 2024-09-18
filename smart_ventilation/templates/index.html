@@ -276,8 +276,6 @@
             </div>
             <p><a href="/feedback" class="button">Feedback Senden</a></p>
             
-            <button id="play-audio-button" class="button" style="display:none;" onclick="playSuggestionSound()">Play Sound</button>
-
         </section>
         
         <section>
@@ -405,39 +403,6 @@
             var modal = document.getElementById('confirmModal');
             modal.style.display = 'block';
         }
-
-        function playSuggestionSound() {
-            var audio = new Audio('{{ url_for("static", filename="sounds/suggestion.mp3") }}');
-            
-            audio.addEventListener('canplaythrough', function() {
-                audio.play().catch(function(error) {
-                    console.error('Error playing audio:', error);
-                });
-            });
-
-            audio.addEventListener('error', function() {
-                console.error('Error loading audio file.');
-            });
-
-            audio.load();
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            var lrPrediction = {{ lr_prediction }};
-            
-            if (lrPrediction !== null && lrPrediction !== undefined && lrPrediction != "Zurzeit sind keine Empfehlungen verfügbar") {
-                function handleUserInteraction() {
-                    document.getElementById('play-audio-button').click();
-                    document.removeEventListener('click', handleUserInteraction);
-                    document.removeEventListener('scroll', handleUserInteraction);
-                    document.removeEventListener('keydown', handleUserInteraction);
-                }
-
-                document.addEventListener('click', handleUserInteraction);
-                document.addEventListener('scroll', handleUserInteraction);
-                document.addEventListener('keydown', handleUserInteraction);
-            }
-        });
 
     </script>
     <script src="{{ url_for('static', filename='js/theme-handler.js') }}"></script>
