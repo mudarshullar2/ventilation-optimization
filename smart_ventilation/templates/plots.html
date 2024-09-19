@@ -131,12 +131,16 @@
                     return;
                 }
 
+                const avgValue = calculateAverage(yData);
+                const minValue = calculateMin(yData);
+                const maxValue = calculateMax(yData);
+
                 var trace = {
                     x: time_data,
                     y: yData,
                     mode: 'none',
                     type: 'scatter',
-                    name: yTitle,
+                    name: `${yTitle} (Durchschnitt: ${avgValue}, Minimum: ${minValue}, Maximum: ${maxValue})`,
                     fill: 'tozeroy',
                     fillcolor: 'rgba(173, 216, 230, 0.5)'
                 };
@@ -172,6 +176,19 @@
             plotGraph('tvoc-plot', tvoc_data, 'TVOC', 500, 200, 'Hoher TVOC-Schwellenwert', 'Niedriger TVOC-Schwellenwert');
             plotGraph('ambient-temp-plot', ambient_temp_data, 'Außentemperatur', 25, 15, 'Hoher Außentemperaturschwellenwert', 'Niedriger Außentemperaturschwellenwert');
         });
+
+        function calculateAverage(data) {
+            const total = data.reduce((sum, value) => sum + value, 0);
+            return (total / data.length).toFixed(2);
+        }
+
+        function calculateMin(data) {
+            return Math.min(...data).toFixed(2);
+        }
+
+        function calculateMax(data) {
+            return Math.max(...data).toFixed(2);
+        }
 
     </script>
 </body>
