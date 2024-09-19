@@ -209,6 +209,11 @@
                             {{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C
                             {{ add_emoji(sensor_data.get('temperature', [22])[-1], 20, 21) }}
                         </div>
+                        {% if sensor_data.get('temperature', [22])[-1] > 25 %}
+                            <p style="color: red; font-weight: bold;">
+                                Achtung! Die aktuelle Temperatur übersteigt 25°C, was das Raumklima unangenehm machen könnte
+                            </p>
+                        {% endif %}
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('humidity', [61])[-1], 50, 60) }}">
                         <strong>Luftfeuchtigkeit</strong>
@@ -225,6 +230,11 @@
                             {{ sensor_data.get('co2', ['Zurzeit nicht verfügbar'])[-1] }} ppm
                             {{ add_emoji(sensor_data.get('co2', [1001])[-1], 800, 1000) }}
                         </div>
+                        {% if sensor_data.get('co2', [1001])[-1] > 1500 %}
+                            <p style="color: red; font-weight: bold;">
+                                Achtung! Die aktuelle CO2-Konzentration ist sehr hoch und kann die Konzentrationsfähigkeit der Schülerinnen und Schüler beeinträchtigen
+                            </p>
+                        {% endif %}
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('tvoc', [501])[-1], 400, 500) }}">
                         <strong>TVOC Konzentration (Flüchtige Organische Verbindungen)</strong>
@@ -428,9 +438,18 @@
         function showModal(modalId) {
             document.getElementById(modalId).style.display = 'block';
         }
+        
         function closeModal(modalId) {
             document.getElementById(modalId).style.display = 'none';
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const co2Value = {{ sensor_data.get('co2', [1001])[-1] }};
+            if (co2Value > 2000) {
+                showModal('co2WarningModal');
+            }
+        });
+
         function setTheme(themeName) {
             document.body.className = themeName;
             closeModal('designModal');
@@ -471,5 +490,17 @@
 
     </script>
     <script src="{{ url_for('static', filename='js/theme-handler.js', v=version) }}"></script>
+
+    <div id="co2WarningModal" class="modal">
+        <div class="modal-content">
+            <span onclick="closeModal('co2WarningModal')" style="float:right; cursor:pointer;">&times;</span>
+            <h2 style="color: red;">Achtung! Hohe CO2-Werte!</h2>
+            <p>Die aktuelle CO2-Konzentration ist über 2000 ppm und stellt eine Gefahr für die Gesundheit von Schülern und Lehrern dar!</p> 
+            <p></p>Bitte sofort Maßnahmen zur Belüftung ergreifen</p>
+            <p>Eine hohe CO2-Belastung beeinträchtigt auch die Lernatmosphäre erheblich</p>
+            <button class="button" onclick="closeModal('co2WarningModal')">Verstanden</button>
+        </div>
+    </div>
+    
 </body>
 </html>
