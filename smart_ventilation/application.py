@@ -24,7 +24,6 @@ base_dir = os.path.abspath(os.path.dirname(__file__))
 static_folder = os.path.join(base_dir, "static")
 
 app = Flask(__name__, static_folder=static_folder)
-# app.secret_key = secrets.token_hex(16)
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "default_secret_key")
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_REDIS"] = redis.from_url(
@@ -667,7 +666,5 @@ def contact():
 if __name__ == "__main__":
 
     # Anwendung im Debug-Modus starten
-    # app.run(debug=True)
-
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)
