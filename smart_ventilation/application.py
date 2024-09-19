@@ -145,6 +145,9 @@ def plots():
                         data[i] = last_known
                 return data
 
+            co2_data = fill_missing_with_last_known(co2_data)
+            temperature_data = fill_missing_with_last_known(temperature_data)
+            humidity_data = fill_missing_with_last_known(humidity_data)
             tvoc_data = fill_missing_with_last_known(tvoc_data)
             ambient_temp_data = fill_missing_with_last_known(ambient_temp_data)
 

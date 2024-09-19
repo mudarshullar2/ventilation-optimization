@@ -129,7 +129,8 @@
                     mode: 'lines+markers',
                     type: 'scatter',
                     name: yTitle,
-                    line: {dash: 'dot', color: 'green'}
+                    line: {dash: 'dash', color: 'green'},
+                    marker: {color: 'green', size: 8}
                 };
 
                 var highThresholdLine = {
@@ -140,6 +141,7 @@
                     name: highThresholdLabel,
                     line: {color: 'red', dash: 'dash'}
                 };
+
                 var lowThresholdLine = {
                     x: time_data,
                     y: Array(time_data.length).fill(lowThreshold),
@@ -162,6 +164,7 @@
             plotGraph('tvoc-plot', tvoc_data, 'TVOC', 500, 200, 'Hoher TVOC-Schwellenwert', 'Niedriger TVOC-Schwellenwert');
             plotGraph('ambient-temp-plot', ambient_temp_data, 'Außentemperatur', 25, 15, 'Hoher Außentemperaturschwellenwert', 'Niedriger Außentemperaturschwellenwert');
         });
+
     </script>
 </body>
 </html>
