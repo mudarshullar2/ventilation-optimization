@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sensordaten</title>
+    <title>Live-Sensordaten</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
@@ -227,7 +227,7 @@
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('tvoc', [501])[-1], 400, 500) }}">
-                        <strong>TVOC (Flüchtige Organische Verbindungen) Konzentration</strong>
+                        <strong>TVOC Konzentration (Flüchtige Organische Verbindungen)</strong>
                         <br>
                         <div class="sensor-data">
                             {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }} µg/m³
@@ -299,20 +299,24 @@
                     <div class="sensor-box">Keine Sensordaten verfügbar</div>
                 {% endif %}
                 <div class="sensor-box">
-                    <strong>Die Empfehlungen des Systems</strong>
                     <br>
                     <div class="sensor-data">
                         Die Empfehlungen des Systems werden jede 10 Minuten aktualisiert
                         <br><br>
                         Die angezeigten Daten im Dashboard werden jede Stunde gelöscht
+                        <br><br>
+                        <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Zum Dashboard</button>
                     </div>                    
                 </div>                
-            </div>
             <p><a href="/feedback" class="button">Feedback Senden</a></p>
             
         </section>
         
         <section>
+            <h2>Raumklima-Leaderboard</h2>
+            <p>Das Raumklima-Leaderboard zeigt die Entwicklung der Raumklimadaten, 
+                nachdem die Empfehlungen des Systems befolgt wurden. 
+                So können Sie sehen, wie sich die Luftqualität und das Raumklima verbessern</p>
             <form method="post" action="/leaderboard">
                 <button type="submit" class="button">Empfehlungen folgen!</button>
             </form>
@@ -323,10 +327,11 @@
             <p>Haben Sie Fragen oder Anregungen? Kontaktieren Sie uns gerne</p>
             <button class="button" onclick="window.location.href=`{{ url_for('contact') }}`;">Kontakt</button>
         </section>              
-
         
         <section style="text-align: center;">
-            <button class="button" onclick="openDesignModal()">Design Auswählen</button>
+            <h2>Button-Stil Anpassen</h2>
+            <p>Hier können Sie die Farbe der Schaltflächen auf der Seite ändern und nach Ihrem Geschmack anpassen</p>
+            <button class="button" onclick="openDesignModal()">Button-Stil Anpassen</button>
         </section>
 
         <div id="designModal" class="modal">
