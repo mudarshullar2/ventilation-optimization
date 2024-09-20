@@ -203,7 +203,7 @@
                 {% if current_data %}
                     {% for data in current_data %}
                         <tr>
-                            <td id="current-co2">{{ data.co2_values }}</td>
+                            <td id="current-co2">{{ "%.2f"|format(data.co2_values) }}</td>
                             <td id="current-temperature">{{ data.temperature }}</td>
                             <td id="current-humidity">{{ data.humidity }}</td>
                         </tr>
@@ -262,7 +262,7 @@
                     <td id="comparison-temperature">-</td>
                 </tr>
                 <tr>
-                    <td>Luftfeuchtigkeit</td>
+                    <th><strong>Luftfeuchtigkeit</strong></th>
                     <td id="comparison-humidity">-</td>
                 </tr>
             </tbody>
