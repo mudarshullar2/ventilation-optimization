@@ -273,7 +273,9 @@ class MQTTClient:
             self.prediction_event.clear()
 
             if self.predictions_cleared:
-                logging.info("Vorhersagen wurden gelöscht, keine neuen Vorhersagen generieren.")
+                logging.info(
+                    "Vorhersagen wurden gelöscht, keine neuen Vorhersagen generieren."
+                )
                 continue
 
             if self.data_points:
@@ -343,7 +345,9 @@ class MQTTClient:
 
                     self.combined_data["predictions"] = predictions
                     self.latest_predictions = predictions
-                    self.latest_predictions["prediction_time"] = datetime.now().strftime("%H:%M")
+                    self.latest_predictions["prediction_time"] = (
+                        datetime.now().strftime("%H:%M")
+                    )
                     logging.info(f"latest predictions are: {self.latest_predictions}")
                     self.predictions_cleared = False
 
@@ -830,13 +834,12 @@ class MQTTClient:
                 self.latest_predictions.clear()
                 if "predictions" in self.combined_data:
                     del self.combined_data["predictions"]
-                
+
                 self.predictions_cleared = True
 
             logging.info("Vorhersagen wurden erfolgreich gelöscht.")
         except Exception as e:
             logging.error(f"Fehler in clear_predictions() {e}")
-
 
     def initialize(self):
         """

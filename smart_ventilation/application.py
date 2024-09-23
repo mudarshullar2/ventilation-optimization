@@ -628,15 +628,27 @@ def clear_predictions_route():
         return jsonify({"message": "Vorhersagen wurden gelöscht"}), 200
     except Exception as e:
         return jsonify({"Fehler in clear_predictions_route()": str(e)}), 500
-    
 
-@app.route('/latest_data', methods=['GET'])
+
+@app.route("/latest_data", methods=["GET"])
 def get_latest_data():
     latest_data = {
         "time": mqtt_client.latest_time,
-        "humidity": mqtt_client.combined_data.get("humidity")[-1] if mqtt_client.combined_data.get("humidity") else None,
-        "temperature": mqtt_client.combined_data.get("temperature")[-1] if mqtt_client.combined_data.get("temperature") else None,
-        "co2": mqtt_client.combined_data.get("co2")[-1] if mqtt_client.combined_data.get("co2") else None
+        "humidity": (
+            mqtt_client.combined_data.get("humidity")[-1]
+            if mqtt_client.combined_data.get("humidity")
+            else None
+        ),
+        "temperature": (
+            mqtt_client.combined_data.get("temperature")[-1]
+            if mqtt_client.combined_data.get("temperature")
+            else None
+        ),
+        "co2": (
+            mqtt_client.combined_data.get("co2")[-1]
+            if mqtt_client.combined_data.get("co2")
+            else None
+        ),
     }
     return jsonify(latest_data)
 
