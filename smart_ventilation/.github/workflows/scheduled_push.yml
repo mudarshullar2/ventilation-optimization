@@ -2,7 +2,8 @@ name: Scheduled Push to Main
 
 on:
   schedule:
-    - cron: '42 12 * * *'
+    - cron: '55 12 * * *'
+  workflow_dispatch:
 
 jobs:
   update_main:
@@ -23,5 +24,3 @@ jobs:
           git add datasets/changes.txt
           git commit -m "Automated update on $(date)"
           git push origin main
-
-
