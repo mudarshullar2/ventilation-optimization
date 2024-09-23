@@ -2,7 +2,7 @@ name: Scheduled Push to Main
 
 on:
   schedule:
-    - cron: '30 12 * * *'  # 3 AM UTC corresponds to 5 AM CET
+    - cron: '42 12 * * *'
 
 jobs:
   update_main:
