@@ -94,10 +94,6 @@ class MQTTClient:
                 "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up"
             )
 
-            # Für Uhrzeit, Co2, Luftfeuchtigkeit, Temperaturen
-            #self.client.subscribe(
-            #    "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up"
-            #)
             self.client.subscribe(
                 "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b00fca900/event/up"
             )
