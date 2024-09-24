@@ -136,7 +136,6 @@ class MQTTClient:
                     logging.error(f"Fehler bei Zeitanpassung: {e}")
                     return None
 
-            #if topic.endswith("24e124707c481005/event/up"):
             if topic.endswith("0004a30b00fca900/event/up"):
                 formatted_time = adjust_and_format_time(payload["time"])
                 self.latest_time = formatted_time
