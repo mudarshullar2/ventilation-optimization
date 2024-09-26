@@ -289,9 +289,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const adjustedDateStr = "{{ adjusted_date_str }}";
-        const delayInterval = 5 * 60 * 1000; // Initiale Verzögerung in Millisekunden (5 Minuten)
-        const pollingInterval = 60 * 1000; // Abfrageintervall in Millisekunden (1 Minute)
-        const clearSessionDelay = 60 * 1000; // Verzögerung vor dem Löschen der Sitzung (1 Minute)
+        const delayInterval = 5 * 60 * 1000;
+        const pollingInterval = 60 * 1000;
+        const clearSessionDelay = 60 * 1000;
 
         function fetchFutureData() {
             const benutzername = 'admin';
@@ -302,7 +302,7 @@
             fetch(`/future_data/${adjustedDateStr}`, {
                 method: 'GET',
                 headers: headers,
-                credentials: 'include',  // Cookies in der Anfrage
+                credentials: 'include',
             })
             .then(response => {
                 if (!response.ok) {
