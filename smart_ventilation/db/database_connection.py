@@ -49,3 +49,4 @@ def connect_to_database(config):
         # Fehler loggen
         logging.error(f"Fehler beim Verbinden zur Datenbank: {e}")
         return None
+    
