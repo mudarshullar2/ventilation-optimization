@@ -94,8 +94,13 @@ class MQTTClient:
                 "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up"
             )
 
+            # Für Co2, Temperatur, etc. 
+            # self.client.subscribe(
+            #    "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b00fca900/event/up"
+            #)
+
             self.client.subscribe(
-                "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b00fca900/event/up"
+                "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up"
             )
 
             # Für Außentemperaturen
@@ -132,7 +137,7 @@ class MQTTClient:
                     logging.error(f"Fehler bei Zeitanpassung: {e}")
                     return None
 
-            if topic.endswith("0004a30b00fca900/event/up"):
+            if topic.endswith("0004a30b01045883/event/up"):
                 formatted_time = adjust_and_format_time(payload["time"])
                 self.latest_time = formatted_time
                 logging.info(f"self.latest_time: {self.latest_time}")
