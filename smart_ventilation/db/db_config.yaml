@@ -1,0 +1,7 @@
+DATABASES:
+  default:
+    NAME: "enviornmentaldb"
+    USER: "enviornmentaldb_owner"
+    PASSWORD: "tfsJdex8Fu4h"
+    HOST: "ep-summer-waterfall-a2nptvtk.eu-central-1.aws.neon.tech"
+    PORT: "5432"
