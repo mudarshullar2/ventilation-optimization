@@ -7,7 +7,6 @@ Das Steuerungssystem bildet einen zentralen Bestandteil meiner Abschlussarbeit u
 Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu treffen. Die Ergebnisse werden über eine benutzerfreundliche Webschnittstelle visualisiert und können interaktiv genutzt werden. Die technische Umsetzung erfolgt mittels Flask für das Web-Interface und MQTT für die Datenerfassung.
 
 ## Funktionen
-
 - Echtzeit-Datensammlung von Sensoren über MQTT.
 - Datenvisualisierung über eine Webschnittstelle.
 - Periodische Vorhersagen mit vortrainierten Machine-Learning Modellen.
