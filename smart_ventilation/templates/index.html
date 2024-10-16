@@ -199,6 +199,7 @@
                 {% if sensor_data %}
                     <div class="sensor-box">
                         <strong>Datum und Uhrzeit</strong>
+                        <p>Falls das Datum und die Uhrzeit nicht mit der aktuellen Zeit übereinstimmen, klicken Sie bitte einmal oder mehrmals auf den Button "Empfehlungen folgen", damit das System die Verzögerung behebt</p>
                         <br>
                         <div class="sensor-data">{{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] }}</div>
                     </div>
