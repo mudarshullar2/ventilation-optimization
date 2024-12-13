@@ -456,7 +456,7 @@ class MQTTClient:
                             data_point["co2"],
                             data_point["temperature"],
                             data_point["humidity"],
-                            "2.09",  # Feste Besprechungsraum
+                            "10c",
                         ),
                     )
                 self.conn.commit()
