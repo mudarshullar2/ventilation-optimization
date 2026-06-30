@@ -11,8 +11,8 @@ from flask import (
 import logging
 import requests
 from datetime import datetime, timedelta
-from mqtt_client import MQTTClient
-from api_config_loader import load_api_config
+from mqtt_client import (MQTTClient)
+from config.api_config_loader import load_api_config
 import numpy as np
 import redis
 import os
@@ -21,16 +21,21 @@ import time
 
 logging.basicConfig(level=logging.INFO)
 base_dir = os.path.abspath(os.path.dirname(__file__))
-static_folder = os.path.join(base_dir, "static")
+frontend_dir = os.path.join(base_dir, "..", "frontend")
 
-app = Flask(__name__, static_folder=static_folder)
+app = Flask(
+    __name__,
+    template_folder=os.path.join(frontend_dir, "templates"),
+    static_folder=os.path.join(frontend_dir, "static"),
+)
+
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", "default_secret_key")
 app.config["SESSION_TYPE"] = "redis"
 app.config["SESSION_REDIS"] = redis.from_url(
     os.environ.get("REDIS_URL", "redis://localhost:6379")
 )
 
-config_file_path = "api_config.yaml"
+config_file_path = "config/api_config.yaml"
 
 api_config = load_api_config(config_file_path)
 
