@@ -37,7 +37,7 @@ cd <repository_directory>
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 
-cd smart_ventilation
+cd smart_ventilation/backend
 pip install -r requirements.txt
 python application.py
 ```
