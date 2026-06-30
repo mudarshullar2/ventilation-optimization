@@ -17,18 +17,6 @@ def read_data(
     temp_last_30_days_path,
     temp_older_30_days_path,
 ):
-    """
-    Liest die Datensätze ein.
-
-    Parameter:
-    co2_last_30_days_path (str): Pfad zu den CO2-Daten der letzten 30 Tage.
-    co2_older_30_days_path (str): Pfad zu den CO2-Daten älter als 30 Tage.
-    temp_last_30_days_path (str): Pfad zu den Temperaturdaten der letzten 30 Tage.
-    temp_older_30_days_path (str): Pfad zu den Temperaturdaten älter als 30 Tage.
-
-    Rückgabewert:
-    df_co2_last_30_days, df_co2_older_30_days, df_temp_last_30_days, df_temp_older_30_days (tuple): Die eingelesenen DataFrames.
-    """
     df_co2_last_30_days = pd.read_csv(co2_last_30_days_path)
     df_co2_older_30_days = pd.read_csv(co2_older_30_days_path)
     df_temp_last_30_days = pd.read_csv(temp_last_30_days_path)
@@ -48,15 +36,6 @@ def prepare_data(
     df_temp_last_30_days,
     df_temp_older_30_days,
 ):
-    """
-    Bereitet die CO2- und Temperaturdaten vor, indem Zeitspalten formatiert und unnötige Spalten entfernt werden.
-
-    Parameter:
-    df_co2_last_30_days, df_co2_older_30_days, df_temp_last_30_days, df_temp_older_30_days (DataFrame): Die CO2- und Temperatur-DataFrames.
-
-    Rückgabewert:
-    merged_df (DataFrame): Der zusammengeführte DataFrame.
-    """
     for df in [
         df_co2_last_30_days,
         df_co2_older_30_days,
@@ -80,15 +59,6 @@ def prepare_data(
 
 
 def prepare_outdoor_data(outdoor_temp_path):
-    """
-    Liest die Außentemperaturdaten ein und formatiert die Zeitspalten.
-
-    Parameter:
-    outdoor_temp_path (str): Pfad zu den Außentemperaturdaten.
-
-    Rückgabewert:
-    df_outdoor_temp (DataFrame): Der DataFrame mit den Außentemperaturdaten.
-    """
     df_outdoor_temp = pd.read_csv(outdoor_temp_path, delimiter=";")
     df_outdoor_temp["MESS_DATUM"] = pd.to_datetime(
         df_outdoor_temp["MESS_DATUM"], format="%Y%m%d%H"
@@ -103,15 +73,6 @@ def prepare_outdoor_data(outdoor_temp_path):
 
 
 def prepare_main_dataset(main_dataset_path):
-    """
-    Liest den Hauptdatensatz ein und benennt die Spalten um.
-
-    Parameter:
-    main_dataset_path (str): Pfad zum Hauptdatensatz.
-
-    Rückgabewert:
-    data_set_ml (DataFrame): Der Hauptdatensatz.
-    """
     data_set_ml = pd.read_excel(main_dataset_path)
     data_set_ml.rename(
         columns={
@@ -128,9 +89,6 @@ def prepare_main_dataset(main_dataset_path):
 
 
 def merge_data(merged_df, df_outdoor_temp, data_set_ml, output_path):
-    """
-    Führt die vorbereiteten CO2-, Temperatur- und Außentemperaturdaten zusammen und fügt TVOC-Daten hinzu.
-    """
     merged_df.rename(columns={"time": "timestamp"}, inplace=True)
     merged_df["timestamp"] = pd.to_datetime(
         merged_df["timestamp"], format="%d/%m/%Y %H:%M"
@@ -175,7 +133,6 @@ def merge_data(merged_df, df_outdoor_temp, data_set_ml, output_path):
 
 def feature_engineering(final_dataset):
 
-    # Zeitliche Aspekte hinzufügen
     def add_temporal_features(final_dataset):
         final_dataset["timestamp"] = pd.to_datetime(final_dataset["timestamp"])
         final_dataset["hour"] = final_dataset["timestamp"].dt.hour
@@ -183,7 +140,6 @@ def feature_engineering(final_dataset):
         final_dataset["month"] = final_dataset["timestamp"].dt.month
         return final_dataset
 
-    #  Zielvariablen "open_window" auf der Grundlage der angepassten Schwellenwerte erstellen
     def create_open_window(final_dataset):
         adjusted_thresholds = {
             "co2": 1000,
@@ -210,21 +166,13 @@ def feature_engineering(final_dataset):
         final_dataset["open_window"] = (~adjusted_conditions).astype(int)
         return final_dataset
 
-    # Funktionen anwenden, um zeitliche Merkmale hinzuzufügen und die Zielvariable zu erstellen
     final_dataset = add_temporal_features(final_dataset)
     final_dataset = create_open_window(final_dataset)
-
-    # Klassenverteilung prüfen
-    print("Class distribution in 'open_window':")
-    print(final_dataset["open_window"].value_counts())
 
     return final_dataset
 
 
 def random_forest_classifier_model(final_dataset):
-    """
-    Trainiert ein RandomForestClassifier-Modell.
-    """
     X = final_dataset[["co2", "temperature", "ambient_temp", "humidity", "tvoc"]]
     y = final_dataset["open_window"]
     X_train, X_test, y_train, y_test = train_test_split(
@@ -237,7 +185,6 @@ def random_forest_classifier_model(final_dataset):
 
 
 def logistic_regression_model(final_dataset):
-    # Sicherstellen, dass die Merkmale in der richtigen Reihenfolge sind
     feature_order = [
         "co2",
         "temperature",
@@ -252,12 +199,10 @@ def logistic_regression_model(final_dataset):
     X = final_dataset[feature_order]
     y = final_dataset["open_window"]
 
-    # Daten aufteilen
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.3, random_state=42, stratify=y
     )
 
-    # Pipeline erstellen
     pipeline = Pipeline(
         steps=[
             ("imputer", SimpleImputer(strategy="mean")),
@@ -267,19 +212,14 @@ def logistic_regression_model(final_dataset):
         ]
     )
 
-    # Pipeline fitten
     pipeline.fit(X_train, y_train)
-
-    # Vorhersagen machen
     y_pred = pipeline.predict(X_test)
 
     return pipeline
 
 
 def random_forest_model(final_dataset):
-    # Sicherstellen, dass die Merkmale in der richtigen Reihenfolge sind
     feature_order = ["co2", "temperature"]
-
     final_dataset = final_dataset.dropna()
     final_dataset["timestamp"] = pd.to_datetime(final_dataset["timestamp"])
     final_dataset["hour"] = final_dataset["timestamp"].dt.hour
@@ -289,7 +229,6 @@ def random_forest_model(final_dataset):
     co2_limit = 1000
     temp_limit = 21
 
-    # Dauer auf Grundlage von CO2-Werten und Innentemperatur berechnen
     def calculate_duration(row):
         duration = 0
         if row["co2"] > co2_limit:
@@ -303,7 +242,6 @@ def random_forest_model(final_dataset):
     X = final_dataset[feature_order]
     y = final_dataset["duration_open"].values
 
-    # Pipeline erstellen
     model = Pipeline(
         steps=[
             ("scaler", StandardScaler()),
@@ -311,15 +249,12 @@ def random_forest_model(final_dataset):
         ]
     )
 
-    # Daten aufteilen
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.3, random_state=20
     )
 
-    # Modell fitten
     model.fit(X_train, y_train)
 
-    # Vorhersagen machen
     y_pred = model.predict(X_test)
     y_pred = [int(str(int(pred))[:2]) for pred in y_pred]
 
@@ -327,20 +262,11 @@ def random_forest_model(final_dataset):
 
 
 def save_models(models, directory):
-    """
-    Speichert die trainierten Modelle in einem angegebenen Verzeichnis ab.
-
-    Parameter:
-    models (dict): Ein Wörterbuch mit den trainierten Modellen.
-    directory (str): Das Verzeichnis, in dem die Modelle gespeichert werden sollen.
-    """
     if not os.path.exists(directory):
         os.makedirs(directory)
     for name, model in models.items():
         filename = f"{directory}/{name.replace(' ', '_')}.pkl"
         joblib.dump(model, filename)
-        print(f"{name} gepsichert in {filename}")
-
 
 def main(
     co2_last_30_days_path,
@@ -352,10 +278,6 @@ def main(
     final_dataset_path,
     models_directory,
 ):
-    """
-    Hauptfunktion, die alle Schritte der Datenvorbereitung, des Feature Engineerings und der Modellierung durchführt.
-    """
-
     (
         df_co2_last_30_days,
         df_co2_older_30_days,
