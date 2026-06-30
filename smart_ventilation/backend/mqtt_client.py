@@ -1,7 +1,7 @@
+from database.database_connection import load_config, connect_to_database
 import time
 import psycopg2
 import pytz
-from db.database_connection import load_config, connect_to_database
 import paho.mqtt.client as mqtt
 import pandas as pd
 import threading
@@ -12,10 +12,10 @@ import json
 import logging
 import datetime as dt
 from datetime import datetime, timedelta
-from api_config_loader import load_api_config
+from config.api_config_loader import load_api_config
 
-config_file_path = "api_config.yaml"
-db_config_path = "db/db_config.yaml"
+config_file_path = "config/api_config.yaml"
+db_config_path = "config/db_config.yaml"
 db = load_config(db_config_path)
 
 api_config = load_api_config(config_file_path)
@@ -54,8 +54,8 @@ class MQTTClient:
             )
             self.conn = connect_to_database(db)
 
-            logistic_regression_model = joblib.load("models/Logistic_Regression.pkl")
-            random_forest_model = joblib.load("models/Random_Forest.pkl")
+            logistic_regression_model = joblib.load("ml-models/Logistic_Regression.pkl")
+            random_forest_model = joblib.load("ml-models/Random_Forest.pkl")
 
             self.models = {
                 "Logistic Regression": logistic_regression_model,

@@ -335,5 +335,5 @@ if __name__ == "__main__":
         outdoor_temp_path="datasets/outdoor_temperature.txt",
         main_dataset_path="datasets/dataset.xlsx",
         final_dataset_path="datasets/final_dataset.xlsx",
-        models_directory="models",
+        models_directory="ml-models",
     )
