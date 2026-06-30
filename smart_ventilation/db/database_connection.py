@@ -2,51 +2,29 @@ import psycopg2
 import logging
 import yaml
 
-# Konfigurieren des Loggings
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
-)
-
+logger = logging.getLogger(__name__)
 
 def load_config(config_file_path):
-    """
-    Lädt die Datenbankkonfiguration aus einer YAML-Datei.
-
-    :param config_file_path: Der Pfad zur Konfigurationsdatei.
-    :return: Ein Dictionary mit den Datenbankverbindungseinstellungen.
-    """
     try:
-        with open(config_file_path, "r") as file:
+        with open(config_file_path, "r", encoding="utf-8") as file:
             config = yaml.safe_load(file)
             return config["DATABASES"]["default"]
     except Exception as e:
-        logging.error(f"Fehler beim Laden der Konfigurationsdatei: {e}")
+        logging.error("failed to load config file: %s", e)
         return None
 
 
 def connect_to_database(config):
-    """
-    Stellt eine Verbindung zur PostgreSQL-Datenbank her und gibt das Connection-Objekt zurück.
-
-    :param config: Ein Dictionary mit den Datenbankverbindungseinstellungen.
-    :return: Das Connection-Objekt zur Datenbank
-    """
     try:
-        # Verbindungsdaten
         connection = psycopg2.connect(
-            dbname=config["NAME"],  # Name der Datenbank
-            user=config["USER"],  # Benutzername
-            password=config["PASSWORD"],  # Passwort
-            host=config["HOST"],  # Hostname
-            port=config["PORT"],  # Portnummer
+            dbname=config["NAME"],
+            user=config["USER"],
+            password=config["PASSWORD"],
+            host=config["HOST"],
+            port=config["PORT"],
         )
-
-        # Erfolgreiche Verbindung loggen
-        logging.info("Erfolgreiche Verbindung zur Datenbank.")
+        logging.info("successfully connected to database")
         return connection
-
     except Exception as e:
-        # Fehler loggen
-        logging.error(f"Fehler beim Verbinden zur Datenbank: {e}")
+        logging.error("failed to connect to database: %s", e)
         return None
-    
