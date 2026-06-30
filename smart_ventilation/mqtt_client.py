@@ -14,31 +14,19 @@ import datetime as dt
 from datetime import datetime, timedelta
 from api_config_loader import load_api_config
 
-# Pfad zu YAML-Konfigurationsdatei
 config_file_path = "api_config.yaml"
 db_config_path = "db/db_config.yaml"
 db = load_config(db_config_path)
 
-# API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)
 
-# API-Schlüssel und Basis-URL extrahieren
 CLOUD_SERVICE_URL = api_config["CLOUD_SERVICE_URL"]
 USERNAME = api_config["USERNAME"]
 PASSWORD = api_config["PASSWORD"]
 
 
 class MQTTClient:
-    """
-    Diese Klasse stellt einen MQTT-Client dar, der Sensordaten sammelt,
-    periodisch Vorhersagen trifft und die Daten speichert.
-    """
-
     def __init__(self):
-        """
-        Initialisiert den MQTT-Client und lädt die Modelle.
-        Startet auch Threads zur periodischen Vorhersage und Datenlöschung.
-        """
         try:
             self.client = mqtt.Client()
             self.client.tls_set()
@@ -74,27 +62,18 @@ class MQTTClient:
                 "Random Forest": random_forest_model,
             }
         except Exception as e:
-            logging.error(f"Fehler bei der Initialisierung: {e}")
+            logging.error("initialization error %s", e)
 
     def on_connect(self, client, userdata, flags, rc):
-        """
-        Wird aufgerufen, wenn der Client eine Verbindung zum Broker herstellt.
-        Abonniert die relevanten Topics und prüft, ob der Vorhersage-Thread läuft.
-
-        :param client: MQTT-Client-Instanz
-        :param userdata: Benutzerdaten
-        :param flags: Antwortflaggen vom Broker
-        :param rc: Verbindungs-Result-Code
-        """
         try:
-            logging.info("Verbunden mit Ergebniscode" + str(rc))
+            logging.info("connected with result code %s", str(rc))
 
-            # Für Uhrzeit und TVOC
+            # for datetime and TVOC
             self.client.subscribe(
                 "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/24e124707c481005/event/up"
             )
 
-            # Für Co2, Temperatur, etc. 
+            # for Co2, temperature, etc.
             # self.client.subscribe(
             #    "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b00fca900/event/up"
             #)
@@ -103,26 +82,18 @@ class MQTTClient:
                 "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/0004a30b01045883/event/up"
             )
 
-            # Für Außentemperaturen
+            # for outdoor temperature
             self.client.subscribe(
                 "application/f4994b60-cc34-4cb5-b77c-dc9a5f9de541/device/647fda000000aa92/event/up"
             )
 
             if not self.prediction_thread.is_alive():
-                logging.warning("Der Thread wurde angehalten und wird neu gestartet...")
+                logging.warning("the thread was stopped and is being restarted")
                 self.restart_thread()
         except Exception as e:
-            logging.error(f"on_connect: Fehler beim Verbindungsaufbau: {e}")
+            logging.error("on_connect: error establishing connection %s", e)
 
     def on_message(self, client, userdata, msg):
-        """
-        Wird aufgerufen, wenn eine Nachricht empfangen wird.
-        Verarbeitet die Nachricht und speichert die Sensordaten.
-
-        :param client: MQTT-Client-Instanz
-        :param userdata: Benutzerdaten
-        :param msg: empfangene Nachricht
-        """
         try:
             topic = msg.topic
             payload = json.loads(msg.payload.decode())
@@ -134,7 +105,7 @@ class MQTTClient:
                     berlin_time = utc_time.astimezone(berlin_tz)
                     return berlin_time.strftime("%Y-%m-%d %H:%M")
                 except Exception as e:
-                    logging.error(f"Fehler bei Zeitanpassung: {e}")
+                    logging.error(f"error while adjusting datetime: %s", e)
                     return None
 
             if topic.endswith("0004a30b01045883/event/up"):
@@ -209,7 +180,6 @@ class MQTTClient:
             ):
                 self.combined_data.setdefault("time", []).append(formatted_time)
 
-            # Überprüfen, ob alle erforderlichen Schlüssel vorhanden sind
             required_keys = {"humidity", "temperature", "co2", "tvoc", "ambient_temp"}
 
             if any(len(self.combined_data.get(key, [])) > 0 for key in required_keys):
@@ -218,12 +188,11 @@ class MQTTClient:
             self.check_and_clear_data()
 
         except Exception as e:
-            logging.error(f"on_message: Fehler beim Empfangen der Nachricht: {e}")
+            logging.error(f"on_message: error receiving message %s", e)
 
     def collect_data(self, combined_data):
         with self.data_lock:
             try:
-                # Alle erforderlichen Schlüssel definieren
                 required_keys = [
                     "time",
                     "humidity",
@@ -247,69 +216,50 @@ class MQTTClient:
                             data[key] = combined_data[key][i]
                         else:
                             data[key] = None
-                    # Sicherstellen, dass alle erforderlichen Schlüssel im Datenpunkt vorhanden sind
                     for key in required_keys:
                         if key not in data:
                             data[key] = None
                     self.data_points.append(data)
-                    logging.debug(f"Gesammelter Datenpunkt: {data}")
+                    logging.debug(f"collected data points %s", data)
 
             except Exception as e:
-                logging.error(
-                    f"collect_data: Unerwarteter Fehler bei der Datensammlung: {e}"
-                )
-                logging.error(
-                    f"collect_data: Inhalt der kombinierten Daten: {combined_data}"
-                )
-                logging.error(
-                    f"collect_data: Inhalt der Datenpunkte: {self.data_points}"
-                )
+                logging.error("collect_data: unexpected error during data collection %s", e)
+                logging.error("collect_data: contents of combined data %s", combined_data)
+                logging.error("collect_data: content of data points %s", self.data_points)
 
     def run_periodic_predictions(self):
-        """
-        Führt periodisch Vorhersagen durch, indem Sensordaten gesammelt und Modelle verwendet werden.
-        """
         while self.thread_alive:
-            # 10 Minuten warten
+            # wait 10min
             self.prediction_event.wait(600)
             if not self.thread_alive:
                 break
             self.prediction_event.clear()
 
             if self.predictions_cleared:
-                logging.info(
-                    "Vorhersagen wurden gelöscht, keine neuen Vorhersagen generieren."
-                )
+                logging.info("predictions were cleared")
                 continue
 
             if self.data_points:
                 try:
-                    # Deep Kopie der Datenpunkte erstellen
                     data_points_copy = copy.deepcopy(self.data_points)
                     df = pd.DataFrame(data_points_copy)
-                    logging.info("DataFrame wurde erfolgreich erstellt.")
-
                     df["parsed_time"] = pd.to_datetime(df["time"])
                     avg_time = df["parsed_time"].mean()
                     logging.info(
-                        "Zeitstempel-Parsing und Durchschnittsberechnung erfolgreich."
+                        "timestamp parsing and average calculation successful"
                     )
 
                     avg_data = df.mean(numeric_only=True).to_dict()
                     avg_data["avg_time"] = avg_time.timestamp()
-                    logging.info("Vorbereitung der Durchschnittsdaten erfolgreich.")
+                    logging.info("average date prepared successfully")
 
                     avg_data["hour"] = avg_time.hour
                     avg_data["day_of_week"] = avg_time.dayofweek
                     avg_data["month"] = avg_time.month
 
-                    # Merkmale für die Vorhersage vorbereiten
                     features_df = pd.DataFrame([avg_data])
-                    logging.info(
-                        "Merkmale für die Vorhersage vorbereitet: %s", features_df
-                    )
+                    logging.info("features prepared for predictions %s", features_df)
 
-                    # Reihenfolge der DataFrame-Spalten an die Trainingsreihenfolge anpassen
                     correct_order = [
                         "co2",
                         "temperature",
@@ -332,12 +282,10 @@ class MQTTClient:
                     features_df = features_df[correct_order]
                     features_array = features_df.to_numpy()
 
-                    # Spaltenreihenfolge für das zweite Modell anpassen
                     restricted_model_order = ["co2", "temperature"]
                     restricted_features_df = features_df[restricted_model_order]
                     restricted_features_array = restricted_features_df.to_numpy()
 
-                    # Vorhersagen mit jedem Modell erstellen
                     predictions = {}
                     for name, model in self.models.items():
                         if "Random Forest" in name:
@@ -355,42 +303,27 @@ class MQTTClient:
                     logging.info(f"latest predictions are: {self.latest_predictions}")
                     self.predictions_cleared = False
 
-                    # Einen eindeutigen Bezeichner zur Vorhersage hinzufügen
                     prediction_id = str(uuid.uuid4())
                     self.latest_predictions["id"] = prediction_id
 
-                    # features_df zur späteren Verwendung im Feedback speichern
                     self.latest_features_df = features_df
 
                     data_points_copy.clear()
                 except Exception as e:
-                    logging.error(
-                        f"run_periodic_predictions: Fehler während der Verarbeitung der Vorhersagen: {e}"
-                    )
+                    logging.error("run_periodic_predictions: error while processing predictions %s", e)
             else:
-                logging.info(
-                    "run_periodic_predictions: In den letzten 10 Minuten wurden keine Daten gesammelt."
-                )
+                logging.info("run_periodic_predictions: no data collected in the last 10 minutes")
 
     def check_and_clear_data(self):
         try:
             current_time = datetime.now()
-            logging.info(f"aktuelle Zeit: {current_time}")
-            logging.info(f"self.last_clear_data: {self.last_clear_date}")
 
             if current_time >= self.last_clear_date + timedelta(hours=1):
                 next_clear_date = self.last_clear_date + timedelta(hours=1)
-                logging.info(f"next_clear_date {next_clear_date}")
-
                 self.clear_data(next_clear_date)
                 self.last_clear_date = next_clear_date
-                logging.info(
-                    f"self.last_clear_date nach der Anpassung (aktuelle Zeit + self.clear_data) {self.last_clear_date}"
-                )
         except Exception as e:
-            logging.error(
-                f"check_and_clear_data: Fehler bei der Datenprüfung und -löschung: {e}"
-            )
+            logging.error("check_and_clear_data: error %s", e)
 
     def clear_data(self, clear_time):
         try:
@@ -398,14 +331,11 @@ class MQTTClient:
                 self.data_points.clear()
                 self.combined_data.clear()
                 self.latest_predictions.clear()
-                logging.info(f"Daten um {clear_time.strftime('%H:%M Uhr')} gelöscht")
+                logging.info(f"data cleared at {clear_time.strftime('%H:%M Uhr')}")
         except Exception as e:
-            logging.error(f"clear_data: Fehler beim Löschen der Daten: {e}")
+            logging.error("clear_data: error while deleting the data %s", e)
 
     def restart_thread(self):
-        """
-        Startet den Vorhersage-Thread neu, falls er gestoppt wurde.
-        """
         try:
             self.thread_alive = True
             self.prediction_thread = threading.Thread(
@@ -413,29 +343,18 @@ class MQTTClient:
             )
             self.prediction_thread.start()
 
-            logging.info("Vorhersage-Thread erfolgreich neu gestartet.")
+            logging.info("prediction thread restarted successfully")
         except Exception as e:
-            logging.error(f"restart_thread: Fehler beim Neustart des Threads: {e}")
+            logging.error("restart_thread: error restarting thread %s", e)
 
     def get_latest_sensor_data(self):
-        """
-        Gibt die neuesten gesammelten Sensordaten zurück.
-
-        :return: Kopie der Datenpunkte
-        """
         try:
             return self.data_points.copy()
         except Exception as e:
-            logging.error(
-                f"get_latest_sensor_data: Fehler beim Abrufen der neuesten Sensordaten: {e}"
-            )
+            logging.error("get_latest_sensor_data: error fetching the latest sensor data %s", e)
             return []
 
     def store_first_topic_data(self, data_point):
-        """
-        Speichert die Sensordaten aus dem ersten Thema in der PostgreSQL-Datenbank
-        und stellt die Vollständigkeit der Daten sicher
-        """
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
@@ -460,29 +379,22 @@ class MQTTClient:
                         ),
                     )
                 self.conn.commit()
-
-                # Datenpunkt löschen, um Speicherplatz freizugeben
                 data_point = None
 
             except psycopg2.OperationalError as e:
                 logging.error(
-                    f"store_first_topic_data: Fehler beim Speichern von Daten in der Datenbank: {e}"
-                )
+                    f"store_first_topic_data: error saving data to db %s", e)
                 self.reconnect_db()
                 self.store_first_topic_data(data_point)
 
             except Exception as e:
                 logging.error(
-                    f"store_first_topic_data: Fehler beim Speichern von Daten in der Datenbank: {e}"
-                )
+                    f"store_first_topic_data: error saving data to db %s", e)
                 self.conn.rollback()
             finally:
                 cursor.close()
 
     def store_feedback_data(self, feedback_data):
-        """
-        Speichert das Feedback-Daten aus der API-Antwort in der PostgreSQL-Datenbank
-        """
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
@@ -516,37 +428,25 @@ class MQTTClient:
                     self.conn.commit()
                 else:
                     logging.error(
-                        "Nicht alle erforderlichen Daten sind vorhanden im feedback_data"
+                        "not all required data is present in feedback_data"
                     )
                     self.conn.rollback()
 
             except psycopg2.OperationalError as e:
-                logging.error(
-                    f"store_feedback_data: Datenbankverbindungsfehler beim Speichern von Feedback-Daten: {e}"
-                )
+                logging.error("store_feedback_data: db connection error while saving feedback data %s", e)
                 self.reconnect_db()
 
             except Exception as e:
-                logging.error(
-                    f"store_feedback_data: Fehler beim Speichern von Feedback-Daten in der Datenbank: {e}"
-                )
+                logging.error("store_feedback_data: error while saving feedback_data %s", e)
                 self.conn.rollback()
             finally:
                 cursor.close()
 
     def fetch_data(self, timestamp):
-        """
-        Hilfsfunktion zum Abrufen von Daten auf der Grundlage eines Zeitstempels,
-        unter Berücksichtigung der letzten 30 Minuten.
-        Ruft Daten aus der PostgreSQL-Datenbank ab und berechnet den Durchschnitt der Werte.
-        """
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
-                # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
-                logging.info(f"Abrufen von Daten für Zeitstempel: {timestamp}")
-
-                # Abfrage zum Abruf von Daten innerhalb von 30 Minuten vor dem angegebenen Zeitstempel
+                logging.info("fetching data for timestamp %s", timestamp)
                 query = """ 
                 SELECT 
                     AVG(co2_values) as co2_values, 
@@ -556,14 +456,10 @@ class MQTTClient:
                 WHERE 
                     timestamp > CAST(%s AS timestamp); 
                 """
-
-                logging.info(f"Abfrage mit Zeitstempel ausführen:{timestamp}")
                 cursor.execute(query, (timestamp,))
-
                 result = cursor.fetchone()
-                logging.info(f"Abfrage erfolgreich, Daten abgerufen:{result}")
+                logging.info("Query successful, data fetched !")
 
-                # Aufbereitung des Ergebnisses in einem Format, das der erwarteten Ausgabe entspricht
                 if result:
                     averaged_data = {
                         "timestamp": timestamp,
@@ -576,95 +472,20 @@ class MQTTClient:
                 return averaged_data
 
             except psycopg2.OperationalError as e:
-                logging.error(
-                    f"fetch_data: Datenbankverbindungsfehler beim Abrufen von Daten: {e}"
-                )
+                logging.error("fetch_data: db connection error %s", e)
                 self.reconnect_db()
                 return {}
 
             except Exception as e:
-                # Protokollierung von Fehlern, die während der Ausführung der Abfrage auftreten
-                logging.error(
-                    f"fetch_data: Fehler beim Abrufen von Daten aus der Datenbank: {e}"
-                )
-
+                logging.error("fetch_data: error while fetching data %s", e)
                 return {}
             finally:
-                # Cursor muss nach dem Vorgang geschlossen werden
                 cursor.close()
 
     def fetch_future_data(self, timestamp):
-        """
-        Hilfsfunktion zum Abrufen von Daten auf der Grundlage eines Zeitstempels,
-        unter Berücksichtigung der nächsten 10 Minuten.
-        Ruft Daten aus der PostgreSQL-Datenbank ab und berechnet den Durchschnitt der Werte
-        """
         with self.data_lock:
             cursor = self.conn.cursor()
             try:
-                # Den eingehenden Zeitstempel protokollieren, um sein Format zu überprüfen
-                logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {timestamp}")
-
-                # Abfrage zum Abrufen von Daten ab dem angegebenen Zeitstempel
-                query = """
-                    SELECT 
-                        AVG(co2_values) as co2_values,
-                        AVG(temperature) as temperature,
-                        AVG(humidity) as humidity
-                    FROM classroom_environmental_data
-                    WHERE timestamp > CAST(%s AS timestamp);
-                """
-                logging.info(f"Abfrage mit Zeitstempel ausführen: {timestamp}")
-                cursor.execute(query, (timestamp,))
-
-                result = cursor.fetchone()
-                logging.info(f"Abfrage erfolgreich, Daten geholt:{result}")
-
-                # Aufbereitung des Ergebnisses in einem Format, das der erwarteten Ausgabe entspricht
-                if result:
-                    averaged_data = {
-                        "timestamp": timestamp,
-                        "co2_values": (
-                            float(result[0]) if result[0] is not None else None
-                        ),
-                        "temperature": (
-                            float(result[1]) if result[1] is not None else None
-                        ),
-                        "humidity": float(result[2]) if result[2] is not None else None,
-                    }
-                else:
-                    averaged_data = {
-                        "timestamp": timestamp,
-                        "co2_values": None,
-                        "temperature": None,
-                        "humidity": None,
-                    }
-
-                return averaged_data
-
-            except psycopg2.OperationalError as e:
-                logging.error(
-                    f"fetch_future_data: Datenbankverbindungsfehler beim Abrufen von Zukunftsdaten: {e}"
-                )
-                self.reconnect_db()
-                return {
-                    "timestamp": timestamp,
-                    "co2_values": None,
-                    "temperature": None,
-                    "humidity": None,
-                }
-
-    def fetch_future_data(self, timestamp):
-        """
-        Hilfsfunktion zum Abrufen von Daten auf der Grundlage eines Zeitstempels,
-        unter Berücksichtigung der nächsten 10 Minuten.
-        Ruft Daten aus der PostgreSQL-Datenbank ab und berechnet den Durchschnitt der Werte
-        """
-        with self.data_lock:
-            cursor = self.conn.cursor()
-            try:
-                logging.info(f"Abruf zukünftiger Daten ab dem Zeitstempel: {timestamp}")
-
                 query = """
                     SELECT 
                         AVG(co2_values) as co2_values,
@@ -674,22 +495,21 @@ class MQTTClient:
                     WHERE timestamp > CAST(%s AS timestamp);
                 """
 
-                max_attempts = 30  # Maximum number of polling attempts (30 attempts every 10 seconds equals 5 minutes)
-                wait_time = 10  # Wait time between attempts in seconds
+                max_attempts = 30
+                wait_time = 10
                 result = None
 
                 for attempt in range(max_attempts):
                     logging.info(
-                        f"Abfrageversuch {attempt + 1} mit Zeitstempel: {timestamp}"
+                        f"Query attempt {attempt + 1} at {timestamp}"
                     )
                     cursor.execute(query, (timestamp,))
                     result = cursor.fetchone()
-                    logging.info(f"Abfrageergebnis: {result}")
 
                     if result and any(val is not None for val in result):
                         break
 
-                    logging.info(f"Keine Daten verfügbar, warte {wait_time} Sekunden.")
+                    logging.info(f"no data, please wait for {wait_time} seconds")
                     time.sleep(wait_time)
 
                 if result:
@@ -714,9 +534,7 @@ class MQTTClient:
                 return averaged_data
 
             except psycopg2.OperationalError as e:
-                logging.error(
-                    f"fetch_future_data: Datenbankverbindungsfehler beim Abrufen von Zukunftsdaten: {e}"
-                )
+                logging.error("fetch_future_data: database connection error while fetching future data:",e)
                 self.reconnect_db()
                 return {
                     "timestamp": timestamp,
@@ -727,8 +545,7 @@ class MQTTClient:
 
             except Exception as e:
                 logging.error(
-                    f"fetch_future_data: Fehler beim Abrufen von Zukunftsdaten aus der Datenbank: {e}"
-                )
+                    "fetch_future_data: Error fetching future data from the database: %s", e)
                 return {
                     "timestamp": timestamp,
                     "co2_values": None,
@@ -747,15 +564,6 @@ class MQTTClient:
         humidity_change,
         decision,
     ):
-        """
-        Speichert die aktuellen und zukünftigen Umweltdaten sowie die prozentualen Änderungen in der Datenbank.
-
-        :param current_data: Aktuelle Umweltdaten
-        :param future_data: Zukünftige Umweltdaten
-        :param co2_change: Prozentuale Änderung des CO2-Wertes
-        :param temperature_change: Prozentuale Änderung der Temperatur
-        :param humidity_change: Prozentuale Änderung der Luftfeuchtigkeit
-        """
         try:
             cursor = self.conn.cursor()
 
@@ -767,7 +575,7 @@ class MQTTClient:
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
 
-            logging.info(f"Statistische Auswertungen werden gespeichert!")
+            logging.info("saving statistical analysis!")
 
             timestamp = datetime.now()
 
@@ -791,49 +599,38 @@ class MQTTClient:
 
             cursor.close()
 
-            logging.info(
-                "Daten in der Tabelle environmental_data_analysis erfolgreich gespeichert"
-            )
+            logging.info("data saved successfully to the environmental_data_analysis table")
 
         except psycopg2.OperationalError as e:
             logging.error(
-                f"save_analysis_data: Datenbankverbindungsfehler beim Speichern von Daten: {e}"
-            )
+                "save_analysis_data: Database connection error while saving data: %s", e)
             self.reconnect_db()
 
         except Exception as e:
             logging.error(
-                f"save_analysis_data: Fehler beim Speichern von Daten in der Datenbank: {e}"
-            )
+                "save_analysis_data: Error saving data to the database: %s", e)
 
     def stop(self):
-        """
-        Stoppt den MQTT-Client und den Vorhersage-Thread.
-        """
         try:
             self.thread_alive = False
             self.client.loop_stop()
             self.client.disconnect()
         except Exception as e:
-            logging.error(f"stop: Fehler beim Stoppen des Clients: {e}")
+            logging.error("stop: Error stopping the client: %s", e)
 
     def reconnect_db(self):
-        """
-        Versucht, die Datenbankverbindung neu herzustellen.
-        """
         try:
-            logging.info("Versuche, die Datenbankverbindung neu herzustellen...")
+            logging.info("attempting to re-establish the database connection...")
             self.conn.close()
             self.conn = connect_to_database(db)
-            logging.info("Datenbankverbindung erfolgreich neu hergestellt.")
+            logging.info("database connection re-established successfully.")
         except Exception as e:
             logging.error(
-                f"reconnect_db: Fehler beim Neuherstellen der Datenbankverbindung: {e}"
-            )
+                "reconnect_db: Error re-establishing the database connection: %s", e)
 
     def clear_predictions(self):
         try:
-            logging.info("Die alten Vorhersagen werden gelöscht!")
+            logging.info("clearing the old predictions!")
             with self.data_lock:
                 self.latest_predictions.clear()
                 if "predictions" in self.combined_data:
@@ -841,16 +638,13 @@ class MQTTClient:
 
                 self.predictions_cleared = True
 
-            logging.info("Vorhersagen wurden erfolgreich gelöscht.")
+            logging.info("predictions cleared successfully.")
         except Exception as e:
-            logging.error(f"Fehler in clear_predictions() {e}")
+            logging.error("Error in clear_predictions %s", e)
 
     def initialize(self):
-        """
-        Initialisiert die Verbindung zum MQTT-Broker und startet den Loop.
-        """
         try:
             self.client.connect(CLOUD_SERVICE_URL, 8883)
             self.client.loop_start()
         except Exception as e:
-            logging.error(f"initialize: Fehler bei der Initialisierung: {e}")
+            logging.error("initialize: Initialization error: %s", e)
