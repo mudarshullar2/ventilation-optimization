@@ -44,8 +44,6 @@ python application.py
 
 Then open `http://127.0.0.1:5000` to access the web interface.
 
-> **Note:** Before starting, check the session-management configuration in `application.py` (originally documented as commenting out lines 20–22 and enabling line 19, required for correct session handling in the Docker container). Verify these line numbers against the current file, as they may be outdated.
-
 ## Configuration
 
 Create an `api_config.yaml` file in the `smart_ventilation` directory with the following structure:
