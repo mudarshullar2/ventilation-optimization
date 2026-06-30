@@ -1,0 +1,6 @@
+.idea/
+.venv/
+venv/
+__pycache__/
+api_config.yaml
+db_config.yaml
