@@ -30,20 +30,15 @@ app.config["SESSION_REDIS"] = redis.from_url(
     os.environ.get("REDIS_URL", "redis://localhost:6379")
 )
 
-
-# Pfad zu YAML-Konfigurationsdatei
 config_file_path = "api_config.yaml"
 
-# API-Konfiguration aus YAML-Datei laden
 api_config = load_api_config(config_file_path)
 
-# API-Schlüssel und Basis-URL extrahieren
 READ_API_KEY = api_config["READ_API_KEY"]
 POST_API_KEY = api_config["POST_API_KEY"]
 API_BASE_URL = api_config["API_BASE_URL"]
 CONTENT_TYPE = api_config["CONTENT_TYPE"]
 
-# MQTT-Client initialisieren
 mqtt_client = MQTTClient()
 mqtt_client.initialize()
 
@@ -60,17 +55,13 @@ scheduler.start()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    """
-    Diese Funktion wird aufgerufen, wenn auf die Route "/" zugegriffen wird.
-    Sensordaten, die über MQTT empfangen wurden, werden angezeigt.
-    """
     try:
         if not hasattr(mqtt_client, "combined_data") or not mqtt_client.combined_data:
             sensor_data = {}
             temperature = 0
             humidity = 0
             co2 = 0
-            tvoc = "Zurzeit nicht verfügbar"
+            tvoc = "currently not available"
             ambient_temp = 0
             predictions = {}
         else:
@@ -78,11 +69,10 @@ def index():
             temperature = sensor_data.get("temperature", 0)
             humidity = sensor_data.get("humidity", 0)
             co2 = sensor_data.get("co2", 0)
-            tvoc = sensor_data.get("tvoc", "Zurzeit nicht verfügbar")
+            tvoc = sensor_data.get("tvoc", "currently not available")
             ambient_temp = sensor_data.get("ambient_temp", 0)
             predictions = sensor_data.get("predictions", {})
 
-        # index.html Templates mit Sensordaten und Cache-Busting rendern
         response = make_response(
             render_template(
                 "index.html",
@@ -97,7 +87,6 @@ def index():
             )
         )
 
-        # Caching deaktivieren, um stets aktuelle Daten anzuzeigen
         response.headers["Cache-Control"] = (
             "no-store, no-cache, must-revalidate, max-age=0"
         )
@@ -107,23 +96,18 @@ def index():
 
     except Exception as e:
         logging.error(
-            "Ein Fehler ist in index() aufgetreten: %s. Sensordaten: %s",
+            "an error occurred in index(): %s. sensor data: %s",
             str(e),
             str(mqtt_client.combined_data),
         )
         return (
-            "Es gab ein Problem bei der Verarbeitung Ihrer Anfrage. Bitte aktualisieren Sie die Seite.",
+            "error while processing your request",
             500,
         )
 
 
 @app.route("/plots")
 def plots():
-    """
-    Generiert und rendert Echtzeit-Sensordatenplots basierend auf den neuesten Sensordaten.
-    Wenn Daten wie TVOC oder Außentemperatur später ankommen, wird der letzte bekannte Wert
-    oder None als Platzhalter verwendet, bis neue Daten eintreffen.
-    """
     try:
         sensor_data = mqtt_client.get_latest_sensor_data()
 
@@ -160,7 +144,6 @@ def plots():
                 time_data=time_data,
             )
         else:
-            # Falls keine Sensordaten verfügbar sind, leere Plots rendern
             return render_template(
                 "plots.html",
                 co2_data=[],
@@ -172,35 +155,25 @@ def plots():
             )
 
     except Exception as e:
-        logging.error(f"Fehler in plots(): {e}")
-        return "Ein Fehler ist aufgetreten", 500
+        logging.error("error in plots(): %s", e)
+        return "an error has occurred", 500
 
 
 def convert_to_serializable(obj):
     if isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
         return obj.item()
     raise TypeError(
-        "Nicht serialisierbares Objekt {} vom Typ {}".format(obj, type(obj))
+        "not serializable object {} of type {}".format(obj, type(obj))
     )
 
 
 @app.route("/feedback", methods=["GET", "POST"])
 def feedback():
-    """
-    Diese Funktion behandelt das Feedback der Benutzer bezüglich der Vorhersagen.
-
-    Wenn die Methode POST ist, wird das Feedback gesendet.
-    Wenn die Methode GET ist, wird das Feedback-Formular angezeigt.
-    Validiert die Daten und sendet sie an die API.
-    Bei Erfolg wird die Dankeseite angezeigt.
-
-    :return: gerenderte HTML-Seite oder JSON-Antwort mit Fehlermeldung
-    """
     if request.method == "POST":
         try:
             predictions = mqtt_client.latest_predictions
             if not predictions:
-                return "Keine Vorhersagen verfügbar, um Feedback zu geben", 400
+                return "no predictions are available", 400
 
             combined_data = mqtt_client.combined_data
             features_df = mqtt_client.latest_features_df
@@ -208,9 +181,9 @@ def feedback():
             logistic_prediction = predictions.get("Logistic Regression")
             user_feedback = int(request.form["accurate_prediction"])
 
-            if user_feedback == 1:  # "Korrekt"
+            if user_feedback == 1:
                 accurate_prediction = int(logistic_prediction)
-            else:  # "Nicht Korrekt"
+            else:
                 accurate_prediction = 1 - int(logistic_prediction)
 
             feedback_data = {
@@ -231,7 +204,7 @@ def feedback():
                 return (
                     jsonify(
                         {
-                            "Meldung": "Keine Rückmeldung übermittelt",
+                            "message": "no response was sent",
                             "status": response.status_code,
                             "response": response.text,
                         }
@@ -240,12 +213,12 @@ def feedback():
                 )
 
         except Exception as e:
-            logging.error(f"feedback: Ein unerwarteter Fehler ist aufgetreten: {e}")
+            logging.error("feedback: an unexpected error occurred: %s", e)
             return (
                 jsonify(
                     {
-                        "Meldung": "Ein unerwarteter Fehler ist aufgetreten:",
-                        "Fehler:": str(e),
+                        "message": "an unexpected error occurred",
+                        "error:": str(e),
                     }
                 ),
                 500,
@@ -268,7 +241,6 @@ def feedback():
                 )
             )
 
-            # Caching deaktivieren, um stets aktuelle Daten anzuzeigen
             response.headers["Cache-Control"] = (
                 "no-store, no-cache, must-revalidate, max-age=0"
             )
@@ -277,19 +249,15 @@ def feedback():
             return response
 
         except Exception as e:
-            logging.error(f"feedback: Fehler beim Abrufen von Vorhersagen: {e}")
+            logging.error("feedback: error fetching predictions: %s", e)
             return str(e), 500
 
 
 def get_data(timestamp):
-    """
-    Utility-Funktion zum Abrufen von Daten für einen bestimmten Zeitstempel
-    """
-
     try:
         return mqtt_client.fetch_data(timestamp)
     except Exception as e:
-        logging.error(f"get_data: Die Daten konnten nicht abgerufen werden: {e}")
+        logging.error("get_data: could not fetch data: %s", e)
         return {}
 
 
@@ -298,15 +266,13 @@ def leaderboard():
     try:
         if request.method == "POST":
             predictions = mqtt_client.latest_predictions
-            logging.info(f"Vorhersage im Leaderboard: {predictions}")
+            logging.info("predictions in leaderboard: %s", predictions)
             if not predictions:
-                logging.error("Keine Vorhersagen verfügbar in latest_predictions")
+                logging.error("no predictions available in latest_predictions")
                 return render_template("leaderboard.html", error=True)
 
             last_prediction = predictions.get("Logistic Regression")
-            logging.debug(
-                f"Initial last_prediction: {last_prediction}, type: {type(last_prediction)}"
-            )
+            logging.debug("initial last_prediction: %s, type: %s", last_prediction, type(last_prediction))
 
             if isinstance(last_prediction, np.integer):
                 last_prediction = int(last_prediction)
@@ -316,20 +282,16 @@ def leaderboard():
             combined_data = mqtt_client.combined_data
             latest_date = combined_data["time"][-1]
 
-            logging.info(
-                f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}"
-            )
+            logging.info("latest_date: within the leaderboard feature %s", latest_date)
 
             latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
             adjusted_date = latest_date - timedelta(minutes=1)
 
             adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
-            logging.info(f"Angepasstes Datum: {adjusted_date_str}")
+            logging.info("adjusted date %s", adjusted_date_str)
 
             current_data = get_data(adjusted_date_str)
-            logging.info(
-                f"letzte current_data in der Leaderboard-Funktion: {current_data}"
-            )
+            logging.info("last current_date in the leaderboard function %s", current_data)
 
             formatted_current_data = [
                 {
@@ -352,9 +314,7 @@ def leaderboard():
                 }
             ]
 
-            logging.info(
-                f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}"
-            )
+            logging.info("predictions type: %s, value: %s", type(last_prediction), last_prediction)
 
             if last_prediction == 1:
                 response = render_template(
@@ -377,14 +337,14 @@ def leaderboard():
 
         elif request.method == "GET":
             predictions = mqtt_client.latest_predictions
-            logging.info(f"last_prediction aus der Sitzung: {predictions}")
+            logging.info("last_prediction from the session: %s", predictions)
 
             if not predictions:
                 logging.error(
-                    "Keine Daten in der Sitzung verfügbar, bitte erst eine Vorhersage machen"
+                    "no data available in the session, please make a prediction first"
                 )
                 return (
-                    "Keine Daten verfügbar, bitte führen Sie eine Vorhersage durch.",
+                    "no data available in the session, please make a prediction first",
                     400,
                 )
 
@@ -392,20 +352,16 @@ def leaderboard():
             logging.info(f"combined_data in leaderboard: {combined_data}")
 
             latest_date = combined_data["time"][-1]
-            logging.info(
-                f"latest_date: innerhalb der Leaderboard-Funktion {latest_date}"
-            )
+            logging.info("latest_date: inside the leaderboard function %s", latest_date)
 
             latest_date = datetime.strptime(latest_date, "%Y-%m-%d %H:%M")
             adjusted_date = latest_date - timedelta(minutes=1)
 
             adjusted_date_str = adjusted_date.strftime("%Y-%m-%d %H:%M")
-            logging.info(f"Angepasstes Datum: {adjusted_date_str}")
+            logging.info("adjusted date: %s", adjusted_date_str)
 
             current_data = get_data(adjusted_date_str)
-            logging.info(
-                f"letzte current_data in der Leaderboard-Funktion: {current_data}"
-            )
+            logging.info("latest current_date in the leaderboard function %s", current_data)
 
             formatted_current_data = [
                 {
@@ -435,7 +391,7 @@ def leaderboard():
 
             future_data = future_data_response.get_json()
             logging.info(
-                f"aktuellste future_data innerhalb der Leaderboard-Funktion: {future_data}"
+                "latest future_data in the leaderboard: %s", future_data
             )
 
             formatted_future_data = [
@@ -461,9 +417,7 @@ def leaderboard():
 
             last_prediction = predictions.get("Logistic Regression")
 
-            logging.info(
-                f"Predictions Typ: {type(last_prediction)} und Wert: {last_prediction}"
-            )
+            logging.info("predictions type: %s and value: %s", type(last_prediction), last_prediction)
 
             if last_prediction == 1:
                 response = render_template(
@@ -484,13 +438,13 @@ def leaderboard():
             return response
 
     except Exception as e:
-        logging.error(f"Ein unerwarteter Fehler ist aufgetreten: {e}")
+        logging.error("an unexpected error occurred %s", e)
         return (
             jsonify(
                 {
-                    "message": "Ein unerwarteter Fehler ist aufgetreten:",
-                    "Fehler:": str(e),
-                    "Hinweis": "Bitte zur Hauptseite zurückgehen",
+                    "message": "an unexpected error occurred while getting data",
+                    "error:": str(e),
+                    "note": "please return to the main page",
                 }
             ),
             500,
@@ -500,7 +454,6 @@ def leaderboard():
 @app.route("/future_data/<timestamp>")
 def get_future_data(timestamp):
     try:
-        # Überprüfen, ob die Anfrage Anmeldedaten enthält
         auth_header = request.headers.get("Authorization")
         if auth_header:
             auth_type, auth_credentials = auth_header.split(" ", 1)
@@ -510,40 +463,32 @@ def get_future_data(timestamp):
                 )
                 if benutzername != "admin" or passwort != "HJ|*fS1i":
                     return make_response(
-                        "Verifizierung fehlgeschlagen",
+                        "verification failed",
                         401,
-                        {"WWW-Authenticate": 'Basic realm="Login erforderlich!"'},
+                        {"WWW-Authenticate": 'Basic realm="login is required!"'},
                     )
             else:
                 return make_response(
-                    "Verifizierung fehlgeschlagen",
+                    "verification failed",
                     401,
-                    {"WWW-Authenticate": 'Basic realm="Login erforderlich!"'},
+                    {"WWW-Authenticate": 'Basic realm="login is required!"'},
                 )
         else:
             return make_response(
-                "Verifizierung fehlgeschlagen",
+                "verification failed",
                 401,
-                {"WWW-Authenticate": 'Basic realm="Login erforderlich!"'},
+                {"WWW-Authenticate": 'Basic realm="login is required!"'},
             )
 
-        # Den eingehenden Zeitstempel analysieren
         timestamp_dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M")
-
-        # 5 Minuten zum Zeitstempel hinzufügen
         future_timestamp_dt = timestamp_dt + timedelta(minutes=5)
         future_timestamp_str = future_timestamp_dt.strftime("%Y-%m-%d %H:%M")
+        logging.info("fetching future data for timestamp %s", future_timestamp_str)
 
-        logging.info(f"Abruf zukünftiger Daten für Zeitstempel: {future_timestamp_str}")
-
-        # Zukünftige Daten sofort abrufen
         future_data = mqtt_client.fetch_future_data(future_timestamp_str)
-
         if not future_data:
-            logging.info(
-                f"Keine zukünftigen Daten für Zeitstempel verfügbar: {future_timestamp_str}"
-            )
-            return jsonify({"Fehler": "Keine zukünftigen Daten verfügbar"}), 404
+            logging.info("no future dates available for timestamps: %s", future_timestamp_str)
+            return jsonify({"error": "no future data available"}), 404
 
         formatted_future_data = {
             "timestamp": future_data.get("timestamp"),
@@ -564,14 +509,12 @@ def get_future_data(timestamp):
             ),
         }
 
-        logging.info(
-            f"Zukünftige Daten wurden erfolgreich abgerufen: {formatted_future_data}"
-        )
+        logging.info("future data fetched successfully %s", formatted_future_data)
         return jsonify(formatted_future_data)
 
     except Exception as e:
-        logging.error(f"get_future_data: Fehler beim Abrufen von Zukunftsdaten: {e}")
-        return jsonify({"Fehler": str(e)}), 500
+        logging.error("get_future_data: error fetching future data: %s", e)
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/save_analysis_data", methods=["POST"])
@@ -602,22 +545,20 @@ def save_analysis_data():
             decision,
         )
 
-        return jsonify({"message": "Daten erfolgreich gespeichert"}), 200
+        return jsonify({"message": "data saved successfully"}), 200
     except Exception as e:
-        logging.error(
-            f"save_analysis_data: Fehler beim Speichern von Analysedaten: {e}"
-        )
-        return jsonify({"Fehler": str(e)}), 500
+        logging.error("save_analysis_data: error saving analysis data %s", e)
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/clear_session")
 def clear_session():
     try:
         session.clear()
-        return "Die Sitzungsdaten wurden erfolgreich gelöscht", 200
+        return "session data has been successfully deleted", 200
     except Exception as e:
-        logging.error(f"clear_session: Fehler beim Löschen von Sitzungsdaten: {e}")
-        return jsonify({"Fehler in clear_session()": str(e)}), 500
+        logging.error("clear_session: error clearing session data %s", e)
+        return jsonify({"error in clear_session()": str(e)}), 500
 
 
 @app.route("/clear-predictions", methods=["POST"])
@@ -625,9 +566,9 @@ def clear_predictions_route():
     try:
         mqtt_client.clear_predictions()
         session.clear()
-        return jsonify({"message": "Vorhersagen wurden gelöscht"}), 200
+        return jsonify({"message": "predictions have been deleted"}), 200
     except Exception as e:
-        return jsonify({"Fehler in clear_predictions_route()": str(e)}), 500
+        return jsonify({"error in clear_predictions_route()": str(e)}), 500
 
 
 @app.route("/latest_data", methods=["GET"])
@@ -655,31 +596,14 @@ def get_latest_data():
 
 @app.route("/thank_you")
 def thank_you():
-    """
-    Diese Funktion rendert die Dankeseite nach dem Absenden des Feedbacks.
-
-    :return: gerenderte HTML-Seite
-    """
-
     return render_template("thank_you.html")
 
 
 @app.route("/contact")
 def contact():
-    """
-    Diese Funktion rendert die Kontaktseite der Anwendung.
-
-    :return: gerenderte HTML-Seite
-    """
-
     return render_template("contact.html")
 
 
 if __name__ == "__main__":
-
-    # Anwendung im Debug-Modus starten
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)
-    
-    
-    
