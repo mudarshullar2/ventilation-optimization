@@ -1,153 +1,92 @@
-# Optimierung des Lüftungsverhaltens in Bildungseinrichtungen
+# Optimizing Ventilation Behavior in Educational Facilities
 
-## Übersicht
+## Overview
 
-Das Steuerungssystem bildet einen zentralen Bestandteil meiner Abschlussarbeit und wurde in Zusammenarbeit mit Stadtwerke Potsdam entwickelt. Stadtwerke Potsdam haben für dieses Steuerungssystem die notwendigen Sensoren zur Verfügung gestellt. Der praktische Test des Projekts erfolgt an der Schule am Schloss in Potsdam.
+This control system is a core part of my thesis and was developed in cooperation with Stadtwerke Potsdam, who provided the sensors. The project is tested in practice at the Schule am Schloss in Potsdam.
 
-Ziel ist es, Sensordaten zu erfassen, diese zu analysieren und Vorhersagen zu treffen. Die Ergebnisse werden über eine benutzerfreundliche Webschnittstelle visualisiert und können interaktiv genutzt werden. Die technische Umsetzung erfolgt mittels Flask für das Web-Interface und MQTT für die Datenerfassung.
+The system collects sensor data, analyzes it, and generates predictions. Results are shown through a web interface for interactive use. It is built with Flask for the web interface and MQTT for data collection.
 
-## Funktionen
-- Echtzeit-Datensammlung von Sensoren über MQTT.
-- Datenvisualisierung über eine Webschnittstelle.
-- Periodische Vorhersagen mit vortrainierten Machine-Learning Modellen.
-- Sammlung von Benutzerfeedback zu den Vorhersagen.
+## Features
 
-## Installation
+- Real-time sensor data collection via MQTT.
+- Data visualization through a web interface.
+- Periodic predictions using pre-trained machine learning models.
+- Collection of user feedback on the predictions.
 
-### Option 1: Verwendung des Dockerfiles
+## Installation and Running
 
-1. Wechseln Sie in das Verzeichnis `smart_ventilation`:
+### Option 1: Docker
 
-    ```
-    cd smart_ventilation
-    ```
+From the `smart_ventilation` directory:
 
-2. Erstellen Sie das Docker-Image (mit der Option `--no-cache`):
+```
+docker build --no-cache -t smart_ventilation .
+docker run -p 8000:8000 smart_ventilation
+```
 
-    ```
-    docker build --no-cache -t smart_ventilation .
-    ```
+Then open `http://127.0.0.1:8000` to access the web interface.
 
-3. Führen Sie den Docker-Container aus:
+### Option 2: Manual
 
-    ```
-    docker run -p 8000:8000 smart_ventilation
-    ```
+This project was developed with Python 3.10.10; using this version is recommended to avoid compatibility issues.
 
-4. Öffnen Sie einen Browser und besuchen Sie die URL `http://0.0.0.0:8000`, um auf die Webschnittstelle zuzugreifen.
+```
+git clone <repository_url>
+cd <repository_directory>
 
-### Option 2: Manuelle Installation und Ausführung
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
 
-1. Repository klonen:
+cd smart_ventilation
+pip install -r requirements.txt
+python application.py
+```
 
-    ```
-    git clone <repository_url>
-    cd <repository_directory>
-    ```
+Then open `http://127.0.0.1:5000` to access the web interface.
 
-2. Erstellen und Aktivieren eines virtuellen Umfelds:
+> **Note:** Before starting, check the session-management configuration in `application.py` (originally documented as commenting out lines 20–22 and enabling line 19, required for correct session handling in the Docker container). Verify these line numbers against the current file, as they may be outdated.
 
-    ```
-    python -m venv venv
-    source venv/bin/activate   # Für Windows: `venv\Scripts\activate
-    ```
+## Configuration
 
-3. Erforderliche Pakete installieren:
+Create an `api_config.yaml` file in the `smart_ventilation` directory with the following structure:
 
-    Dieses Projekt wurde mit Python 3.10.10 entwickelt. Es wird empfohlen, 
-    diese Version zu verwenden, um Kompatibilitätsprobleme zu vermeiden.
+```
+READ_API_KEY: ""      # API key for read access
+POST_API_KEY: ""      # API key for write access
+API_BASE_URL: ""      # Base URL of the API
+CONTENT_TYPE: ""      # Content type used for API requests
+CLOUD_SERVICE_URL: "" # URL of your cloud service
+USERNAME: ""          # Username for cloud service access
+PASSWORD: ""          # Password for cloud service access
+```
 
-    Die Packages sind in der Datei `requirements.txt` definiert. 
-    Um alle erforderlichen Pakete zu installieren, führen Sie den folgenden Befehl aus:
+## Models
 
-    ```
-    cd smart_ventilation
-    pip install -r requirements.txt
-    ```
+The `smart_ventilation/models/` directory contains the following pre-trained machine learning models in `.pkl` format, serialized for fast loading at runtime:
 
-## Konfiguration
+- `Logistic_Regression.pkl` — a logistic regression model.
+- `Random_Forest.pkl` — a random forest model.
 
-1. Stellen Sie sicher, dass Sie die Konfigurationsdatei `api_config.yaml` im Verzeichnis `smart-ventilation` mit der folgenden Struktur haben:
+## Endpoints
 
-    ```
-    READ_API_KEY: "" # API-Schlüssel für Lesezugriff
-    POST_API_KEY: "" # API-Schlüssel für Schreibzugriff
-    API_BASE_URL: "" # Basis-URL der API
-    CONTENT_TYPE: "" # Inhaltstyp, der bei API-Anfragen verwendet wird
-    CLOUD_SERVICE_URL: "" # URL Ihres Cloud-Dienstes
-    USERNAME: "" # Benutzername für den Zugang zum Cloud-Dienst
-    PASSWORD: "" # Passwort für den Zugang zum Cloud-Dienst
-    ```
-
-## Modelle
-
-Im Verzeichnis `smart-ventilations/models/` befinden sich die folgenden vorbereiteten Machine-Learning Modelle im `.pkl`-Format. 
-
-Diese Modelle sind serialisiert und optimiert für den Einsatz, sodass sie schnell in die Anwendung geladen und genutzt werden können:
-
-- `Logistic_Regression.pkl` — Ein Modell basierend auf der logistischen Regression.
-- `Random_Forest.pkl` — Ein Modell, das auf dem Random-Forest-Algorithmus basiert.
-
-## Anwendung starten
-
-### Option 1: Verwendung des Dockerfiles
-
-1. Wechseln Sie in das Verzeichnis `smart_ventilation`:
-
-    ```
-    cd smart_ventilation
-    ```
-
-2. Erstellen Sie das Docker-Image (mit der Option `--no-cache`):
-
-    ```
-    docker build --no-cache -t smart_ventilation .
-    ```
-
-3. Führen Sie den Docker-Container aus:
-
-    ```
-    docker run -p 8000:8000 smart_ventilation
-    ```
-
-4. Öffnen Sie einen Browser und besuchen Sie die URL `http://127.0.0.1:8000`, um auf die Webschnittstelle zuzugreifen.
-
-### Option 2: Manuelle Installation und Ausführung
-
-1. Starten Sie den MQTT-Client und die Flask-Anwendung:
-
-    Vor dem Start der Anwendung bitte die Zeilen 20 bis 22 in `application.py` auskommentieren und Zeile 19 einkommentieren. Diese Änderung waren wichitg, um das Session-Management im Docker-Container korrekt zu konfigurieren.
-
-    ```
-    python application.py
-    ```
-
-2. Öffnen Sie einen Browser Ihrer Wahl und besuchen Sie die URL `http://127.0.0.1:5000`, um auf die Webschnittstelle zuzugreifen.
-
-## Endpunkte der Anwendung
-
-- `/`: Zeigt das Hauptdashboard mit Echtzeit-Sensordaten an.
-- `/plots`: Bietet Diagramme der Echtzeit-Sensordaten.
-- `/feedback`: Ermöglicht es Benutzern, Feedback zu den Vorhersagen zu geben.
-- `/thank_you`: Zeigt eine Dankesseite nach dem Absenden des Feedbacks an.
-- `/contact`: Zeigt die Kontaktseite der Anwendung an.
-- `/leaderboard`: Zeigt die Bestenliste basierend auf den vorhergesagten Daten an.
-- `/future_data/<timestamp>`: Gibt die zukünftigen Daten für einen bestimmten Zeitstempel zurück.
-- `/save_analysis_data`: Speichert Analyse-Daten.
-- `/clear_session`: Löscht die Sitzungsdaten.
+- `/` — Main dashboard with real-time sensor data.
+- `/plots` — Charts of real-time sensor data.
+- `/feedback` — Lets users submit feedback on predictions.
+- `/thank_you` — Confirmation page shown after feedback submission.
+- `/contact` — Contact page.
+- `/leaderboard` — Leaderboard based on predicted data.
+- `/future_data/<timestamp>` — Returns future data for a given timestamp.
+- `/save_analysis_data` — Saves analysis data.
+- `/clear_session` — Clears session data.
 
 ## Logging
 
-Die Anwendung protokolliert wichtige Ereignisse und Fehler in der Konsole. 
-Stellen Sie sicher, dass das Logging im `application.py`-Skript mit dem logging-Modul entsprechend konfiguriert ist.
+The application logs key events and errors to the console. Ensure logging is configured appropriately via the `logging` module in `application.py`.
 
-## Hinweise
+## Notes
 
-Stellen Sie sicher, dass alle Pfade in `application.py` und `mqtt_client.py` korrekt gemäß Ihrer Projektstruktur gesetzt sind. 
-Die Anwendung geht davon aus, dass Sensordaten zu bestimmten MQTT-Themen veröffentlicht werden. 
-Passen Sie die Themen und die Datenverarbeitung in `mqtt_client.py` nach Bedarf an.
+Ensure all paths in `application.py` and `mqtt_client.py` match your project structure. The application expects sensor data to be published to specific MQTT topics; adjust the topics and data handling in `mqtt_client.py` as needed.
 
-## Fehlerbehebung
+## Troubleshooting
 
-Falls die Anwendung nicht startet, überprüfen Sie die Konsolenprotokolle auf Fehler bezüglich fehlender Konfigurationsdateien, Modelle oder Abhängigkeiten. 
-Stellen Sie sicher, dass Ihr MQTT-Broker läuft und mit den richtigen Anmeldeinformationen erreichbar ist.
+If the application does not start, check the console logs for errors related to missing configuration files, models, or dependencies. Ensure your MQTT broker is running and reachable with the correct credentials.
