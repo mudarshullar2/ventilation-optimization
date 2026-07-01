@@ -17,7 +17,7 @@ import numpy as np
 import redis
 import os
 import time
-
+from helpers.mqtt_data import get_data
 
 logging.basicConfig(level=logging.INFO)
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -163,15 +163,6 @@ def plots():
         logging.error("error in plots(): %s", e)
         return "an error has occurred", 500
 
-
-def convert_to_serializable(obj):
-    if isinstance(obj, (np.int64, np.int32, np.float64, np.float32)):
-        return obj.item()
-    raise TypeError(
-        "not serializable object {} of type {}".format(obj, type(obj))
-    )
-
-
 @app.route("/feedback", methods=["GET", "POST"])
 def feedback():
     if request.method == "POST":
@@ -256,15 +247,6 @@ def feedback():
         except Exception as e:
             logging.error("feedback: error fetching predictions: %s", e)
             return str(e), 500
-
-
-def get_data(timestamp):
-    try:
-        return mqtt_client.fetch_data(timestamp)
-    except Exception as e:
-        logging.error("get_data: could not fetch data: %s", e)
-        return {}
-
 
 @app.route("/leaderboard", methods=["GET", "POST"])
 def leaderboard():
