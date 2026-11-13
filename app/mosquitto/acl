@@ -1,0 +1,15 @@
+# Topic access control. Keeps each identity to only the topics it needs,
+# so a compromised sensor cannot command the heating, and vice versa.
+
+# Backend application: full access to the home topic tree.
+user app
+topic readwrite home/#
+
+# Air-quality sensors: may only publish their own readings.
+user sensor
+topic write home/+/airquality
+
+# Radiator valves (TRVs): publish their state, receive their set-commands.
+user trv
+topic write home/+/radiator/state
+topic read home/+/radiator/set

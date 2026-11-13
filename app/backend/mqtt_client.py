@@ -28,6 +28,7 @@ from database.db import Database
 MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 MQTT_TLS = os.environ.get("MQTT_TLS", "false").lower() == "true"
+MQTT_CA_CERT = os.environ.get("MQTT_CA_CERT")  # path to CA cert for TLS verification
 MQTT_USERNAME = os.environ.get("MQTT_USERNAME")
 MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD")
 MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "home/+/airquality")
@@ -43,12 +44,15 @@ class MQTTClient:
         if MQTT_USERNAME:
             self.client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
         if MQTT_TLS:
-            self.client.tls_set(cert_reqs=ssl.CERT_REQUIRED)
+            self.client.tls_set(ca_certs=MQTT_CA_CERT, cert_reqs=ssl.CERT_REQUIRED)
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
     def on_connect(self, client, userdata, flags, reason_code, properties):
-        logging.info("MQTT connected (%s); subscribing", reason_code)
+        if reason_code != 0:
+            logging.error("MQTT connection refused: %s (check credentials/ACL)", reason_code)
+            return
+        logging.info("MQTT connected; subscribing")
         self.client.subscribe(MQTT_TOPIC)
         self.client.subscribe(MQTT_RADIATOR_TOPIC)
 

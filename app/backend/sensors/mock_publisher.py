@@ -13,6 +13,7 @@ import json
 import logging
 import os
 import random
+import ssl
 import time
 from datetime import datetime, timezone
 
@@ -20,6 +21,10 @@ import paho.mqtt.client as mqtt
 
 MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
+MQTT_TLS = os.environ.get("MQTT_TLS", "false").lower() == "true"
+MQTT_CA_CERT = os.environ.get("MQTT_CA_CERT")
+MQTT_USERNAME = os.environ.get("MQTT_USERNAME")
+MQTT_PASSWORD = os.environ.get("MQTT_PASSWORD")
 INTERVAL = int(os.environ.get("MOCK_INTERVAL", "5"))
 ROOMS = [r.strip() for r in os.environ.get("MOCK_ROOMS", "living_room,bedroom,office").split(",") if r.strip()]
 
@@ -65,6 +70,10 @@ class RoomState:
 
 def main():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    if MQTT_USERNAME:
+        client.username_pw_set(MQTT_USERNAME, MQTT_PASSWORD)
+    if MQTT_TLS:
+        client.tls_set(ca_certs=MQTT_CA_CERT, cert_reqs=ssl.CERT_REQUIRED)
     client.connect(MQTT_HOST, MQTT_PORT)
     client.loop_start()
 

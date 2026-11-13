@@ -1,14 +1,19 @@
 # Local development infrastructure for home-climate-control.
-# Database credentials are NOT stored here — they come from a gitignored .env
-# file in this directory. Copy .env.example to .env and fill it in.
+# Database credentials come from a gitignored .env (copy .env.example to .env).
+# The MQTT broker requires authentication — run mosquitto/setup-auth.sh to create
+# mosquitto/passwd before the first `up`.
 #   docker compose -f docker-compose.dev.yml up -d
 services:
   mosquitto:
     image: eclipse-mosquitto:2
     ports:
-      - "1883:1883"
+      - "127.0.0.1:1883:1883"
+      - "127.0.0.1:8883:8883"
     volumes:
       - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./mosquitto/passwd:/mosquitto/config/passwd:ro
+      - ./mosquitto/acl:/mosquitto/config/acl:ro
+      - ./mosquitto/certs:/mosquitto/config/certs:ro
 
   postgres:
     image: postgres:16
@@ -17,9 +22,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-home_climate}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
 
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"

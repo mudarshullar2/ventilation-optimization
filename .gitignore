@@ -10,3 +10,6 @@ package-lock.json
 .env
 
 .vscode/
+
+app/mosquitto/passwd
+app/mosquitto/certs/
