@@ -374,8 +374,7 @@ class MQTTClient:
                             data_point["time"],
                             data_point["co2"],
                             data_point["temperature"],
-                            data_point["humidity"],
-                            "10c",
+                            data_point["humidity"]
                         ),
                     )
                 self.conn.commit()

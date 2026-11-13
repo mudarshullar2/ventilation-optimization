@@ -2,7 +2,7 @@
 
 ## Overview
 
-This control system is a core part of my thesis and was developed in cooperation with Stadtwerke Potsdam, who provided the sensors. The project is tested in practice at the Schule am Schloss in Potsdam.
+This control system collects data from environmental sensors, analyzes it, and generates ventilation recommendations.
 
 The system collects sensor data, analyzes it, and generates predictions. Results are shown through a web interface for interactive use. It is built with Flask for the web interface and MQTT for data collection.
 

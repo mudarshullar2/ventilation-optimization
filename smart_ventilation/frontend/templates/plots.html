@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Echtzeit-Sensordiagramme</title>
+    <title>Real-Time Sensor Charts</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
         body, html {
@@ -94,7 +94,6 @@
     </style>
 
     <script>
-        // JavaScript zum Aktualisieren der Seite alle 60 Sekunden
         setTimeout(function(){
             location.reload();
         }, 60000);
@@ -102,8 +101,7 @@
 </head>
 <body>
     <header>
-        <h1>Echtzeit-Sensordaten-Diagramme</h1>
-        <h2>Klassenraum 10c</h2>
+        <h1>Real-Time Sensor Data Charts</h1>
     </header>
     <div class="container">
         <div id="co2-plot"></div>
@@ -112,7 +110,7 @@
         <div id="tvoc-plot"></div>
         <div id="ambient-temp-plot"></div>
         <form action="{{ url_for('index') }}" method="GET">
-            <button class="button" type="submit">Zurück zur Hauptseite</button>
+            <button class="button" type="submit">Back to Home</button>
         </form>
     </div>
 
@@ -127,7 +125,7 @@
 
             function plotGraph(plotId, yData, yTitle, highThreshold, lowThreshold, highThresholdLabel, lowThresholdLabel) {
                 if (yData.length === 0 || time_data.length === 0) {
-                    document.getElementById(plotId).innerHTML = `<p>Keine Daten verfügbar für ${yTitle}</p>`;
+                    document.getElementById(plotId).innerHTML = `<p>No data available for ${yTitle}</p>`;
                     return;
                 }
 
@@ -140,7 +138,7 @@
                     y: yData,
                     mode: 'none',
                     type: 'scatter',
-                    name: `${yTitle} (Durchschnitt: ${avgValue}, Minimum: ${minValue}, Maximum: ${maxValue})`,
+                    name: `${yTitle} (Average: ${avgValue}, Minimum: ${minValue}, Maximum: ${maxValue})`,
                     fill: 'tozeroy',
                     fillcolor: 'rgba(173, 216, 230, 0.5)'
                 };
@@ -164,17 +162,17 @@
                 };
 
                 Plotly.newPlot(plotId, [trace, highThresholdLine, lowThresholdLine], {
-                    title: yTitle + ' Diagramm',
-                    xaxis: {title: 'Zeit'},
-                    yaxis: {title: yTitle + ' Werte'}
+                    title: yTitle + ' Chart',
+                    xaxis: {title: 'Time'},
+                    yaxis: {title: yTitle + ' Values'}
                 });
             }
 
-            plotGraph('co2-plot', co2_data, 'CO2', 1000, 500, 'Hoher CO2-Schwellenwert', 'Niedriger CO2-Schwellenwert');
-            plotGraph('temperature-plot', temperature_data, 'Temperatur', 21, 19, 'Hoher Temperaturschwellenwert', 'Niedriger Temperaturschwellenwert');
-            plotGraph('humidity-plot', humidity_data, 'Luftfeuchtigkeit', 60, 30, 'Schwellenwert für hohe Luftfeuchtigkeit', 'Schwelle für niedrige Luftfeuchtigkeit');
-            plotGraph('tvoc-plot', tvoc_data, 'TVOC', 500, 200, 'Hoher TVOC-Schwellenwert', 'Niedriger TVOC-Schwellenwert');
-            plotGraph('ambient-temp-plot', ambient_temp_data, 'Außentemperatur', 25, 15, 'Hoher Außentemperaturschwellenwert', 'Niedriger Außentemperaturschwellenwert');
+            plotGraph('co2-plot', co2_data, 'CO2', 1000, 500, 'High CO2 Threshold', 'Low CO2 Threshold');
+            plotGraph('temperature-plot', temperature_data, 'Temperature', 21, 19, 'High Temperature Threshold', 'Low Temperature Threshold');
+            plotGraph('humidity-plot', humidity_data, 'Humidity', 60, 30, 'High Humidity Threshold', 'Low Humidity Threshold');
+            plotGraph('tvoc-plot', tvoc_data, 'TVOC', 500, 200, 'High TVOC Threshold', 'Low TVOC Threshold');
+            plotGraph('ambient-temp-plot', ambient_temp_data, 'Outdoor Temperature', 25, 15, 'High Outdoor Temperature Threshold', 'Low Outdoor Temperature Threshold');
         });
 
         function calculateAverage(data) {

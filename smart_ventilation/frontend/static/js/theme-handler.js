@@ -12,6 +12,6 @@ function setTheme(themeName) {
 }
 
 (function () {
-    const savedTheme = localStorage.getItem('theme') || 'theme-light'; // Standardmäßig hell 
+    const savedTheme = localStorage.getItem('theme') || 'theme-light';
     setTheme(savedTheme);
 })();
