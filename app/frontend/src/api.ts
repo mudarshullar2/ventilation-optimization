@@ -1,5 +1,11 @@
 import type { Room, HistoryPoint } from './types'
 
+export interface Me {
+  authenticated: boolean
+  username?: string
+  role?: string
+}
+
 let csrf: string | null = null
 
 async function getCsrf(): Promise<string> {
@@ -8,6 +14,30 @@ async function getCsrf(): Promise<string> {
   const d = await r.json()
   csrf = d.csrf_token as string
   return csrf
+}
+
+export async function fetchMe(): Promise<Me> {
+  const r = await fetch('/api/me')
+  return (await r.json()) as Me
+}
+
+export async function login(username: string, password: string): Promise<void> {
+  const token = await getCsrf()
+  const r = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': token },
+    body: JSON.stringify({ username, password }),
+  })
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}))
+    throw new Error((d as { error?: string }).error || 'Login failed')
+  }
+}
+
+export async function logout(): Promise<void> {
+  const token = await getCsrf()
+  await fetch('/api/logout', { method: 'POST', headers: { 'X-CSRFToken': token } })
+  csrf = null
 }
 
 export async function fetchRooms(): Promise<Room[]> {

@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/constants.ts","./src/main.tsx","./src/types.ts","./src/components/historyview.tsx","./src/components/insightspanel.tsx","./src/components/login.tsx","./src/components/metrictile.tsx","./src/components/radiatorcontrol.tsx","./src/components/roomcard.tsx"],"version":"5.9.3"}
