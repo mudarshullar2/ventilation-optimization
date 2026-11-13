@@ -8,6 +8,11 @@ from flask import (
     request,
     session,
 )
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+import hmac
+from functools import wraps
 import logging
 import requests
 from datetime import datetime, timedelta
@@ -35,6 +40,14 @@ app.config["SESSION_REDIS"] = redis.from_url(
     os.environ.get("REDIS_URL", "redis://localhost:6379")
 )
 
+csrf = CSRFProtect(app)
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri=os.environ.get("REDIS_URL", "memory://"),
+)
+
 config_file_path = "config/api_config.yaml"
 
 api_config = load_api_config(config_file_path)
@@ -56,6 +69,26 @@ app.config.from_object(Config())
 scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
+
+def require_basic_auth(view):
+    @wraps(view)
+    def wrapper(*args, **kwargs):
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.lower().startswith("basic "):
+            try:
+                decoded = base64.b64decode(auth_header.split(" ", 1)[1]).decode("utf-8")
+                user, _, pw = decoded.partition(":")
+            except Exception:
+                user, pw = "", ""
+            if (hmac.compare_digest(user, os.environ["BASIC_AUTH_USER"])
+                    and hmac.compare_digest(pw, os.environ["BASIC_AUTH_PASS"])):
+                return view(*args, **kwargs)
+        return make_response(
+            "verification failed",
+            401,
+            {"WWW-Authenticate": 'Basic realm="login is required!"'},
+        )
+    return wrapper
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -439,6 +472,8 @@ def leaderboard():
 
 
 @app.route("/future_data/<timestamp>")
+@require_basic_auth
+@limiter.limit("10 per minute")
 def get_future_data(timestamp):
     try:
         auth_header = request.headers.get("Authorization")
@@ -505,6 +540,8 @@ def get_future_data(timestamp):
 
 
 @app.route("/save_analysis_data", methods=["POST"])
+@require_basic_auth
+@csrf.exempt
 def save_analysis_data():
     try:
         data = request.json
@@ -539,6 +576,7 @@ def save_analysis_data():
 
 
 @app.route("/clear_session")
+@require_basic_auth
 def clear_session():
     try:
         session.clear()
@@ -549,6 +587,8 @@ def clear_session():
 
 
 @app.route("/clear-predictions", methods=["POST"])
+@require_basic_auth
+@csrf.exempt
 def clear_predictions_route():
     try:
         mqtt_client.clear_predictions()
@@ -559,6 +599,7 @@ def clear_predictions_route():
 
 
 @app.route("/latest_data", methods=["GET"])
+@require_basic_auth
 def get_latest_data():
     latest_data = {
         "time": mqtt_client.latest_time,
