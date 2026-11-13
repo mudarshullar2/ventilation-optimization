@@ -331,7 +331,7 @@ class MQTTClient:
                 self.data_points.clear()
                 self.combined_data.clear()
                 self.latest_predictions.clear()
-                logging.info(f"data cleared at {clear_time.strftime('%H:%M Uhr')}")
+                logging.info(f"data cleared at {clear_time.strftime('%H:%M')}")
         except Exception as e:
             logging.error("clear_data: error while deleting the data %s", e)
 
@@ -409,7 +409,7 @@ class MQTTClient:
                     ]
                 ):
                     query = """
-                        INSERT INTO feedback_tabelle
+                        INSERT INTO feedback
                         (temperature, humidity, co2, timestamp, outdoor_temperature, accurate_prediction)
                         VALUES (%s, %s, %s, %s, %s, %s)
                     """

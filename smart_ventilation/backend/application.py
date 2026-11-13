@@ -476,32 +476,7 @@ def leaderboard():
 @limiter.limit("10 per minute")
 def get_future_data(timestamp):
     try:
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            auth_type, auth_credentials = auth_header.split(" ", 1)
-            if auth_type.lower() == "basic":
-                benutzername, passwort = (
-                    base64.b64decode(auth_credentials).decode("utf-8").split(":", 1)
-                )
-                if benutzername != "admin" or passwort != "REDACTED":
-                    return make_response(
-                        "verification failed",
-                        401,
-                        {"WWW-Authenticate": 'Basic realm="login is required!"'},
-                    )
-            else:
-                return make_response(
-                    "verification failed",
-                    401,
-                    {"WWW-Authenticate": 'Basic realm="login is required!"'},
-                )
-        else:
-            return make_response(
-                "verification failed",
-                401,
-                {"WWW-Authenticate": 'Basic realm="login is required!"'},
-            )
-
+        
         timestamp_dt = datetime.strptime(timestamp, "%Y-%m-%d %H:%M")
         future_timestamp_dt = timestamp_dt + timedelta(minutes=5)
         future_timestamp_str = future_timestamp_dt.strftime("%Y-%m-%d %H:%M")
