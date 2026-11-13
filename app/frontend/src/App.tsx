@@ -58,14 +58,14 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-10 border-b border-black/5 bg-white/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3">
-          <div className="flex gap-2">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:px-6">
+          <div className="hidden gap-2 sm:flex">
             <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
             <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
             <span className="h-3 w-3 rounded-full bg-[#28c840]" />
           </div>
-          <h1 className="flex-1 text-sm font-semibold tracking-tight">Home Climate Control</h1>
-          <div className="inline-flex items-center rounded-full bg-black/5 p-0.5 text-sm">
+          <h1 className="text-sm font-semibold tracking-tight">Home Climate Control</h1>
+          <div className="ml-auto inline-flex items-center rounded-full bg-black/5 p-0.5 text-sm">
             <button className={seg(tab === 'dashboard')} onClick={() => setTab('dashboard')}>Dashboard</button>
             <button className={seg(tab === 'history')} onClick={() => setTab('history')}>History</button>
           </div>
@@ -74,7 +74,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-6 sm:py-8">
         {error && (
           <div className="mb-4 rounded-2xl border border-red-200 bg-red-50/80 p-3 text-sm text-red-700 backdrop-blur">
             {error}
