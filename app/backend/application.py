@@ -1,42 +1,37 @@
-import base64
-from flask import (
-    Flask,
-    jsonify,
-    make_response,
-    render_template,
-    request,
-)
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFProtect
-import hmac
-from functools import wraps
+"""Flask JSON API for the home-climate-control system.
+
+Serves JSON for the React SPA and, in production, the built static bundle.
+Endpoints:
+    GET  /api/rooms                 latest readings + status + insight + radiator per room
+    GET  /api/history?room=&hours=  per-room time series
+    POST /api/radiator/<room>/set   set a room's target temperature (CSRF-protected)
+    GET  /api/csrf-token            CSRF token for the SPA to send on POSTs
+"""
 import logging
 import os
-import time
+
+from flask import Flask, jsonify, request, send_from_directory
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect, generate_csrf
 
 from mqtt_client import MQTTClient
 from database.db import Database
-from sensors.models import METRICS, METRIC_META, classify
+from sensors.models import METRICS, classify
 from control.models import clamp_target
 
 logging.basicConfig(level=logging.INFO)
 base_dir = os.path.abspath(os.path.dirname(__file__))
-frontend_dir = os.path.join(base_dir, "..", "frontend")
+dist_dir = os.path.join(base_dir, "..", "frontend", "dist")
 
-app = Flask(
-    __name__,
-    template_folder=os.path.join(frontend_dir, "templates"),
-    static_folder=os.path.join(frontend_dir, "static"),
-)
-
+app = Flask(__name__, static_folder=None)
 app.config["SECRET_KEY"] = os.environ["FLASK_SECRET_KEY"]
 
 csrf = CSRFProtect(app)
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"],
+    default_limits=["1000 per day", "200 per hour"],
     storage_uri=os.environ.get("REDIS_URL", "memory://"),
 )
 
@@ -45,95 +40,47 @@ mqtt_client = MQTTClient(db=db)
 mqtt_client.initialize()
 
 
-def require_basic_auth(view):
-    @wraps(view)
-    def wrapper(*args, **kwargs):
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.lower().startswith("basic "):
-            try:
-                decoded = base64.b64decode(auth_header.split(" ", 1)[1]).decode("utf-8")
-                user, _, pw = decoded.partition(":")
-            except Exception:
-                user, pw = "", ""
-            if (hmac.compare_digest(user, os.environ["BASIC_AUTH_USER"])
-                    and hmac.compare_digest(pw, os.environ["BASIC_AUTH_PASS"])):
-                return view(*args, **kwargs)
-        return make_response(
-            "verification failed",
-            401,
-            {"WWW-Authenticate": 'Basic realm="login is required!"'},
-        )
-    return wrapper
+@app.route("/api/csrf-token")
+def csrf_token():
+    # The SPA fetches this once and sends it back as the X-CSRFToken header on POSTs.
+    return jsonify({"csrf_token": generate_csrf()})
 
 
-def _with_status(rooms):
-    """Attach a per-metric good/moderate/poor status to each room reading."""
-    for room in rooms:
-        room["status"] = {m: classify(m, room.get(m)) for m in METRICS}
-    return rooms
-
-
-@app.route("/")
-def index():
+@app.route("/api/rooms")
+def api_rooms():
     try:
-        rooms = db.latest_per_room()
-        if not rooms:
-            # Fall back to in-memory latest if the DB has no rows yet.
-            rooms = list(mqtt_client.latest.values())
-        rooms = _with_status(sorted(rooms, key=lambda r: r.get("room", "")))
+        readings = db.latest_per_room() or list(mqtt_client.latest.values())
         insights = db.latest_insights_per_room()
-        radiators = db.latest_radiator_per_room()
-        if not radiators:
-            radiators = mqtt_client.latest_radiator
+        radiators = db.latest_radiator_per_room() or mqtt_client.latest_radiator
 
-        response = make_response(
-            render_template(
-                "index.html",
-                rooms=rooms,
-                insights=insights,
-                radiators=radiators,
-                metrics=METRICS,
-                metric_meta=METRIC_META,
-                version=time.time(),
-            )
-        )
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
-        return response
+        rooms = []
+        for r in sorted(readings, key=lambda x: x.get("room", "")):
+            room = r.get("room")
+            rooms.append({
+                "room": room,
+                "timestamp": r.get("timestamp"),
+                "readings": {m: r.get(m) for m in METRICS},
+                "status": {m: classify(m, r.get(m)) for m in METRICS},
+                "insight": insights.get(room),
+                "radiator": radiators.get(room),
+            })
+        return jsonify({"rooms": rooms})
     except Exception as e:
-        logging.error("error in index(): %s", e)
-        return "error while processing your request", 500
+        logging.error("api_rooms failed: %s", e)
+        return jsonify({"error": "internal error"}), 500
 
 
-@app.route("/plots")
-def plots():
-    try:
-        rooms = db.rooms()
-        room = request.args.get("room") or (rooms[0] if rooms else None)
-        history = db.history(room, hours=24) if room else []
-        return render_template(
-            "plots.html",
-            rooms=rooms,
-            room=room,
-            history=history,
-            metrics=METRICS,
-            metric_meta=METRIC_META,
-        )
-    except Exception as e:
-        logging.error("error in plots(): %s", e)
-        return "an error has occurred", 500
-
-
-@app.route("/latest_data", methods=["GET"])
-@require_basic_auth
-def latest_data():
-    return jsonify(list(mqtt_client.latest.values()))
+@app.route("/api/history")
+def api_history():
+    room = request.args.get("room")
+    hours = request.args.get("hours", default=24, type=int)
+    if not room:
+        return jsonify({"error": "room required"}), 400
+    return jsonify({"room": room, "history": db.history(room, hours=hours)})
 
 
 @app.route("/api/radiator/<room>/set", methods=["POST"])
 def set_radiator(room):
-    """Set a room's target temperature. CSRF-protected (same-origin dashboard)."""
     data = request.get_json(silent=True) or {}
     target = data.get("target_temp")
     if target is None:
@@ -146,9 +93,19 @@ def set_radiator(room):
     return jsonify({"room": room, "target_temp": target}), 200
 
 
-@app.route("/contact")
-def contact():
-    return render_template("contact.html")
+# --- Serve the built SPA in production (dev uses the Vite dev server) ---
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_spa(path):
+    if not os.path.isdir(dist_dir):
+        return (
+            "Frontend not built. Run the Vite dev server (npm run dev) or `npm run build`.",
+            200,
+        )
+    full = os.path.join(dist_dir, path)
+    if path and os.path.isfile(full):
+        return send_from_directory(dist_dir, path)
+    return send_from_directory(dist_dir, "index.html")
 
 
 if __name__ == "__main__":
