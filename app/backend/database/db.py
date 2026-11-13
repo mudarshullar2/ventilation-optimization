@@ -169,7 +169,7 @@ class Database:
         try:
             with self.conn.cursor() as cur:
                 cur.execute(
-                    "SELECT id, username, password_hash, role FROM users WHERE username = %s",
+                    "SELECT id, username, password_hash, role FROM users WHERE lower(username) = lower(%s)",
                     (username,),
                 )
                 r = cur.fetchone()
