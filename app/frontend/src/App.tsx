@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { Room } from './types'
-import { fetchRooms } from './api'
+import { fetchRooms, fetchMe, logout, type Me } from './api'
 import { RoomCard } from './components/RoomCard'
 import { HistoryView } from './components/HistoryView'
+import { Login } from './components/Login'
 
 type Tab = 'dashboard' | 'history'
 
@@ -13,9 +14,14 @@ function seg(active: boolean) {
 }
 
 export default function App() {
+  const [me, setMe] = useState<Me | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
   const [tab, setTab] = useState<Tab>('dashboard')
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchMe().then(setMe).catch(() => setMe({ authenticated: false }))
+  }, [])
 
   async function load() {
     try {
@@ -27,12 +33,27 @@ export default function App() {
   }
 
   useEffect(() => {
+    if (!me?.authenticated) return
     load()
     const id = setInterval(load, 15000)
     return () => clearInterval(id)
-  }, [])
+  }, [me])
+
+  if (me === null) {
+    return <div className="flex min-h-screen items-center justify-center text-slate-400">Loading…</div>
+  }
+
+  if (!me.authenticated) {
+    return <Login onSuccess={() => fetchMe().then(setMe)} />
+  }
 
   const roomNames = rooms.map((r) => r.room)
+
+  async function doLogout() {
+    await logout()
+    setMe({ authenticated: false })
+    setRooms([])
+  }
 
   return (
     <div className="min-h-screen">
@@ -48,6 +69,8 @@ export default function App() {
             <button className={seg(tab === 'dashboard')} onClick={() => setTab('dashboard')}>Dashboard</button>
             <button className={seg(tab === 'history')} onClick={() => setTab('history')}>History</button>
           </div>
+          <span className="text-sm text-slate-500">{me.username}</span>
+          <button onClick={doLogout} className="text-sm text-blue-600 hover:text-blue-700">Sign out</button>
         </div>
       </header>
 

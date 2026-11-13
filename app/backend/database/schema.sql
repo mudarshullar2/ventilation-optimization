@@ -37,3 +37,22 @@ CREATE TABLE IF NOT EXISTS radiator_state (
     mode         TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_radiator_room_ts ON radiator_state (room, ts DESC);
+
+-- Application users (login). Passwords are stored hashed; never plaintext.
+CREATE TABLE IF NOT EXISTS users (
+    id            BIGSERIAL PRIMARY KEY,
+    username      TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role          TEXT NOT NULL DEFAULT 'user',
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Audit trail: login/logout and control actions (who did what, when).
+CREATE TABLE IF NOT EXISTS audit_log (
+    id       BIGSERIAL PRIMARY KEY,
+    ts       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    username TEXT,
+    action   TEXT NOT NULL,
+    detail   JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_audit_ts ON audit_log (ts DESC);

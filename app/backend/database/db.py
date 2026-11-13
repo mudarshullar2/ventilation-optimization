@@ -123,6 +123,96 @@ class Database:
             logging.error("rooms failed: %s", e)
             return []
 
+    def insert_audit(self, username, action, detail=None):
+        if not self._ensure():
+            return
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO audit_log (username, action, detail) VALUES (%s, %s, %s)",
+                    (username, action, Json(detail or {})),
+                )
+            self.conn.commit()
+        except Exception as e:
+            logging.error("insert_audit failed: %s", e)
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+
+    def recent_audit(self, limit=200):
+        if not self._ensure():
+            return []
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "SELECT ts, username, action, detail FROM audit_log ORDER BY ts DESC LIMIT %s",
+                    (limit,),
+                )
+                rows = cur.fetchall()
+            return [
+                {
+                    "ts": r[0].isoformat() if r[0] else None,
+                    "username": r[1],
+                    "action": r[2],
+                    "detail": r[3] or {},
+                }
+                for r in rows
+            ]
+        except Exception as e:
+            logging.error("recent_audit failed: %s", e)
+            return []
+
+    def get_user_by_username(self, username):
+        if not self._ensure():
+            return None
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    "SELECT id, username, password_hash, role FROM users WHERE username = %s",
+                    (username,),
+                )
+                r = cur.fetchone()
+            return {"id": r[0], "username": r[1], "password_hash": r[2], "role": r[3]} if r else None
+        except Exception as e:
+            logging.error("get_user_by_username failed: %s", e)
+            return None
+
+    def get_user_by_id(self, user_id):
+        if not self._ensure():
+            return None
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute("SELECT id, username, role FROM users WHERE id = %s", (user_id,))
+                r = cur.fetchone()
+            return {"id": r[0], "username": r[1], "role": r[2]} if r else None
+        except Exception as e:
+            logging.error("get_user_by_id failed: %s", e)
+            return None
+
+    def upsert_user(self, username, password_hash, role):
+        if not self._ensure():
+            raise RuntimeError("no database connection")
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO users (username, password_hash, role)
+                    VALUES (%s, %s, %s)
+                    ON CONFLICT (username)
+                    DO UPDATE SET password_hash = EXCLUDED.password_hash, role = EXCLUDED.role
+                    """,
+                    (username, password_hash, role),
+                )
+            self.conn.commit()
+        except Exception as e:
+            logging.error("upsert_user failed: %s", e)
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+            raise
+
     def insert_radiator_state(self, state):
         if not self._ensure():
             logging.error("insert_radiator_state: no database connection")
