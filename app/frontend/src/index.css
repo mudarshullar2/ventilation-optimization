@@ -10,5 +10,6 @@ body {
   -webkit-font-smoothing: antialiased;
   background: linear-gradient(180deg, #f6f7fb 0%, #eceef3 100%);
   background-attachment: fixed;
+  overflow-x: hidden;
   color: #1d1d1f;
 }

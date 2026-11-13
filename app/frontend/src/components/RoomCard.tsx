@@ -6,7 +6,7 @@ import { RadiatorControl } from './RadiatorControl'
 
 export function RoomCard({ room }: { room: Room }) {
   return (
-    <div className="mb-6 rounded-2xl border border-black/5 bg-white/70 p-5 shadow-sm backdrop-blur-xl">
+    <div className="mb-6 rounded-2xl border border-black/5 bg-white/70 p-4 shadow-sm sm:p-5 backdrop-blur-xl">
       <h2 className="mb-4 text-[15px] font-semibold capitalize tracking-tight">{room.room.replace(/_/g, ' ')}</h2>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {METRICS.map((m) => (

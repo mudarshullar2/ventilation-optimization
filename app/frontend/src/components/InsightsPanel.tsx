@@ -20,12 +20,12 @@ export function InsightsPanel({ insight }: { insight: Insight }) {
           ⚠ {METRIC_META[m].label} anomaly
         </span>
       ))}
-      <div className="text-sm text-slate-600">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-600">
         {METRICS.map((m) => {
           const f = insight.forecast?.[m]
           if (!f) return null
           return (
-            <span key={m} className="mr-4 whitespace-nowrap">
+            <span key={m} className="whitespace-nowrap">
               {METRIC_META[m].label}: {ARROW[f.trend]} {f.predicted} {METRIC_META[m].unit}{' '}
               <span className="text-slate-300">(+{f.horizon_min}m)</span>
             </span>
