@@ -29,6 +29,12 @@
         .unknown { background: var(--unknown-bg); border-color: var(--unknown); color: var(--unknown); }
         .nav a { margin-right: 16px; color: #1a73e8; text-decoration: none; font-size: 14px; }
         .empty { color: #5b6472; }
+        .insights { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e3e8ef; }
+        .insights .heading { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #5b6472; margin-bottom: 6px; }
+        .forecast { font-size: 13px; color: #1b1f24; }
+        .forecast span { margin-right: 14px; white-space: nowrap; }
+        .summary { font-size: 13px; color: #33404f; margin-top: 8px; font-style: italic; }
+        .badge { display: inline-block; font-size: 11px; font-weight: 600; color: var(--poor); background: var(--poor-bg); border: 1px solid var(--poor); border-radius: 6px; padding: 1px 7px; margin: 0 6px 4px 0; }
     </style>
     <script>
         // Server renders the latest readings; refresh periodically.
@@ -60,6 +66,36 @@
                     </div>
                     {% endfor %}
                 </div>
+                {% set ins = insights.get(room.room) %}
+                {% if ins %}
+                <div class="insights">
+                    <div class="heading">Insights</div>
+                    {% set anomalous = [] %}
+                    {% for m in metrics %}
+                        {% if ins.anomalies.get(m) and ins.anomalies[m].get('anomaly') %}
+                            {% set _ = anomalous.append(metric_meta[m][0]) %}
+                        {% endif %}
+                    {% endfor %}
+                    {% for name in anomalous %}
+                        <span class="badge">&#9888; {{ name }} anomaly</span>
+                    {% endfor %}
+                    {% if ins.forecast %}
+                    <div class="forecast">
+                        {% for m in metrics %}
+                            {% if ins.forecast.get(m) %}
+                                {% set f = ins.forecast[m] %}
+                                <span>
+                                    {{ metric_meta[m][0] }}:
+                                    {% if f.trend == 'rising' %}&#8599;{% elif f.trend == 'falling' %}&#8600;{% else %}&#8594;{% endif %}
+                                    {{ f.predicted }} {{ metric_meta[m][1] }} <small>(+{{ f.horizon_min }}m)</small>
+                                </span>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% if ins.summary %}<div class="summary">{{ ins.summary }}</div>{% endif %}
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         {% else %}

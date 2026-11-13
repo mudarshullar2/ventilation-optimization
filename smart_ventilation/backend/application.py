@@ -80,11 +80,13 @@ def index():
             # Fall back to in-memory latest if the DB has no rows yet.
             rooms = list(mqtt_client.latest.values())
         rooms = _with_status(sorted(rooms, key=lambda r: r.get("room", "")))
+        insights = db.latest_insights_per_room()
 
         response = make_response(
             render_template(
                 "index.html",
                 rooms=rooms,
+                insights=insights,
                 metrics=METRICS,
                 metric_meta=METRIC_META,
                 version=time.time(),

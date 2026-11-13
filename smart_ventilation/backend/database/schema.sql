@@ -14,3 +14,14 @@ CREATE TABLE IF NOT EXISTS readings (
 
 -- Fast "latest per room" and per-room history queries.
 CREATE INDEX IF NOT EXISTS idx_readings_room_ts ON readings (room, ts DESC);
+
+-- AI insights: one row per room per worker run (forecast, anomaly flags, NL summary).
+CREATE TABLE IF NOT EXISTS insights (
+    id           BIGSERIAL PRIMARY KEY,
+    generated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    room         TEXT        NOT NULL,
+    forecast     JSONB,
+    anomalies    JSONB,
+    summary      TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_insights_room_ts ON insights (room, generated_at DESC);
