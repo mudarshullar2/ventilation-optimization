@@ -6,3 +6,7 @@ api_config.yaml
 db_config.yaml
 node_modules/
 package-lock.json
+
+.env
+
+.vscode/

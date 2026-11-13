@@ -6,6 +6,12 @@ import { HistoryView } from './components/HistoryView'
 
 type Tab = 'dashboard' | 'history'
 
+function seg(active: boolean) {
+  return active
+    ? 'rounded-full bg-white px-3.5 py-1 font-medium text-slate-900 shadow-sm'
+    : 'rounded-full px-3.5 py-1 text-slate-500 hover:text-slate-700'
+}
+
 export default function App() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -29,28 +35,33 @@ export default function App() {
   const roomNames = rooms.map((r) => r.room)
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b border-slate-200 bg-white px-6 py-5">
-        <h1 className="text-xl font-semibold">Home Climate Control</h1>
-        <p className="mt-1 text-sm text-slate-500">Live indoor air quality and heating, per room</p>
-        <nav className="mt-3 flex gap-4 text-sm">
-          <button onClick={() => setTab('dashboard')} className={tab === 'dashboard' ? 'font-semibold' : 'text-blue-600'}>
-            Dashboard
-          </button>
-          <button onClick={() => setTab('history')} className={tab === 'history' ? 'font-semibold' : 'text-blue-600'}>
-            History
-          </button>
-        </nav>
+    <div className="min-h-screen">
+      <header className="sticky top-0 z-10 border-b border-black/5 bg-white/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-6 py-3">
+          <div className="flex gap-2">
+            <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+            <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+            <span className="h-3 w-3 rounded-full bg-[#28c840]" />
+          </div>
+          <h1 className="flex-1 text-sm font-semibold tracking-tight">Home Climate Control</h1>
+          <div className="inline-flex items-center rounded-full bg-black/5 p-0.5 text-sm">
+            <button className={seg(tab === 'dashboard')} onClick={() => setTab('dashboard')}>Dashboard</button>
+            <button className={seg(tab === 'history')} onClick={() => setTab('history')}>History</button>
+          </div>
+        </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-6">
+
+      <main className="mx-auto max-w-5xl px-6 py-8">
         {error && (
-          <div className="mb-4 rounded-md border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</div>
+          <div className="mb-4 rounded-2xl border border-red-200 bg-red-50/80 p-3 text-sm text-red-700 backdrop-blur">
+            {error}
+          </div>
         )}
         {tab === 'dashboard' ? (
           rooms.length ? (
             rooms.map((r) => <RoomCard key={r.room} room={r} />)
           ) : (
-            <p className="text-slate-500">Waiting for sensor data…</p>
+            <p className="text-slate-400">Waiting for sensor data…</p>
           )
         ) : (
           <HistoryView rooms={roomNames} />

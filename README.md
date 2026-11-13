@@ -1,6 +1,6 @@
 # Home Climate Control
 
-A self-hosted system for **monitoring indoor air quality and controlling heating** across the rooms of a home. Sensors publish readings over MQTT; the system stores them, forecasts short-term trends, flags anomalies, generates plain-language summaries with a local LLM, and controls smart radiator valves (TRVs) — all from a single web dashboard.
+A self-hosted system for **monitoring indoor air quality and controlling heating** across the rooms of a home. Sensors publish readings over MQTT; the system stores them, forecasts short-term trends, flags anomalies, generates plain-language summaries with a local LLM, and controls smart radiator valves (TRVs). A React single-page app consumes the backend's JSON API.
 
 It is hardware-agnostic: a mock sensor publisher and a mock radiator let the entire pipeline run and be developed without any physical devices. Real ESPHome / Zigbee hardware publishes to the same MQTT topics, so swapping it in requires no application changes.
 
@@ -8,21 +8,16 @@ It is hardware-agnostic: a mock sensor publisher and a mock radiator let the ent
 
 ## Overview
 
-The system is built from decoupled services communicating over an MQTT broker and a PostgreSQL database:
-
-- **Sensors** publish air-quality readings (CO₂, PM2.5, VOC, temperature, humidity) per room.
-- **Radiator valves (TRVs)** publish their state (current temperature, target, valve position) and accept target-temperature commands.
-- An **ingestion client** persists readings and radiator state, and publishes radiator commands.
-- A **Flask web app** serves the dashboard and a control API.
-- An **AI worker** periodically computes forecasts, anomaly flags, and a natural-language summary, written back to the database.
+The system is built from decoupled services communicating over an MQTT broker and a PostgreSQL database, with a React SPA on top of a Flask JSON API:
 
 ```mermaid
 flowchart LR
+    SPA["React SPA (Vite)"] -->|"/api/..."| APP["Flask API"]
     S["Air-quality sensors"] -->|"home/{room}/airquality"| B(("MQTT broker"))
     T["Radiator TRVs"] -->|"home/{room}/radiator/state"| B
     B -->|subscribe| M["Ingestion client"]
     M --> DB[("PostgreSQL")]
-    APP["Flask app + dashboard"] --> DB
+    APP --> DB
     APP -->|"home/{room}/radiator/set"| B
     B --> T
     W["AI worker"] -->|"forecast / anomaly / summary"| DB
@@ -39,6 +34,7 @@ flowchart LR
 - Optional **natural-language summaries** via a local LLM (Ollama) — no external API, no cost; degrades gracefully when unavailable.
 - **Radiator control**: set a target temperature per room from the dashboard; the system publishes the command and tracks valve state.
 - 24-hour per-room history charts.
+- **React SPA** with a macOS-style interface.
 - **Mock sensor and mock radiator** for full local development without hardware.
 - Local development stack (broker, database, cache) via Docker Compose.
 
@@ -46,14 +42,14 @@ flowchart LR
 
 ## Tech stack
 
-| Layer            | Technology                                             |
-|------------------|--------------------------------------------------------|
-| Web app / API    | Flask, Flask-WTF (CSRF), Flask-Limiter                 |
-| Messaging        | MQTT (Eclipse Mosquitto), paho-mqtt                    |
-| Storage          | PostgreSQL (psycopg2)                                   |
-| Rate-limit store | Redis                                                   |
-| AI / analytics   | NumPy, scikit-learn, Ollama (local LLM, optional)      |
-| Frontend         | Server-rendered templates, Plotly (history charts)     |
+| Layer            | Technology                                              |
+|------------------|---------------------------------------------------------|
+| Frontend         | React, Vite, TypeScript, Tailwind CSS, Recharts         |
+| Web API          | Flask, Flask-WTF (CSRF), Flask-Limiter                  |
+| Messaging        | MQTT (Eclipse Mosquitto), paho-mqtt                     |
+| Storage          | PostgreSQL (psycopg2)                                    |
+| Rate-limit store | Redis                                                    |
+| AI / analytics   | NumPy, scikit-learn, Ollama (local LLM, optional)       |
 
 ---
 
@@ -61,27 +57,21 @@ flowchart LR
 
 ```
 app/
-├── docker-compose.dev.yml      # local broker + Postgres + Redis
+├── docker-compose.dev.yml      # local broker + Postgres + Redis (credentials from .env)
+├── .env.example                # template for the gitignored .env
 ├── mosquitto/mosquitto.conf    # broker config (dev)
 ├── backend/
-│   ├── application.py          # Flask app: dashboard, history, control API
+│   ├── application.py          # Flask JSON API; serves the built SPA in production
 │   ├── mqtt_client.py          # ingestion (readings + radiator state) + command publish
-│   ├── sensors/
-│   │   ├── models.py           # SensorReading model + status classification
-│   │   └── mock_publisher.py   # mock air-quality sensors
-│   ├── control/
-│   │   ├── models.py           # RadiatorState model
-│   │   └── mock_radiator.py    # mock TRV (heating simulation)
-│   ├── ai/
-│   │   ├── forecasting.py      # per-metric trend forecast
-│   │   ├── anomaly.py          # IsolationForest anomaly detection
-│   │   ├── summary.py          # local LLM summary (Ollama)
-│   │   └── worker.py           # periodic AI insights worker
-│   └── database/
-│       ├── schema.sql          # readings, insights, radiator_state tables
-│       ├── db.py               # data access
-│       └── database_connection.py
-└── frontend/templates/         # dashboard, history, contact
+│   ├── sensors/                # SensorReading model + mock air-quality publisher
+│   ├── control/                # RadiatorState model + mock TRV
+│   ├── ai/                     # forecasting, anomaly detection, LLM summary, worker
+│   └── database/               # schema.sql, data access
+└── frontend/                   # React + Vite + TypeScript + Tailwind SPA
+    └── src/
+        ├── App.tsx
+        ├── api.ts
+        └── components/         # RoomCard, MetricTile, InsightsPanel, RadiatorControl, HistoryView
 ```
 
 ---
@@ -89,6 +79,7 @@ app/
 ## Prerequisites
 
 - Python 3.10+
+- Node.js 18+
 - Docker (for the local broker, database, and cache)
 - Optional: [Ollama](https://ollama.com) with a small model (e.g. `llama3.2:3b`) for natural-language summaries
 
@@ -96,38 +87,40 @@ app/
 
 ## Running locally
 
-All commands are run from the `app/` directory unless noted.
+All backend commands run from `app/backend`; infrastructure commands from `app/`.
 
-### 1. Start infrastructure
+### 1. Configure credentials
 
-```bash
-docker compose -f docker-compose.dev.yml up -d
-```
-
-This starts Mosquitto (`:1883`), PostgreSQL (`:5432`), and Redis (`:6379`).
-
-### 2. Create the database schema
+Copy the template to a gitignored `.env` (used by Docker Compose for Postgres):
 
 ```bash
-docker compose -f docker-compose.dev.yml exec -T postgres \
-  psql -U postgres -d ventilation < backend/database/schema.sql
+cd app
+cp .env.example .env
+# edit .env: set POSTGRES_PASSWORD, POSTGRES_DB=home_climate
 ```
 
-### 3. Configure the database connection
-
-Create `backend/config/db_config.yaml` (gitignored):
+Create `app/backend/config/db_config.yaml` (also gitignored) with matching values:
 
 ```yaml
 DATABASES:
   default:
-    NAME: "ventilation"
+    NAME: "home_climate"
     USER: "postgres"
-    PASSWORD: "postgres"
+    PASSWORD: "postgres"   # must equal POSTGRES_PASSWORD in .env
     HOST: "localhost"
     PORT: "5432"
 ```
 
-### 4. Install dependencies
+### 2. Start infrastructure and load the schema
+
+```bash
+cd app
+docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml exec -T postgres \
+  psql -U postgres -d home_climate < backend/database/schema.sql
+```
+
+### 3. Install Python dependencies
 
 ```bash
 cd backend
@@ -135,43 +128,66 @@ pip install -r requirements.txt
 pip install -r ai/requirements.txt   # for the AI worker
 ```
 
-### 5. Run the application
+### 4. Run the backend API
 
 ```bash
 export FLASK_SECRET_KEY="$(python -c 'import secrets; print(secrets.token_hex(32))')"
 export REDIS_URL="redis://localhost:6379"
-export BASIC_AUTH_USER="admin"
-export BASIC_AUTH_PASS="change-me"
 python application.py
 ```
 
-The dashboard is served at `http://localhost:8000`.
+The API is served at `http://localhost:8000`.
 
-### 6. Run the mock data sources (no hardware required)
+### 5. Run the mock data sources (no hardware required)
 
-In separate terminals, from `backend/`:
+In separate terminals, from `app/backend`:
 
 ```bash
 python -m sensors.mock_publisher    # air-quality readings
 python -m control.mock_radiator     # radiator (TRV) simulation
 ```
 
-### 7. Run the AI worker (optional)
+### 6. Run the AI worker (optional)
 
 ```bash
-# Ensure Ollama is running for summaries (optional): ollama serve
+# Ollama running for summaries (optional): the worker skips them if it is not
 python -m ai.worker
 ```
+
+### 7. Run the frontend
+
+```bash
+cd app/frontend
+npm install
+npm run dev     # Vite dev server at http://localhost:5173, proxies /api to :8000
+```
+
+For a production-style run, build the SPA and let Flask serve it at `http://localhost:8000`:
+
+```bash
+cd app/frontend && npm run build
+```
+
+---
+
+## API endpoints
+
+| Method | Path                          | Purpose                                            |
+|--------|-------------------------------|----------------------------------------------------|
+| GET    | `/api/rooms`                  | Latest readings, status, insight, radiator per room |
+| GET    | `/api/history?room=&hours=`   | Per-room time series                               |
+| POST   | `/api/radiator/<room>/set`    | Set a room's target temperature (CSRF-protected)   |
+| GET    | `/api/csrf-token`             | CSRF token for the SPA to send on POSTs            |
 
 ---
 
 ## MQTT topics and payloads
 
-| Direction        | Topic                          | Payload                                                             |
-|------------------|--------------------------------|--------------------------------------------------------------------|
-| Sensor → system  | `home/<room>/airquality`       | `{room, timestamp, co2, pm25, voc, temperature, humidity}`         |
-| TRV → system     | `home/<room>/radiator/state`   | `{room, timestamp, current_temp, target_temp, valve, mode}`       |
-| System → TRV     | `home/<room>/radiator/set`     | `{target_temp}`                                                     |
+| Direction        | Topic                          | Payload                                                       |
+|------------------|--------------------------------|--------------------------------------------------------------|
+| Sensor → system  | `home/<room>/airquality`       | `{room, timestamp, co2, pm25, voc, temperature, humidity}`   |
+| TRV → system     | `home/<room>/radiator/state`   | `{room, timestamp, current_temp, target_temp, valve, mode}`  |
+| System → TRV     | `home/<room>/radiator/set`     | `{target_temp}`                                              |
 
 Real hardware (ESPHome devices, or Zigbee TRVs bridged via Zigbee2MQTT) publishes and accepts the same topics.
 
@@ -179,21 +195,19 @@ Real hardware (ESPHome devices, or Zigbee TRVs bridged via Zigbee2MQTT) publishe
 
 ## Configuration
 
-Set via environment variables (defaults shown):
+Backend environment variables (defaults shown):
 
-| Variable                        | Default                      | Purpose                                      |
-|---------------------------------|------------------------------|----------------------------------------------|
-| `FLASK_SECRET_KEY`              | *(required)*                 | Flask session signing key                    |
-| `BASIC_AUTH_USER` / `_PASS`     | *(required for `/latest_data`)* | Basic auth for the latest-data endpoint   |
-| `REDIS_URL`                     | `memory://`                  | Rate-limiter storage                         |
-| `MQTT_HOST` / `MQTT_PORT`       | `localhost` / `1883`         | Broker address                               |
-| `MQTT_TLS`                      | `false`                      | Enable TLS to the broker                     |
-| `MQTT_USERNAME` / `_PASSWORD`   | *(unset)*                    | Broker credentials                           |
-| `OLLAMA_URL` / `OLLAMA_MODEL`   | `http://localhost:11434` / `llama3.2:3b` | Local LLM for summaries          |
-| `AI_INTERVAL` / `AI_HISTORY_HOURS` | `300` / `6`               | AI worker cadence and history window         |
-| `MOCK_INTERVAL` / `MOCK_ROOMS`  | `5` / `living_room,bedroom,office` | Mock publisher settings                |
+| Variable                        | Default                      | Purpose                             |
+|---------------------------------|------------------------------|-------------------------------------|
+| `FLASK_SECRET_KEY`              | *(required)*                 | Flask session signing key           |
+| `REDIS_URL`                     | `memory://`                  | Rate-limiter storage                |
+| `MQTT_HOST` / `MQTT_PORT`       | `localhost` / `1883`         | Broker address                      |
+| `MQTT_TLS`                      | `false`                      | Enable TLS to the broker            |
+| `OLLAMA_URL` / `OLLAMA_MODEL`   | `http://localhost:11434` / `llama3.2:3b` | Local LLM for summaries |
+| `AI_INTERVAL` / `AI_HISTORY_HOURS` | `300` / `6`               | AI worker cadence and history window |
+| `MOCK_INTERVAL` / `MOCK_ROOMS`  | `5` / `living_room,bedroom,office` | Mock settings                 |
 
-The database connection is read from `backend/config/db_config.yaml`.
+Docker Compose reads `POSTGRES_USER`, `POSTGRES_PASSWORD`, and `POSTGRES_DB` from `app/.env` (gitignored). The backend reads its database connection from `app/backend/config/db_config.yaml` (gitignored); its password must match `POSTGRES_PASSWORD`.
 
 ---
 
