@@ -1,506 +1,70 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Sensor Data</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    
+    <title>Home Air Quality</title>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
-            color: white;
+        :root {
+            --good: #2e7d32; --good-bg: #e6f4ea;
+            --moderate: #b26a00; --moderate-bg: #fdf3e2;
+            --poor: #c62828; --poor-bg: #fdecea;
+            --unknown: #607d8b; --unknown-bg: #eceff1;
         }
-        header {
-            background-color: transparent;
-            padding: 20px;
-            text-align: center;
-        }
-        .container {
-            padding: 20px;
-            text-align: center;
-        }
-        h1, h2 {
-            font-weight: 600;
-            margin: 10px 0;
-        }
-        p {
-            font-size: 16px;
-            line-height: 1.5;
-            font-weight: 300;
-        }
-        .button {
-            padding: 10px 20px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 8px;
-            background-color: #f472b6;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            font-weight: 400;
-            display: inline-block;
-            text-decoration: none;
-        }
-        .button:hover {
-            background-color: #ec4899;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .sensor-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-        }
-        .sensor-box {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 10px;
-        padding: 20px;
-        width: 200px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        }   
-        .sensor-label {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .sensor-data {
-            font-weight: normal;
-        }
-
-        @media (max-width: 600px) {
-            .sensor-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            .sensor-box {
-                width: 90%;
-            }
-        }
-        .green { color: green; }
-        .yellow { color: orange; }
-        .red { color: red; }
-
-        @media (max-width: 600px) {
-            .sensor-container {
-                flex-direction: column;
-                align-items: center;
-            }
-            .sensor-box {
-                width: 90%;
-            }
-        }
-        .sensor-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-        }
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-        .logo {
-            max-width: 100%;
-            height: auto;
-        }
-        @media (min-width: 768px) {
-            .logo {
-                max-width: 800px;
-            }
-        }
-        @media (max-width: 768px) {
-            .logo {
-                max-width: 70%;
-            }
-        }
-        @media (max-width: 480px) {
-            .logo {
-                max-width: 50%;
-            }
-        }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f5f7fa; color: #1b1f24; }
+        header { padding: 20px 24px; border-bottom: 1px solid #e3e8ef; background: #fff; }
+        header h1 { margin: 0; font-size: 20px; }
+        header p { margin: 4px 0 0; color: #5b6472; font-size: 13px; }
+        .container { padding: 24px; max-width: 1100px; margin: 0 auto; }
+        .room { background: #fff; border: 1px solid #e3e8ef; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+        .room h2 { margin: 0 0 12px; font-size: 16px; text-transform: capitalize; }
+        .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+        .metric { border-radius: 8px; padding: 12px; border: 1px solid transparent; }
+        .metric .label { font-size: 12px; color: #5b6472; }
+        .metric .value { font-size: 22px; font-weight: 600; margin-top: 4px; }
+        .metric .unit { font-size: 12px; font-weight: 400; color: #5b6472; }
+        .good { background: var(--good-bg); border-color: var(--good); color: var(--good); }
+        .moderate { background: var(--moderate-bg); border-color: var(--moderate); color: var(--moderate); }
+        .poor { background: var(--poor-bg); border-color: var(--poor); color: var(--poor); }
+        .unknown { background: var(--unknown-bg); border-color: var(--unknown); color: var(--unknown); }
+        .nav a { margin-right: 16px; color: #1a73e8; text-decoration: none; font-size: 14px; }
+        .empty { color: #5b6472; }
     </style>
-
-</head>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Sensor Data</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css', v=version) }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css', v=version) }}">
+    <script>
+        // Server renders the latest readings; refresh periodically.
+        setTimeout(function () { location.reload(); }, 30000);
+    </script>
 </head>
 <body>
     <header>
-        <div class="header-content">
+        <h1>Home Air Quality</h1>
+        <p>Live indoor air-quality readings per room</p>
+        <div class="nav">
+            <a href="/plots">History</a>
+            <a href="/contact">Contact</a>
         </div>
     </header>
     <div class="container">
-        <section>
-            <h2>Smart Ventilation System</h2>
-            <p>Real-time temperature, humidity, and CO2 readings.</p>
-            <h2>Indoor Air Monitoring</h2>
-            <p>The system monitors indoor air and generates ventilation recommendations.</p>
-        </section>
-        
-        <section>
-            <h2>Live Sensor Data</h2>
-            <div class="sensor-container">
-                {% macro determine_class(value, low_threshold, high_threshold) %}
-                    {% set numeric_value = value|float %}
-                    {% if numeric_value < low_threshold %}
-                        green
-                    {% elif numeric_value <= high_threshold %}
-                        yellow
-                    {% else %}
-                        red
-                    {% endif %}
-                {% endmacro %}
-                
-                {% macro add_emoji(value, low_threshold, high_threshold) %}
-                    {% set numeric_value = value|float %}
-                    {% if numeric_value < low_threshold %}
-                        📉
-                    {% elif numeric_value > high_threshold %}
-                        📈
-                    {% else %}
-                        ➖
-                    {% endif %}
-                {% endmacro %}
-            
-                {% if sensor_data %}
-                    <div class="sensor-box">
-                        <strong>Date and Time</strong>
-                        <p>If the displayed date and time do not match the current time, click the "Follow Recommendations" button one or more times to resync.</p>
-                        <br>
-                        <div class="sensor-data">{{ sensor_data.get('time', ['Currently unavailable'])[-1] }}</div>
-                    </div>
-                    <div class="sensor-box {{ determine_class(sensor_data.get('temperature', [22])[-1], 20, 21) }}">
-                        <strong>Indoor Temperature</strong>
-                        <br>
-                        <div class="sensor-data">
-                            {{ sensor_data.get('temperature', ['Currently unavailable'])[-1] }} °C
-                            {{ add_emoji(sensor_data.get('temperature', [22])[-1], 20, 21) }}
-                        </div>
-                        {% if sensor_data.get('temperature', [22])[-1] > 25 %}
-                            <p style="color: red; font-weight: bold;">
-                                Temperature exceeds 25 °C.
-                            </p>
-                        {% endif %}
-                    </div>
-                    <div class="sensor-box {{ determine_class(sensor_data.get('humidity', [61])[-1], 50, 60) }}">
-                        <strong>Humidity</strong>
-                        <br>
-                        <div class="sensor-data">
-                            {{ sensor_data.get('humidity', ['Currently unavailable'])[-1] }} %
-                            {{ add_emoji(sensor_data.get('humidity', [61])[-1], 50, 60) }}
+        {% if rooms %}
+            {% for room in rooms %}
+            <div class="room">
+                <h2>{{ room.room.replace('_', ' ') }}</h2>
+                <div class="metrics">
+                    {% for m in metrics %}
+                    <div class="metric {{ room.status[m] }}">
+                        <div class="label">{{ metric_meta[m][0] }}</div>
+                        <div class="value">
+                            {% if room[m] is not none %}{{ room[m] }}{% else %}&ndash;{% endif %}
+                            <span class="unit">{{ metric_meta[m][1] }}</span>
                         </div>
                     </div>
-                    <div class="sensor-box {{ determine_class(sensor_data.get('co2', [1001])[-1], 800, 1000) }}">
-                        <strong>CO2 Concentration</strong>
-                        <br>
-                        <div class="sensor-data">
-                            {{ sensor_data.get('co2', ['Currently unavailable'])[-1] }} ppm
-                            {{ add_emoji(sensor_data.get('co2', [1001])[-1], 800, 1000) }}
-                        </div>
-                        {% if sensor_data.get('co2', [1001])[-1] > 1500 %}
-                            <p style="color: red; font-weight: bold;">
-                                CO2 concentration is very high.
-                            </p>
-                        {% endif %}
-                    </div>
-                    <div class="sensor-box {{ determine_class(sensor_data.get('tvoc', [501])[-1], 400, 500) }}">
-                        <strong>TVOC Concentration (Volatile Organic Compounds)</strong>
-                        <br>
-                        <div class="sensor-data">
-                            {{ sensor_data.get('tvoc', ['Currently unavailable'])[-1] }} µg/m³
-                            {{ add_emoji(sensor_data.get('tvoc', [501])[-1], 400, 500) }}
-                        </div>
-                    </div>
-                    <div class="sensor-box {{ determine_class(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}">
-                        <strong>Outdoor Temperature</strong>
-                        <br>
-                        <div class="sensor-data">
-                            {{ sensor_data.get('ambient_temp', ['Currently unavailable'])[-1] }} °C
-                            {{ add_emoji(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}
-                        </div>
-                    </div>
-
-                    <div class="sensor-box">
-                        <strong>System Recommendation</strong>
-                        <br><br>
-                        <div class="sensor-data" id="logistic-regression-result">
-                            {% set lr_prediction = predictions.get('Logistic Regression', None) %}
-                            {% if lr_prediction == 0 %}
-                                <span style="color: darkblue; font-weight: bold;">Keep the windows closed.</span>
-                                <br><br>
-                                {% if predictions.get('prediction_time', None) %}
-                                    <div class="suggestion-time">
-                                        Recommendation generated at {{ predictions.get('prediction_time') }}.
-                                    </div>
-                                {% endif %}
-                            {% elif lr_prediction == 1 %}
-                                <span style="color: red; font-weight: bold;">Open the windows.</span>
-                                <br><br>
-                                {% if predictions.get('prediction_time', None) %}
-                                    <div class="suggestion-time">
-                                        Recommendation generated at {{ predictions.get('prediction_time') }}.
-                                    </div>
-                                {% endif %}
-                            {% else %}
-                                {{ "No recommendations available." }}
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="sensor-box" id="random-forest-div">
-                        <strong>Required ventilation time</strong>
-                        <br><br>
-                        <div class="sensor-data" id="random-forest-value">
-                            {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
-                            {% set lr_prediction_forest = predictions.get('Random Forest', None) %}
-                            {% if lr_prediction_logistic == 1 %}
-                                {% set forest_prediction = lr_prediction_forest|float %}
-                                {% set truncated_forest_prediction = ('%.0f' | format(forest_prediction))|int %}
-                                {% set positive_forest_prediction = truncated_forest_prediction|abs %}
-                                {% if truncated_forest_prediction == 0 %}
-                                    {{ 1 }} minute
-                                {% else %}
-                                    {{ truncated_forest_prediction }} minutes
-                                {% endif %}
-                                <br><br>
-                                {% if predictions.get('prediction_time', None) %}
-                                    <div class="suggestion-time">
-                                        Recommendation generated at {{ predictions.get('prediction_time') }}.
-                                    </div>
-                                {% endif %}
-                            {% else %}
-                                {{ "No recommendations available." }}
-                            {% endif %}
-                        </div>
-                    </div>                    
-                {% else %}
-                    <div class="sensor-box">No sensor data available</div>
-                {% endif %}
-                <div class="sensor-box">
-                    <br>
-                    <div class="sensor-data">
-                        Recommendations are updated every 10 minutes.
-                        <br><br>
-                        Dashboard data is cleared every hour.
-                        <br><br>
-                        <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Open Dashboard</button>
-                    </div>                    
-                </div>                
-            <p><a href="/feedback" class="button">Send Feedback</a></p>
-            
-        </section>
-        
-        <section>
-            <h2>Indoor Climate Leaderboard</h2>
-            <p>Shows how indoor climate data changes after the system's recommendations are applied.</p>
-            <p>Compare air quality and indoor climate before and after.</p>
-            <form method="post" action="/leaderboard">
-                <button type="submit" class="button">Follow Recommendations</button>
-            </form>
-        </section>
-
-        <section>
-            <h2>Contact</h2>
-            <p>Contact us with questions or feedback.</p>
-            <button class="button" onclick="window.location.href=`{{ url_for('contact') }}`;">Contact</button>
-        </section>              
-        
-        <section style="text-align: center;">
-            <h2>Customize Button Style</h2>
-            <p>Change the color of the page buttons.</p>
-            <button class="button" onclick="openDesignModal()">Customize Button Style</button>
-        </section>
-
-        <div id="designModal" class="modal">
-            <div class="modal-content">
-                <h2>Select a Theme</h2>
-                <button class="button" onclick="setTheme('theme-light')">Light Theme</button>
-                <button class="button" onclick="setTheme('theme-dark')">Dark Theme</button>
-                <button class="button" onclick="closeDesignModal()">Close</button>
+                    {% endfor %}
+                </div>
             </div>
-        </div>
-
-        <div id="designModal" class="modal">
-            <div class="modal-content">
-                <span onclick="closeModal('designModal')" style="float:right; cursor:pointer;">&times;</span>
-                <h2>Select a Theme</h2>
-                <button class="button" onclick="setTheme('theme-light')">Light Theme</button>
-                <button class="button" onclick="setTheme('theme-dark')">Dark Theme</button>
-            </div>
-        </div>
-
-        <section>
-            <h2>Weitere Informationen</h2>
-            <p>Open the dashboard to view detailed sensor values.</p>
-            <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">View Sensor Data Dashboard</button>
-        </section>                   
+            {% endfor %}
+        {% else %}
+            <p class="empty">No sensor data yet. Start the mock publisher (or a real sensor) and this page will populate.</p>
+        {% endif %}
     </div>
-
-
-    <script>
-
-        function updateTextColor() {
-            var bodyBackgroundColor = document.body.style.backgroundColor;
-            var bodyColor = document.body.style.color;
-            if (bodyBackgroundColor === '#333') {
-                // Dunkler Hintergrund, Text auf helle Farbe setzen
-                document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
-                    element.style.color = '#fff';
-                });
-            } else {
-                // Light background; set text to a dark color
-                document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
-                    element.style.color = '#333';
-                });
-            }
-        }
-
-        // Apply dark mode by default on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            selectDesign('dark'); // Apply dark mode initially
-        });
-
-        function updatePredictions() {
-            fetch("/predictions?nocache=" + new Date().getTime())  // Cache-busting
-                .then(response => response.json())
-                .then(predictions => {
-                    // Process the predictions
-                    document.getElementById("logistic-regression").innerText = predictions["Logistic Regression"] || "N/A";
-                    if (predictions["Logistic Regression"] == 1) {
-                        document.getElementById("random-forest-div").style.display = 'block';
-                        document.getElementById("random-forest-value").innerText = predictions["Random Forest"];
-                    } else {
-                        document.getElementById("random-forest-div").style.display = 'none';
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching predictions:", error);
-                });
-        }
-
-        // Set the theme
-        function setTheme(themeName) {
-            localStorage.setItem('theme', themeName);
-            document.documentElement.className = themeName;
-        }
-
-        // Toggle between light and dark mode
-        function toggleTheme() {
-            if (localStorage.getItem('theme') === 'theme-dark') {
-                setTheme('theme-light');
-            } else {
-                setTheme('theme-dark');
-            }
-        }
-
-        // IIFE to set the theme on init
-        (function () {
-            if (localStorage.getItem('theme') === 'theme-dark') {
-                setTheme('theme-dark');
-            } else {
-                setTheme('theme-light');
-            }
-        })();
-
-        function showModal(modalId) {
-            document.getElementById(modalId).style.display = 'block';
-        }
-        
-        function closeModal(modalId) {
-            document.getElementById(modalId).style.display = 'none';
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const co2Value = {{ sensor_data.get('co2', [1001])[-1] }};
-            if (co2Value > 2000) {
-                showModal('co2WarningModal');
-            }
-        });
-
-        function setTheme(themeName) {
-            document.body.className = themeName;
-            closeModal('designModal');
-        }
-
-        function showConfirmationModal() {
-            var modal = document.getElementById('confirmModal');
-            modal.style.display = 'block';
-        }
-
-        function pollNewData() {
-            const username = 'admin';
-            const password = 'REDACTED';
-            const headers = new Headers();
-            headers.set('Authorization', 'Basic ' + btoa(username + ":" + password));
-
-            fetch('/latest_data', {
-                method: 'GET',
-                headers: headers,
-                credentials: 'include',
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Data fetched:', data);
-            })
-            .catch(error => {
-                console.error('Error fetching latest data:', error);
-            });
-
-            setTimeout(function() {
-                location.reload();
-            }, 30000);
-        }
-
-        window.onload = function() {
-            pollNewData();
-        };
-
-    </script>
-    <script src="{{ url_for('static', filename='js/theme-handler.js', v=version) }}"></script>
-
-    <div id="co2WarningModal" class="modal">
-        <div class="modal-content">
-            <span onclick="closeModal('co2WarningModal')" style="float:right; cursor:pointer;">&times;</span>
-            <h2 style="color: red;">High CO2 Levels</h2>
-            <p>CO2 concentration is above 2000 ppm.</p> 
-            <p></p>Ventilate the room immediately.</p>
-            <p>Prolonged high CO2 reduces concentration.</p>
-            <button class="button" onclick="closeModal('co2WarningModal')">Dismiss</button>
-        </div>
-    </div>
-    
 </body>
 </html>
