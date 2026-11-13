@@ -6,6 +6,8 @@ instance, since psycopg2 connections are not safe to share across threads.
 """
 import logging
 
+from psycopg2.extras import Json
+
 from database.database_connection import load_config, connect_to_database
 
 CONFIG_PATH = "config/db_config.yaml"
@@ -120,3 +122,52 @@ class Database:
         except Exception as e:
             logging.error("rooms failed: %s", e)
             return []
+
+    def insert_insight(self, room, forecast, anomalies, summary):
+        if not self._ensure():
+            logging.error("insert_insight: no database connection")
+            return
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO insights (room, forecast, anomalies, summary)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (room, Json(forecast), Json(anomalies), summary),
+                )
+            self.conn.commit()
+        except Exception as e:
+            logging.error("insert_insight failed: %s", e)
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+
+    def latest_insights_per_room(self):
+        """Return {room: {generated_at, forecast, anomalies, summary}}."""
+        if not self._ensure():
+            return {}
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT DISTINCT ON (room)
+                        room, generated_at, forecast, anomalies, summary
+                    FROM insights
+                    ORDER BY room, generated_at DESC
+                    """
+                )
+                rows = cur.fetchall()
+            return {
+                r[0]: {
+                    "generated_at": r[1].isoformat() if r[1] else None,
+                    "forecast": r[2] or {},
+                    "anomalies": r[3] or {},
+                    "summary": r[4] or "",
+                }
+                for r in rows
+            }
+        except Exception as e:
+            logging.error("latest_insights_per_room failed: %s", e)
+            return {}
