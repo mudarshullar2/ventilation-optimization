@@ -1,4 +1,4 @@
-from backend.mqtt_client import MQTTClient
+from mqtt_client import MQTTClient
 import logging
 
 mqtt_client = MQTTClient()

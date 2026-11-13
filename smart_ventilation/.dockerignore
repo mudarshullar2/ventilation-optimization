@@ -1,0 +1,5 @@
+**/config/api_config.yaml
+**/config/db_config.yaml
+.venv/
+__pycache__/
+.git/
