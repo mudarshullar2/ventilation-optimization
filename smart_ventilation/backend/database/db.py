@@ -123,6 +123,63 @@ class Database:
             logging.error("rooms failed: %s", e)
             return []
 
+    def insert_radiator_state(self, state):
+        if not self._ensure():
+            logging.error("insert_radiator_state: no database connection")
+            return
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO radiator_state (ts, room, current_temp, target_temp, valve, mode)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    """,
+                    (
+                        state.timestamp,
+                        state.room,
+                        state.current_temp,
+                        state.target_temp,
+                        state.valve,
+                        state.mode,
+                    ),
+                )
+            self.conn.commit()
+        except Exception as e:
+            logging.error("insert_radiator_state failed: %s", e)
+            try:
+                self.conn.rollback()
+            except Exception:
+                pass
+
+    def latest_radiator_per_room(self):
+        """Return {room: {current_temp, target_temp, valve, mode, timestamp}}."""
+        if not self._ensure():
+            return {}
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT DISTINCT ON (room)
+                        room, ts, current_temp, target_temp, valve, mode
+                    FROM radiator_state
+                    ORDER BY room, ts DESC
+                    """
+                )
+                rows = cur.fetchall()
+            return {
+                r[0]: {
+                    "timestamp": r[1].isoformat() if r[1] else None,
+                    "current_temp": r[2],
+                    "target_temp": r[3],
+                    "valve": r[4],
+                    "mode": r[5],
+                }
+                for r in rows
+            }
+        except Exception as e:
+            logging.error("latest_radiator_per_room failed: %s", e)
+            return {}
+
     def insert_insight(self, room, forecast, anomalies, summary):
         if not self._ensure():
             logging.error("insert_insight: no database connection")

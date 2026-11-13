@@ -25,3 +25,15 @@ CREATE TABLE IF NOT EXISTS insights (
     summary      TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_insights_room_ts ON insights (room, generated_at DESC);
+
+-- Radiator (TRV) state over time: current temp, requested target, valve opening.
+CREATE TABLE IF NOT EXISTS radiator_state (
+    id           BIGSERIAL PRIMARY KEY,
+    ts           TIMESTAMPTZ NOT NULL DEFAULT now(),
+    room         TEXT        NOT NULL,
+    current_temp DOUBLE PRECISION,
+    target_temp  DOUBLE PRECISION,
+    valve        DOUBLE PRECISION,
+    mode         TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_radiator_room_ts ON radiator_state (room, ts DESC);
