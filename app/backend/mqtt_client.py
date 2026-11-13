@@ -36,7 +36,11 @@ MQTT_RADIATOR_TOPIC = os.environ.get("MQTT_RADIATOR_TOPIC", "home/+/radiator/sta
 
 
 class MQTTClient:
-    def __init__(self, db=None):
+    def __init__(self, db=None, subscribe=True):
+        # subscribe=True: ingest readings/radiator state (the ingestion worker).
+        # subscribe=False: publish-only (the web app), so multiple web workers
+        # don't each ingest and create duplicate rows.
+        self.subscribe = subscribe
         self.latest = {}           # room -> latest air-quality reading dict
         self.latest_radiator = {}  # room -> latest radiator state dict
         self.db = db if db is not None else Database()
@@ -52,9 +56,12 @@ class MQTTClient:
         if reason_code != 0:
             logging.error("MQTT connection refused: %s (check credentials/ACL)", reason_code)
             return
-        logging.info("MQTT connected; subscribing")
-        self.client.subscribe(MQTT_TOPIC)
-        self.client.subscribe(MQTT_RADIATOR_TOPIC)
+        if self.subscribe:
+            logging.info("MQTT connected; subscribing")
+            self.client.subscribe(MQTT_TOPIC)
+            self.client.subscribe(MQTT_RADIATOR_TOPIC)
+        else:
+            logging.info("MQTT connected (publish-only)")
 
     def on_message(self, client, userdata, msg):
         try:

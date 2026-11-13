@@ -9,4 +9,4 @@ export REDIS_URL="${REDIS_URL:-redis://localhost:6379}"
 # MQTT identity for the backend
 export MQTT_USERNAME="${MQTT_USERNAME:-app}"
 export MQTT_PASSWORD="${MQTT_PASSWORD:-${MQTT_APP_PASSWORD:-}}"
-exec gunicorn -w 1 --threads 4 -b 127.0.0.1:8000 application:app
+exec gunicorn -w "${WEB_WORKERS:-4}" --threads "${WEB_THREADS:-2}" -b 127.0.0.1:8000 application:app
