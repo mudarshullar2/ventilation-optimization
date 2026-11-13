@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Air Quality</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Home Climate</title>
     <style>
         :root {
             --good: #2e7d32; --good-bg: #e6f4ea;
@@ -35,6 +36,15 @@
         .forecast span { margin-right: 14px; white-space: nowrap; }
         .summary { font-size: 13px; color: #33404f; margin-top: 8px; font-style: italic; }
         .badge { display: inline-block; font-size: 11px; font-weight: 600; color: var(--poor); background: var(--poor-bg); border: 1px solid var(--poor); border-radius: 6px; padding: 1px 7px; margin: 0 6px 4px 0; }
+        .radiator { margin-top: 14px; padding-top: 12px; border-top: 1px dashed #e3e8ef; }
+        .radiator .heading { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #5b6472; margin-bottom: 8px; }
+        .rad-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+        .rad-temp { font-size: 22px; font-weight: 600; }
+        .valve { color: #5b6472; font-size: 13px; }
+        .rad-ctrl { display: inline-flex; align-items: center; gap: 10px; }
+        .rad-ctrl button { width: 32px; height: 32px; border: 1px solid #cdd5e0; background: #fff; border-radius: 6px; font-size: 18px; line-height: 1; cursor: pointer; }
+        .rad-ctrl button:hover { background: #f0f3f8; }
+        .rad-target { min-width: 92px; text-align: center; font-size: 14px; font-weight: 600; }
     </style>
     <script>
         // Server renders the latest readings; refresh periodically.
@@ -96,11 +106,47 @@
                     {% if ins.summary %}<div class="summary">{{ ins.summary }}</div>{% endif %}
                 </div>
                 {% endif %}
+                {% set rad = radiators.get(room.room) %}
+                {% if rad %}
+                <div class="radiator">
+                    <div class="heading">Radiator</div>
+                    <div class="rad-row">
+                        <span class="rad-temp">{{ rad.current_temp }}&deg;C</span>
+                        <span class="valve">valve {{ rad.valve }}%{% if rad.mode %} &middot; {{ rad.mode }}{% endif %}</span>
+                        <span class="rad-ctrl">
+                            <button onclick="setTarget('{{ room.room }}', -0.5)">&minus;</button>
+                            <span class="rad-target" id="target-{{ room.room }}" data-target="{{ rad.target_temp }}">Target {{ rad.target_temp }}&deg;C</span>
+                            <button onclick="setTarget('{{ room.room }}', 0.5)">+</button>
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
             </div>
             {% endfor %}
         {% else %}
             <p class="empty">No sensor data yet. Start the mock publisher (or a real sensor) and this page will populate.</p>
         {% endif %}
     </div>
+    <script>
+        const CSRF = document.querySelector('meta[name="csrf-token"]').content;
+        function setTarget(room, delta) {
+            const el = document.getElementById('target-' + room);
+            let target = parseFloat(el.dataset.target) + delta;
+            target = Math.max(5, Math.min(30, Math.round(target * 2) / 2));
+            fetch('/api/radiator/' + room + '/set', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+                body: JSON.stringify({ target_temp: target })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.target_temp !== undefined) {
+                    el.dataset.target = d.target_temp;
+                    el.textContent = 'Target ' + d.target_temp + '°C';
+                }
+            })
+            .catch(e => console.error('set target failed', e));
+        }
+    </script>
 </body>
 </html>

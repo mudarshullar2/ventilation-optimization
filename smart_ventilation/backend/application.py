@@ -18,6 +18,7 @@ import time
 from mqtt_client import MQTTClient
 from database.db import Database
 from sensors.models import METRICS, METRIC_META, classify
+from control.models import clamp_target
 
 logging.basicConfig(level=logging.INFO)
 base_dir = os.path.abspath(os.path.dirname(__file__))
@@ -81,12 +82,16 @@ def index():
             rooms = list(mqtt_client.latest.values())
         rooms = _with_status(sorted(rooms, key=lambda r: r.get("room", "")))
         insights = db.latest_insights_per_room()
+        radiators = db.latest_radiator_per_room()
+        if not radiators:
+            radiators = mqtt_client.latest_radiator
 
         response = make_response(
             render_template(
                 "index.html",
                 rooms=rooms,
                 insights=insights,
+                radiators=radiators,
                 metrics=METRICS,
                 metric_meta=METRIC_META,
                 version=time.time(),
@@ -124,6 +129,21 @@ def plots():
 @require_basic_auth
 def latest_data():
     return jsonify(list(mqtt_client.latest.values()))
+
+
+@app.route("/api/radiator/<room>/set", methods=["POST"])
+def set_radiator(room):
+    """Set a room's target temperature. CSRF-protected (same-origin dashboard)."""
+    data = request.get_json(silent=True) or {}
+    target = data.get("target_temp")
+    if target is None:
+        return jsonify({"error": "target_temp required"}), 400
+    try:
+        target = clamp_target(target)
+    except (TypeError, ValueError):
+        return jsonify({"error": "target_temp must be a number"}), 400
+    mqtt_client.publish_radiator_command(room, target)
+    return jsonify({"room": room, "target_temp": target}), 200
 
 
 @app.route("/contact")
