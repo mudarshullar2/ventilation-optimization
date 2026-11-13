@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live-Sensordaten</title>
+    <title>Live Sensor Data</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     
     <style>
@@ -153,26 +153,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live-Sensordaten</title>
+    <title>Live Sensor Data</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css', v=version) }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css', v=version) }}">
 </head>
 <body>
     <header>
         <div class="header-content">
-            <img src="{{ url_for('static', filename='img/schule_am_schloss_logo.png', v=version) }}" alt="Logo" class="logo">
         </div>
     </header>
     <div class="container">
         <section>
-            <h2>Entdecken Sie das intelligente Lüftungssystem der Schule am Schloss</h2>
-            <p>Erhalten Sie in Echtzeit Einblicke in Temperatur, Luftfeuchtigkeit und CO2-Werte</p>
-            <h2>Für eine frische, gesunde Lernatmosphäre</h2>
-            <p>Das System überwacht die Raumluft und liefert Belüftungsempfehlungen</p>
+            <h2>Smart Ventilation System</h2>
+            <p>Real-time temperature, humidity, and CO2 readings.</p>
+            <h2>Indoor Air Monitoring</h2>
+            <p>The system monitors indoor air and generates ventilation recommendations.</p>
         </section>
         
         <section>
-            <h2>Live-Sensordaten</h2>
+            <h2>Live Sensor Data</h2>
             <div class="sensor-container">
                 {% macro determine_class(value, low_threshold, high_threshold) %}
                     {% set numeric_value = value|float %}
@@ -198,91 +197,91 @@
             
                 {% if sensor_data %}
                     <div class="sensor-box">
-                        <strong>Datum und Uhrzeit</strong>
-                        <p>Falls das Datum und die Uhrzeit nicht mit der aktuellen Zeit übereinstimmen, klicken Sie bitte einmal oder mehrmals auf den Button "Empfehlungen folgen", damit das System die Verzögerung behebt</p>
+                        <strong>Date and Time</strong>
+                        <p>If the displayed date and time do not match the current time, click the "Follow Recommendations" button one or more times to resync.</p>
                         <br>
-                        <div class="sensor-data">{{ sensor_data.get('time', ['Zurzeit nicht verfügbar'])[-1] }}</div>
+                        <div class="sensor-data">{{ sensor_data.get('time', ['Currently unavailable'])[-1] }}</div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('temperature', [22])[-1], 20, 21) }}">
-                        <strong>Innenraumtemperatur</strong>
+                        <strong>Indoor Temperature</strong>
                         <br>
                         <div class="sensor-data">
-                            {{ sensor_data.get('temperature', ['Zurzeit nicht verfügbar'])[-1] }} °C
+                            {{ sensor_data.get('temperature', ['Currently unavailable'])[-1] }} °C
                             {{ add_emoji(sensor_data.get('temperature', [22])[-1], 20, 21) }}
                         </div>
                         {% if sensor_data.get('temperature', [22])[-1] > 25 %}
                             <p style="color: red; font-weight: bold;">
-                                Achtung! Die aktuelle Temperatur übersteigt 25°C, was das Raumklima unangenehm machen könnte
+                                Temperature exceeds 25 °C.
                             </p>
                         {% endif %}
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('humidity', [61])[-1], 50, 60) }}">
-                        <strong>Luftfeuchtigkeit</strong>
+                        <strong>Humidity</strong>
                         <br>
                         <div class="sensor-data">
-                            {{ sensor_data.get('humidity', ['Zurzeit nicht verfügbar'])[-1] }} %
+                            {{ sensor_data.get('humidity', ['Currently unavailable'])[-1] }} %
                             {{ add_emoji(sensor_data.get('humidity', [61])[-1], 50, 60) }}
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('co2', [1001])[-1], 800, 1000) }}">
-                        <strong>CO2 Konzentration</strong>
+                        <strong>CO2 Concentration</strong>
                         <br>
                         <div class="sensor-data">
-                            {{ sensor_data.get('co2', ['Zurzeit nicht verfügbar'])[-1] }} ppm
+                            {{ sensor_data.get('co2', ['Currently unavailable'])[-1] }} ppm
                             {{ add_emoji(sensor_data.get('co2', [1001])[-1], 800, 1000) }}
                         </div>
                         {% if sensor_data.get('co2', [1001])[-1] > 1500 %}
                             <p style="color: red; font-weight: bold;">
-                                Achtung! Die aktuelle CO2-Konzentration ist sehr hoch und kann die Konzentrationsfähigkeit der Schülerinnen und Schüler beeinträchtigen
+                                CO2 concentration is very high.
                             </p>
                         {% endif %}
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('tvoc', [501])[-1], 400, 500) }}">
-                        <strong>TVOC Konzentration (Flüchtige Organische Verbindungen)</strong>
+                        <strong>TVOC Concentration (Volatile Organic Compounds)</strong>
                         <br>
                         <div class="sensor-data">
-                            {{ sensor_data.get('tvoc', ['Zurzeit nicht verfügbar'])[-1] }} µg/m³
+                            {{ sensor_data.get('tvoc', ['Currently unavailable'])[-1] }} µg/m³
                             {{ add_emoji(sensor_data.get('tvoc', [501])[-1], 400, 500) }}
                         </div>
                     </div>
                     <div class="sensor-box {{ determine_class(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}">
-                        <strong>Außentemperatur</strong>
+                        <strong>Outdoor Temperature</strong>
                         <br>
                         <div class="sensor-data">
-                            {{ sensor_data.get('ambient_temp', ['Zurzeit nicht verfügbar'])[-1] }} °C
+                            {{ sensor_data.get('ambient_temp', ['Currently unavailable'])[-1] }} °C
                             {{ add_emoji(sensor_data.get('ambient_temp', [24])[-1], 22, 23) }}
                         </div>
                     </div>
 
                     <div class="sensor-box">
-                        <strong>Systems Empfehlung</strong>
+                        <strong>System Recommendation</strong>
                         <br><br>
                         <div class="sensor-data" id="logistic-regression-result">
                             {% set lr_prediction = predictions.get('Logistic Regression', None) %}
                             {% if lr_prediction == 0 %}
-                                <span style="color: darkblue; font-weight: bold;">Die Fenster sollen geschlossen bleiben 🥶</span>
+                                <span style="color: darkblue; font-weight: bold;">Keep the windows closed.</span>
                                 <br><br>
                                 {% if predictions.get('prediction_time', None) %}
                                     <div class="suggestion-time">
-                                        Diese Empfehlung wurde um {{ predictions.get('prediction_time') }} Uhr erstellt
+                                        Recommendation generated at {{ predictions.get('prediction_time') }}.
                                     </div>
                                 {% endif %}
                             {% elif lr_prediction == 1 %}
-                                <span style="color: red; font-weight: bold;">Die Fenster sollen geöffnet werden ⚠️</span>
+                                <span style="color: red; font-weight: bold;">Open the windows.</span>
                                 <br><br>
                                 {% if predictions.get('prediction_time', None) %}
                                     <div class="suggestion-time">
-                                        Diese Empfehlung wurde um {{ predictions.get('prediction_time') }} Uhr erstellt
+                                        Recommendation generated at {{ predictions.get('prediction_time') }}.
                                     </div>
                                 {% endif %}
                             {% else %}
-                                {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
+                                {{ "No recommendations available." }}
                             {% endif %}
                         </div>
                     </div>
                     
                     <div class="sensor-box" id="random-forest-div">
-                        <strong>Notwendige Zeit zur Lüftung beträgt</strong>
+                        <strong>Required ventilation time</strong>
                         <br><br>
                         <div class="sensor-data" id="random-forest-value">
                             {% set lr_prediction_logistic = predictions.get('Logistic Regression', None) %}
@@ -292,81 +291,80 @@
                                 {% set truncated_forest_prediction = ('%.0f' | format(forest_prediction))|int %}
                                 {% set positive_forest_prediction = truncated_forest_prediction|abs %}
                                 {% if truncated_forest_prediction == 0 %}
-                                    {{ 1 }} Minute!
+                                    {{ 1 }} minute
                                 {% else %}
-                                    {{ truncated_forest_prediction }} Minuten!
+                                    {{ truncated_forest_prediction }} minutes
                                 {% endif %}
                                 <br><br>
                                 {% if predictions.get('prediction_time', None) %}
                                     <div class="suggestion-time">
-                                        Diese Empfehlung wurde um {{ predictions.get('prediction_time') }} Uhr erstellt
+                                        Recommendation generated at {{ predictions.get('prediction_time') }}.
                                     </div>
                                 {% endif %}
                             {% else %}
-                                {{ "Zurzeit sind keine Empfehlungen verfügbar" }}
+                                {{ "No recommendations available." }}
                             {% endif %}
                         </div>
                     </div>                    
                 {% else %}
-                    <div class="sensor-box">Keine Sensordaten verfügbar</div>
+                    <div class="sensor-box">No sensor data available</div>
                 {% endif %}
                 <div class="sensor-box">
                     <br>
                     <div class="sensor-data">
-                        Die Empfehlungen des Systems werden jede 10 Minuten aktualisiert
+                        Recommendations are updated every 10 minutes.
                         <br><br>
-                        Die angezeigten Daten im Dashboard werden jede Stunde gelöscht
+                        Dashboard data is cleared every hour.
                         <br><br>
-                        <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Zum Dashboard</button>
+                        <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Open Dashboard</button>
                     </div>                    
                 </div>                
-            <p><a href="/feedback" class="button">Feedback Senden</a></p>
+            <p><a href="/feedback" class="button">Send Feedback</a></p>
             
         </section>
         
         <section>
-            <h2>Raumklima-Leaderboard</h2>
-            <p>Das Raumklima-Leaderboard zeigt die Entwicklung der Raumklimadaten, 
-                nachdem die Empfehlungen des Systems befolgt wurden</p>
-            <p>So können Sie sehen, wie sich die Luftqualität und das Raumklima verbessern</p>
+            <h2>Indoor Climate Leaderboard</h2>
+            <p>Shows how indoor climate data changes after the system's recommendations are applied.</p>
+            <p>Compare air quality and indoor climate before and after.</p>
             <form method="post" action="/leaderboard">
-                <button type="submit" class="button">Empfehlungen folgen!</button>
+                <button type="submit" class="button">Follow Recommendations</button>
             </form>
         </section>
 
         <section>
-            <h2>Kontakt</h2>
-            <p>Haben Sie Fragen oder Anregungen? Kontaktieren Sie uns gerne</p>
-            <button class="button" onclick="window.location.href=`{{ url_for('contact') }}`;">Kontakt</button>
+            <h2>Contact</h2>
+            <p>Contact us with questions or feedback.</p>
+            <button class="button" onclick="window.location.href=`{{ url_for('contact') }}`;">Contact</button>
         </section>              
         
         <section style="text-align: center;">
-            <h2>Button-Stil Anpassen</h2>
-            <p>Hier können Sie die Farbe der Schaltflächen auf der Seite ändern und nach Ihrem Geschmack anpassen</p>
-            <button class="button" onclick="openDesignModal()">Button-Stil Anpassen</button>
+            <h2>Customize Button Style</h2>
+            <p>Change the color of the page buttons.</p>
+            <button class="button" onclick="openDesignModal()">Customize Button Style</button>
         </section>
 
         <div id="designModal" class="modal">
             <div class="modal-content">
-                <h2>Wählen Sie ein Design</h2>
-                <button class="button" onclick="setTheme('theme-light')">Helles Design</button>
-                <button class="button" onclick="setTheme('theme-dark')">Dunkles Design</button>
-                <button class="button" onclick="closeDesignModal()">Schließen</button>
+                <h2>Select a Theme</h2>
+                <button class="button" onclick="setTheme('theme-light')">Light Theme</button>
+                <button class="button" onclick="setTheme('theme-dark')">Dark Theme</button>
+                <button class="button" onclick="closeDesignModal()">Close</button>
             </div>
         </div>
 
         <div id="designModal" class="modal">
             <div class="modal-content">
                 <span onclick="closeModal('designModal')" style="float:right; cursor:pointer;">&times;</span>
-                <h2>Wählen Sie Ihr Design</h2>
-                <button class="button" onclick="setTheme('theme-light')">Helles Design</button>
-                <button class="button" onclick="setTheme('theme-dark')">Dunkles Design</button>
+                <h2>Select a Theme</h2>
+                <button class="button" onclick="setTheme('theme-light')">Light Theme</button>
+                <button class="button" onclick="setTheme('theme-dark')">Dark Theme</button>
             </div>
         </div>
 
         <section>
             <h2>Weitere Informationen</h2>
-            <p>Besuchen Sie unser Dashboard, um detaillierte Sensorwerte zu visualisieren.</p>
+            <p>Open the dashboard to view detailed sensor values.</p>
             <button class="button" onclick="window.location.href=`{{ url_for('plots') }}`;">Sensor Werte als Dashboard anzeigen</button>
         </section>                   
     </div>
@@ -383,16 +381,16 @@
                     element.style.color = '#fff';
                 });
             } else {
-                // Heller Hintergrund, Text auf dunkle Farbe setzen
+                // Light background; set text to a dark color
                 document.querySelectorAll('p, h1, h2, h3, h4, h5, h6').forEach(function(element) {
                     element.style.color = '#333';
                 });
             }
         }
 
-        // Dunkler Modus standardmäßig beim Laden der Seite anwenden
+        // Apply dark mode by default on page load
         document.addEventListener('DOMContentLoaded', function() {
-            selectDesign('dark'); // Dunklen Modus anfangs anwenden
+            selectDesign('dark'); // Apply dark mode initially
         });
 
         function updatePredictions() {
@@ -413,13 +411,13 @@
                 });
         }
 
-        // Funktion zum Festlegen eines Themas
+        // Set the theme
         function setTheme(themeName) {
             localStorage.setItem('theme', themeName);
             document.documentElement.className = themeName;
         }
 
-        // Funktion zum Umschalten zwischen Hell- und Dunkelmodus
+        // Toggle between light and dark mode
         function toggleTheme() {
             if (localStorage.getItem('theme') === 'theme-dark') {
                 setTheme('theme-light');
@@ -428,7 +426,7 @@
             }
         }
 
-        // Sofort aufgerufene Funktion zum Festlegen des Themas beim Initialisieren
+        // IIFE to set the theme on init
         (function () {
             if (localStorage.getItem('theme') === 'theme-dark') {
                 setTheme('theme-dark');
@@ -463,10 +461,10 @@
         }
 
         function pollNewData() {
-            const benutzername = 'admin';
-            const passwort = 'REDACTED';
+            const username = 'admin';
+            const password = 'REDACTED';
             const headers = new Headers();
-            headers.set('Authorization', 'Basic ' + btoa(benutzername + ":" + passwort));
+            headers.set('Authorization', 'Basic ' + btoa(username + ":" + password));
 
             fetch('/latest_data', {
                 method: 'GET',
@@ -496,11 +494,11 @@
     <div id="co2WarningModal" class="modal">
         <div class="modal-content">
             <span onclick="closeModal('co2WarningModal')" style="float:right; cursor:pointer;">&times;</span>
-            <h2 style="color: red;">Achtung! Hohe CO2-Werte!</h2>
-            <p>Die aktuelle CO2-Konzentration ist über 2000 ppm und stellt eine Gefahr für die Gesundheit von Schülern und Lehrern dar!</p> 
-            <p></p>Bitte sofort Maßnahmen zur Belüftung ergreifen</p>
-            <p>Eine hohe CO2-Belastung beeinträchtigt auch die Lernatmosphäre erheblich</p>
-            <button class="button" onclick="closeModal('co2WarningModal')">Verstanden</button>
+            <h2 style="color: red;">High CO2 Levels</h2>
+            <p>CO2 concentration is above 2000 ppm.</p> 
+            <p></p>Ventilate the room immediately.</p>
+            <p>Prolonged high CO2 reduces concentration.</p>
+            <button class="button" onclick="closeModal('co2WarningModal')">Dismiss</button>
         </div>
     </div>
     

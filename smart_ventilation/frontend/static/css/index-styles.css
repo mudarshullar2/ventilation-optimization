@@ -1,19 +1,17 @@
-/* Header-Stile anpassen */
 header {
-    background-color: #f7eef9; /* Hellviolett */
+    background-color: #f7eef9;
     padding: 20px;
     text-align: center;
 }
 
 h1 {
     font-size: 36px;
-    color: #3e167d; /* Dunkelviolett */
+    color: #3e167d;
     text-align: center;
 }
 
-/* weitere Stile zu Abschnitten hinzufügen */
 section {
-    background-color: #ffffff; /* Weißer Hintergrund */
+    background-color: #ffffff;
     padding: 20px;
     margin-bottom: 20px;
     border-radius: 10px;
@@ -23,22 +21,20 @@ section {
 
 h2 {
     font-size: 24px;
-    color: #3e167d; /* Dunkelviolett */
+    color: #3e167d;
     text-align: center;
 }
 
-/* Stil für Sensor-Datenkarten */
 .card {
-    background-color: #e2f5fb; /* Hellblau */
+    background-color: #e2f5fb;
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-/* Button-Stile */
 .button {
-    background-color: #ff7f50; /* Koralle */
+    background-color: #ff7f50;
     color: #fff;
     border: none;
     padding: 10px 20px;
@@ -50,19 +46,17 @@ h2 {
 }
 
 .button:hover {
-    background-color: #ff6347; /* Tomato */
+    background-color: #ff6347;
 }
 
-/* Formularstile */
 form {
     margin-bottom: 10px;
 }
 
-/* Benutzerdefinierte Warnungen */
 .alert {
     padding: 15px;
-    background-color: #ffe4e1; /* Blassrosa */
-    color: #ff6347; /* Tomato */
+    background-color: #ffe4e1;
+    color: #ff6347;
     border-radius: 5px;
     margin-bottom: 10px;
 }

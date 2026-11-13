@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Kontaktieren Sie uns</title>
+    <title>Contact Us</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/contact-styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index-styles.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
@@ -43,7 +43,7 @@
             margin-top: 20px;
             border: none;
             border-radius: 8px;
-            background-color: #f472b6; /* Pink button */
+            background-color: #f472b6;
             color: white;
             cursor: pointer;
             transition: background-color 0.3s ease;
@@ -52,7 +52,7 @@
             text-decoration: none;
         }
         .button:hover {
-            background-color: #ec4896; /* Darker pink on hover */
+            background-color: #ec4896;
         }
         img {
             width: 100%;
@@ -87,21 +87,15 @@
 </head>
 <body>
     <header>
-        <img src="{{ url_for('static', filename='img/stadtwerke_potsdam_logo.png') }}" alt="Stadtwerke Potsdam GmbH Logo">
     </header>
     <div class="container">
-        <h1>Kontaktieren Sie uns</h1>
-        <p><strong>Haben Sie irgendwelche Fragen oder Beschwerden? Dann schreiben Sie uns unter:</strong></p>
+        <h1>Contact Us</h1>
+        <p><strong>Have any questions or complaints? Write to us at:</strong></p>
         <div class="contact-card">
-            <h2>Andreas Becker</h2>
-            <p class="sub-title">Stadtwerke Potsdam</p>
-            <p><a href="mailto:Andreas.Becker@swp-potsdam.de">Andreas.Becker@swp-potsdam.de</a></p>
+            <h2>Contact</h2>
+            <p><a href="mailto:contact@example.com">contact@example.com</a></p>
         </div>
-        <div class="contact-card">
-            <h2>Mudar Shullar</h2>
-            <p><a href="mailto:shullar@uni-potsdam.de">shullar@uni-potsdam.de</a></p>
-        </div>
-        <a href="/" class="button">Zurück zur Startseite</a>
+        <a href="/" class="button">Back to Home</a>
     </div>
 </body>
 </html>

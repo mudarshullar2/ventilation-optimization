@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raumklima-Leaderboard</title>
+    <title>Indoor Climate Leaderboard</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body, html {
@@ -170,18 +170,18 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center mb-4">Raumklima-Leaderboard</h1>
+        <h1 class="text-center mb-4">Indoor Climate Leaderboard</h1>
 
-        <!-- Zurück-Button -->
-        <button onclick="window.location.href='/'" class="button mb-4">Zurück zur Hauptseite</button>
+        <!-- Back button -->
+        <button onclick="window.location.href='/'" class="button mb-4">Back to Home</button>
 
         <tr id="progress-row">
             <td colspan="4">
                 <p class="text-center" style="color: red; font-weight: bold;">
-                    Dieser Vorgang dauert ungefähr fünf Minuten
+                    This process takes approximately five minutes.
                 </p>
                 <p class="text-center" style="color: red; font-weight: bold;">
-                    Bitte schließen Sie diese Seite nicht
+                    Do not close this page.
                 </p>
                 <div class="progress">
                     <div id="progress-bar" class="progress-bar"></div>
@@ -190,13 +190,13 @@
         </tr>
     
         {% if not error %}
-        <h2>Raumklimadaten vor der Empfehlung des Systems</h2>
+        <h2>Indoor Climate Data Before Recommendation</h2>
         <table class="table table-striped">
             <thead class="table-dark">
                 <tr>
-                    <th>CO2 Konzentration (ppm)</th>
-                    <th>Innenraumtemperatur (°C)</th>
-                    <th>Luftfeuchtigkeit (%)</th>
+                    <th>CO2 Concentration (ppm)</th>
+                    <th>Indoor Temperature (°C)</th>
+                    <th>Humidity (%)</th>
                 </tr>
             </thead>
             <tbody id="current-data-body">
@@ -210,19 +210,19 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="3">Keine Daten verfügbar.</td>
+                        <td colspan="3">No data available.</td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
     
-        <h2>Raumklimadaten nach der Empfehlung des Systems</h2>
+        <h2>Indoor Climate Data After Recommendation</h2>
         <table class="table table-striped">
             <thead class="table-dark">
                 <tr>
-                    <th>CO2 Konzentration (ppm)</th>
-                    <th>Innenraumtemperatur (°C)</th>
-                    <th>Luftfeuchtigkeit (%)</th>
+                    <th>CO2 Concentration (ppm)</th>
+                    <th>Indoor Temperature (°C)</th>
+                    <th>Humidity (%)</th>
                 </tr>
             </thead>
             <tbody id="future-data-body">
@@ -237,51 +237,47 @@
                     {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="4">Zukünftige Daten werden hier angezeigt, sobald sie verfügbar sind</td>
+                        <td colspan="4">Future data will appear here once available.</td>
                     </tr>
     
                 {% endif %}
             </tbody>
         </table>
     
-        <h2>Vergleichsdaten</h2>
+        <h2>Comparison Data</h2>
         <table class="table table-striped">
             <thead class="table-dark">
                 <tr>
-                    <th>Metrik</th>
-                    <th>Prozentuale Änderungen</th>
+                    <th>Metric</th>
+                    <th>Percentage Change</th>
                 </tr>
             </thead>
             <tbody id="comparison-data-body">
                 <tr>
-                    <th>CO2 Konzentration</th>
+                    <th>CO2 Concentration</th>
                     <td id="comparison-co2">-</td>
                 </tr>
                 <tr>
-                    <th>Innenraumtemperatur</th>
+                    <th>Indoor Temperature</th>
                     <td id="comparison-temperature">-</td>
                 </tr>
                 <tr>
-                    <th><strong>Luftfeuchtigkeit</strong></th>
+                    <th><strong>Humidity</strong></th>
                     <td id="comparison-humidity">-</td>
                 </tr>
             </tbody>
         </table>
         {% else %}
         <div class="error-message">
-            Keine Vorhersagen verfügbar. Bitte versuchen Sie es später erneut.
+            No predictions available. Please try again later.
         </div>
         {% endif %}
     </div>    
     
     <div id="popup" class="modal">
         <div class="modal-content">
-            <h2>Hallo!</h2>
-            <p>Danke, dass Sie der Entscheidung des Systems gefolgt sind. 
-                Gute Raumluftqualität ist wichtig für die Gesundheit aller Anwesenden. 
-                Bitte bleiben Sie auf dieser Seite, 
-                um die Verbesserung der Raumluftqualität in Ihrem Raum vor 
-                und nach der Entscheidung des Systems zu überwachen!</p>
+            <h2>Notice</h2>
+            <p>Keep this page open to monitor air quality before and after the system's recommendation.</p>
             <button onclick="closePopup()" class="button">OK</button>
         </div>
     </div>      
@@ -294,10 +290,10 @@
         const clearSessionDelay = 60 * 1000;
 
         function fetchFutureData() {
-            const benutzername = 'admin';
-            const passwort = 'REDACTED';
+            const username = 'admin';
+            const password = 'REDACTED';
             const headers = new Headers();
-            headers.set('Authorization', 'Basic ' + btoa(benutzername + ":" + passwort));
+            headers.set('Authorization', 'Basic ' + btoa(username + ":" + password));
 
             fetch(`/future_data/${adjustedDateStr}`, {
                 method: 'GET',
@@ -306,22 +302,22 @@
             })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error('Netzwerkantwort war nicht ok ' + response.statusText);
+                    throw new Error('Network response was not ok ' + response.statusText);
                 }
                 return response.json();
             })
             .then(data => {
                 if (data.error) {
-                    console.error('Fehler beim Abrufen der Daten:', data.error);
+                    console.error('Error fetching data:', data.error);
                     return;
                 }
 
                 if (data.co2_values === null && data.temperature === null && data.humidity === null) {
-                    console.info('Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.');
+                    console.info('The sensors are not sending new data. Please wait.');
                     const futureDataBody = document.getElementById('future-data-body');
                     futureDataBody.innerHTML = `
                         <tr>
-                            <td colspan="6">Aktuell senden die Sensoren keine neuen Daten. Bitte warten Sie.</td>
+                            <td colspan="6">The sensors are not sending new data. Please wait.</td>
                         </tr>
                     `;
                     return;
@@ -338,10 +334,10 @@
 
                 updateComparisonData();
 
-                // Sitzung nach Anzeige der zukünftigen Daten löschen
+                // Clear the session after showing future data
                 setTimeout(clearSession, clearSessionDelay);
             })
-            .catch(error => console.error('Fehler beim Abrufen der Daten:', error));
+            .catch(error => console.error('Error fetching data:', error));
         }
 
         function updateComparisonData() {
@@ -371,7 +367,7 @@
                 current_humidity: currentHumidity,
                 future_humidity: futureHumidity,
                 humidity_change: humidityChange,
-                decision: "Fenster öffnen"
+                decision: "Open windows"
             });
         }
 
@@ -393,10 +389,10 @@
                 element.innerHTML += ' <span>👍 Sehr gut!</span>';
             } else if (change > 0) {
                 element.classList.add('positive-feedback');
-                element.innerHTML += ' <span>⚠️ Die Luftqualität wird schlechter. Bitte überprüfen Sie, ob alle Fenster geöffnet sind.</span>';
+                element.innerHTML += ' <span>Air quality is deteriorating. Check that all windows are open.</span>';
             } else {
                 element.classList.add('neutral-feedback');
-                element.innerHTML += ' <span>🔄 Keine Veränderung. Bitte weiterhin aufmerksam bleiben.</span>';
+                element.innerHTML += ' <span>No change. Continue monitoring.</span>';
             }
         }
 
@@ -424,7 +420,7 @@
                     console.log(data);
                     window.location.reload();
                 })
-                .catch(error => console.error('Fehler beim Löschen der Sitzung:', error));
+                .catch(error => console.error('Error clearing the session:', error));
         }
 
         function isErrorMessagePresent() {
@@ -457,7 +453,7 @@
 
                     if (--timer < 0) {
                         clearInterval(interval);
-                        fetchFutureData(); // Abrufen der zukünftigen Daten nach Ablauf des Timers
+                        fetchFutureData(); // Fetch future data after the timer ends
                     }
                 }, 1000);
             }

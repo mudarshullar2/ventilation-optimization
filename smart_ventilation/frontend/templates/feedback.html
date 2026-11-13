@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rückmeldung zur Vorhersage</title>
+    <title>Prediction Feedback</title>
     <style>
         body, html {
             margin: 0;
@@ -79,25 +79,25 @@
 </head>
 <body>
     <div class="container">
-        <h1>Feedback zur Vorhersagegenauigkeit</h1>
+        <h1>Feedback on Prediction Accuracy</h1>
         {% if predictions %}
         <form action="/feedback" method="post">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="radio-group">
                     <label>
-                        <input type="radio" name="accurate_prediction" value="1" checked> Korrekt
+                        <input type="radio" name="accurate_prediction" value="1" checked> Correct
                     </label>
                     <label>
-                        <input type="radio" name="accurate_prediction" value="0"> Nicht korrekt
+                        <input type="radio" name="accurate_prediction" value="0"> Incorrect
                     </label>
                 </div>
-            <button type="submit" class="button">Feedback senden</button>
+            <button type="submit" class="button">Send Feedback</button>
         </form>
         {% else %}
         <div class="error-message">
-            Keine Vorhersagen verfügbar. Bitte versuchen Sie es später erneut.
+            No predictions available. Please try again later.
         </div>
-        <button onclick="window.location.href='/'" class="button">Zurück zur Startseite</button>
+        <button onclick="window.location.href='/'" class="button">Back to Home</button>
         {% endif %}
     </div>
 </body>
