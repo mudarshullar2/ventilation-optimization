@@ -59,7 +59,9 @@ limiter = Limiter(
 )
 
 db = Database()
-mqtt_client = MQTTClient(db=db)
+# Publish-only: ingestion runs in its own process (ingestion.worker), so the web
+# app can run multiple gunicorn workers without duplicating ingestion.
+mqtt_client = MQTTClient(db=db, subscribe=False)
 mqtt_client.initialize()
 
 login_manager = LoginManager(app)

@@ -67,9 +67,11 @@ app/
 │   ├── setup-auth.sh           # generates the hashed password file
 │   └── gen-certs.sh            # generates a CA + server cert for TLS (optional)
 ├── backend/
-│   ├── application.py          # Flask JSON API + auth; serves the built SPA in prod
-│   ├── run.sh                  # production launcher (loads .env, runs gunicorn)
-│   ├── mqtt_client.py          # ingestion + command publish (auth/TLS aware)
+│   ├── application.py          # Flask JSON API + auth (publish-only MQTT); serves the SPA in prod
+│   ├── run.sh                  # production launcher for the web app (gunicorn)
+│   ├── run-ingestion.sh        # production launcher for the ingestion worker
+│   ├── mqtt_client.py          # MQTT client (subscribe to ingest, or publish-only)
+│   ├── ingestion/              # dedicated MQTT ingestion worker (subscribe + persist)
 │   ├── auth/                   # login/session helpers + user management CLI
 │   ├── sensors/                # SensorReading model + mock air-quality publisher
 │   ├── control/                # RadiatorState model + mock TRV
@@ -156,12 +158,17 @@ python -m auth.manage <second-user>
 
 ### 4. Run the services
 
-Each MQTT client authenticates with its own identity (matching the broker ACLs):
+Ingestion runs in its own process, so the web app is publish-only and can run
+multiple workers. Each MQTT client authenticates with its own identity (matching
+the broker ACLs):
 
 ```bash
-# Backend API (identity: app). Dev server:
+# Backend API (identity: app, publish-only). Dev server:
 MQTT_USERNAME=app MQTT_PASSWORD="$MQTT_APP_PASSWORD" \
   FLASK_SECRET_KEY=... REDIS_URL=redis://localhost:6379 python application.py
+
+# Ingestion worker (identity: app) — subscribes and persists
+MQTT_USERNAME=app MQTT_PASSWORD="$MQTT_APP_PASSWORD" python -m ingestion.worker
 
 # Mocks (separate terminals)
 MQTT_USERNAME=sensor MQTT_PASSWORD="$MQTT_SENSOR_PASSWORD" python -m sensors.mock_publisher
@@ -208,18 +215,21 @@ Secrets (`mosquitto/passwd`, `mosquitto/certs/`) are gitignored.
 
 ## Production (gunicorn)
 
-Run the app under gunicorn instead of the Flask dev server. A launcher that loads `.env` is provided:
+Run the app under gunicorn instead of the Flask dev server, with the ingestion
+worker as a separate process. Launchers that load `.env` are provided:
 
 ```bash
 cd app/backend
-./run.sh          # loads .env, binds 127.0.0.1:8000, runs gunicorn -w 1 --threads 4
+./run.sh             # web app: gunicorn, binds 127.0.0.1:8000 (WEB_WORKERS, default 4)
+./run-ingestion.sh   # MQTT ingestion worker (subscribe + persist)
 ```
 
 Notes:
-- **One worker** (`-w 1`): the backend subscribes to MQTT at startup, so multiple workers would create duplicate ingestion. Use threads for concurrency. (To scale out, move ingestion into its own process and run the web app publish-only.)
+- **Ingestion is a separate process** (`run-ingestion.sh`), so the web app is publish-only and runs multiple gunicorn workers safely — no duplicated ingestion.
 - Use a **fixed** `FLASK_SECRET_KEY` (in `.env`) so restarts don't invalidate sessions.
 - Set `COOKIE_SECURE=true` behind HTTPS.
 - Build the SPA (`npm run build`) so Flask serves it on the same port.
+- Run both launchers (plus the AI worker) under a process manager — `systemd` on an always-on Linux host — so they survive reboots.
 
 ---
 
@@ -301,5 +311,4 @@ Compose reads `POSTGRES_*` from `app/.env`; the backend reads its DB connection 
 ## Roadmap
 
 - AI-driven automation linking insights to control (adjust heating by occupancy, air quality, or schedule).
-- Dedicated ingestion process to allow multi-worker scale-out.
 - Time-series storage optimization for long-term history.
