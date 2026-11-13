@@ -1,193 +1,69 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real-Time Sensor Charts</title>
+    <title>Air Quality History</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            width: 100%;
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
-            color: white;
-        }
-        header {
-            background-color: transparent;
-            padding: 20px;
-            text-align: center;
-        }
-        .container {
-            padding: 20px;
-            text-align: center;
-        }
-        h1, h2 {
-            font-weight: 600;
-            margin: 10px 0;
-        }
-        p {
-            font-size: 16px;
-            line-height: 1.5;
-            font-weight: 300;
-        }
-        .button {
-            padding: 10px 20px;
-            margin-top: 20px;
-            border: none;
-            border-radius: 8px;
-            background-color: #f472b6;
-            color: white;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            font-weight: 400;
-            display: inline-block;
-            text-decoration: none;
-        }
-        .button:hover {
-            background-color: #ec4899;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        
-        img {
-            max-width: 100%;
-            height: auto;
-        }
-        @media (max-width: 600px) {
-            h1, h2 {
-                font-size: 20px;
-            }
-            .container {
-                padding: 10px;
-            }
-            .button {
-                width: 100%;
-                padding: 12px;
-                font-size: 16px;
-            }
-        }
-        .plot-container {
-            max-width: 100%;
-            height: auto;
-        }
+        body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: #f5f7fa; color: #1b1f24; }
+        header { padding: 20px 24px; border-bottom: 1px solid #e3e8ef; background: #fff; }
+        header h1 { margin: 0; font-size: 20px; }
+        .container { padding: 24px; max-width: 1100px; margin: 0 auto; }
+        .rooms a { margin-right: 12px; font-size: 14px; text-decoration: none; color: #1a73e8; }
+        .rooms a.active { font-weight: 700; color: #1b1f24; }
+        .plot { background: #fff; border: 1px solid #e3e8ef; border-radius: 10px; margin: 16px 0; padding: 8px; }
+        .nav a { color: #1a73e8; text-decoration: none; font-size: 14px; }
+        .empty { color: #5b6472; }
     </style>
-
-    <script>
-        setTimeout(function(){
-            location.reload();
-        }, 60000);
-    </script>
 </head>
 <body>
     <header>
-        <h1>Real-Time Sensor Data Charts</h1>
+        <h1>Air Quality History &mdash; last 24h</h1>
+        <div class="nav"><a href="/">&larr; Dashboard</a></div>
     </header>
     <div class="container">
-        <div id="co2-plot"></div>
-        <div id="temperature-plot"></div>
-        <div id="humidity-plot"></div>
-        <div id="tvoc-plot"></div>
-        <div id="ambient-temp-plot"></div>
-        <form action="{{ url_for('index') }}" method="GET">
-            <button class="button" type="submit">Back to Home</button>
-        </form>
-    </div>
+        <div class="rooms">
+            {% for r in rooms %}
+                <a href="/plots?room={{ r }}" class="{{ 'active' if r == room else '' }}">{{ r.replace('_', ' ') }}</a>
+            {% endfor %}
+        </div>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            var time_data = {{ time_data | tojson | safe }};
-            var co2_data = {{ co2_data | tojson | safe }};
-            var temperature_data = {{ temperature_data | tojson | safe }};
-            var humidity_data = {{ humidity_data | tojson | safe }};
-            var tvoc_data = {{ tvoc_data | tojson | safe }};
-            var ambient_temp_data = {{ ambient_temp_data | tojson | safe }};
+        {% if history %}
+            <div id="co2-plot" class="plot"></div>
+            <div id="pm25-plot" class="plot"></div>
+            <div id="voc-plot" class="plot"></div>
+            <div id="temperature-plot" class="plot"></div>
+            <div id="humidity-plot" class="plot"></div>
 
-            function plotGraph(plotId, yData, yTitle, highThreshold, lowThreshold, highThresholdLabel, lowThresholdLabel) {
-                if (yData.length === 0 || time_data.length === 0) {
-                    document.getElementById(plotId).innerHTML = `<p>No data available for ${yTitle}</p>`;
-                    return;
+            <script>
+                const history = {{ history | tojson | safe }};
+                const t = history.map(r => r.ts);
+                const meta = {{ metric_meta | tojson | safe }};
+
+                function draw(metric, elementId) {
+                    const y = history.map(r => r[metric]);
+                    Plotly.newPlot(elementId, [{
+                        x: t, y: y, mode: 'lines', type: 'scatter',
+                        name: meta[metric][0],
+                        line: { color: '#1a73e8' }, fill: 'tozeroy',
+                        fillcolor: 'rgba(26,115,232,0.08)'
+                    }], {
+                        title: meta[metric][0] + ' (' + meta[metric][1] + ')',
+                        margin: { t: 40, r: 20, b: 40, l: 50 },
+                        xaxis: { title: 'Time' }
+                    }, { responsive: true });
                 }
 
-                const avgValue = calculateAverage(yData);
-                const minValue = calculateMin(yData);
-                const maxValue = calculateMax(yData);
-
-                var trace = {
-                    x: time_data,
-                    y: yData,
-                    mode: 'none',
-                    type: 'scatter',
-                    name: `${yTitle} (Average: ${avgValue}, Minimum: ${minValue}, Maximum: ${maxValue})`,
-                    fill: 'tozeroy',
-                    fillcolor: 'rgba(173, 216, 230, 0.5)'
-                };
-
-                var highThresholdLine = {
-                    x: time_data,
-                    y: Array(time_data.length).fill(highThreshold),
-                    mode: 'lines',
-                    type: 'scatter',
-                    name: highThresholdLabel,
-                    line: {color: 'red', dash: 'dash'}
-                };
-
-                var lowThresholdLine = {
-                    x: time_data,
-                    y: Array(time_data.length).fill(lowThreshold),
-                    mode: 'lines',
-                    type: 'scatter',
-                    name: lowThresholdLabel,
-                    line: {color: 'blue', dash: 'dash'}
-                };
-
-                Plotly.newPlot(plotId, [trace, highThresholdLine, lowThresholdLine], {
-                    title: yTitle + ' Chart',
-                    xaxis: {title: 'Time'},
-                    yaxis: {title: yTitle + ' Values'}
-                });
-            }
-
-            plotGraph('co2-plot', co2_data, 'CO2', 1000, 500, 'High CO2 Threshold', 'Low CO2 Threshold');
-            plotGraph('temperature-plot', temperature_data, 'Temperature', 21, 19, 'High Temperature Threshold', 'Low Temperature Threshold');
-            plotGraph('humidity-plot', humidity_data, 'Humidity', 60, 30, 'High Humidity Threshold', 'Low Humidity Threshold');
-            plotGraph('tvoc-plot', tvoc_data, 'TVOC', 500, 200, 'High TVOC Threshold', 'Low TVOC Threshold');
-            plotGraph('ambient-temp-plot', ambient_temp_data, 'Outdoor Temperature', 25, 15, 'High Outdoor Temperature Threshold', 'Low Outdoor Temperature Threshold');
-        });
-
-        function calculateAverage(data) {
-            const total = data.reduce((sum, value) => sum + value, 0);
-            return (total / data.length).toFixed(2);
-        }
-
-        function calculateMin(data) {
-            return Math.min(...data).toFixed(2);
-        }
-
-        function calculateMax(data) {
-            return Math.max(...data).toFixed(2);
-        }
-
-    </script>
+                draw('co2', 'co2-plot');
+                draw('pm25', 'pm25-plot');
+                draw('voc', 'voc-plot');
+                draw('temperature', 'temperature-plot');
+                draw('humidity', 'humidity-plot');
+            </script>
+        {% else %}
+            <p class="empty">No history for this room yet.</p>
+        {% endif %}
+    </div>
 </body>
 </html>
